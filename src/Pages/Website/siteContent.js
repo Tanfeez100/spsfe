@@ -19,6 +19,7 @@ export const siteNavLinks = [
   { to: '/', label: 'Home' },
   { to: '/about', label: 'About' },
   { to: '/admission', label: 'Admission' },
+  { to: '/pay-fees', label: 'Pay Fees' },
   { to: '/gallery', label: 'Gallery' },
   { to: '/contact', label: 'Contact' },
 ]

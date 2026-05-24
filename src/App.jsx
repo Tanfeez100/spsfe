@@ -14,6 +14,7 @@ const About = lazy(() => import('./Pages/Website/About'))
 const Contact = lazy(() => import('./Pages/Website/Contact'))
 const Galary = lazy(() => import('./Pages/Website/Galary'))
 const Admission = lazy(() => import('./Pages/Website/Admission'))
+const PublicFeePayment = lazy(() => import('./Pages/Website/PublicFeePayment'))
 
 function Unauthorized() {
   return (
@@ -150,6 +151,7 @@ function App() {
           <Route path="/admission" element={<Admission />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/gallery" element={<Galary />} />
+          <Route path="/pay-fees" element={<PublicFeePayment />} />
           <Route path="/login" element={<AllLogin />} />
           <Route path="/results-portal" element={<ResultsPortal />} />
           <Route path="/result" element={<Results />} />
