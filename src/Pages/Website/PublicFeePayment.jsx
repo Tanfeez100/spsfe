@@ -4,6 +4,7 @@ import SEO from '../../Components/SEO/SEO'
 import {
   buildPublicReceiptUrl,
   createPublicFeeOrder,
+  getPublicFeePaymentStatus,
   lookupPublicFees,
   verifyPublicFeePayment,
 } from '../../Api/publicFees'
@@ -25,15 +26,15 @@ const formatAmount = (value) =>
 
 const normalizeSection = (value) => value.toString().trim().toUpperCase()
 
-const loadRazorpayScript = () =>
+const loadCashfreeScript = () =>
   new Promise((resolve) => {
-    if (window.Razorpay) {
+    if (window.Cashfree) {
       resolve(true)
       return
     }
 
     const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
     script.onload = () => resolve(true)
     script.onerror = () => resolve(false)
     document.body.appendChild(script)
@@ -100,9 +101,9 @@ function PublicFeePayment() {
     setPayLoading(true)
 
     try {
-      const loaded = await loadRazorpayScript()
+      const loaded = await loadCashfreeScript()
       if (!loaded) {
-        throw new Error('Razorpay checkout could not be loaded')
+        throw new Error('Cashfree checkout could not be loaded')
       }
 
       const orderResponse = await createPublicFeeOrder({
@@ -110,62 +111,107 @@ function PublicFeePayment() {
         mobile: form.mobile.trim(),
       })
 
-      const options = {
-        key: orderResponse.razorpay_key_id,
-        amount: orderResponse.order.amount,
-        currency: orderResponse.order.currency,
-        name: schoolProfile.name,
-        description: `Fee payment for ${feeData.student.name}`,
-        order_id: orderResponse.order.id,
-        prefill: {
-          name: feeData.student.name,
-          contact: form.mobile.trim(),
-        },
-        notes: {
-          bill_id: activeBill.bill_id,
-          roll_no: feeData.student.roll_no,
-        },
-        theme: {
-          color: '#0f766e',
-        },
-        handler: async (paymentResult) => {
+      const cashfreeOrderId = orderResponse.order?.id
+      const paymentSessionId = orderResponse.order?.payment_session_id
+
+      if (!cashfreeOrderId || !paymentSessionId) {
+        throw new Error('Payment session could not be created')
+      }
+
+      let completed = false
+
+      const refreshFeeStatus = async () => {
+        const refreshed = await lookupPublicFees({
+          ...form,
+          class: form.class.trim(),
+          section: form.section.trim(),
+          roll_number: form.roll_number.trim(),
+          month: form.month.trim(),
+          mobile: form.mobile.trim(),
+        })
+        setFeeData(refreshed)
+      }
+
+      const completePaymentUi = async (paymentResponse) => {
+        if (completed) return
+        completed = true
+        const url =
+          paymentResponse.receipt_url || buildPublicReceiptUrl(activeBill.bill_id, form.mobile.trim())
+        setReceiptUrl(url)
+        setSuccess(
+          paymentResponse.whatsapp?.sent
+            ? 'Payment successful. Receipt has been sent on WhatsApp.'
+            : 'Payment successful. Receipt is ready to download.'
+        )
+        await refreshFeeStatus()
+        setPayLoading(false)
+      }
+
+      const pollPaymentStatus = async () => {
+        const maxAttempts = 36
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          if (completed) return
+          await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 2500 : 5000))
+
           try {
-            const verifyResponse = await verifyPublicFeePayment({
-              ...paymentResult,
+            const statusResponse = await getPublicFeePaymentStatus(orderResponse.order.id, {
               bill_id: activeBill.bill_id,
               mobile: form.mobile.trim(),
             })
-            const url =
-              verifyResponse.receipt_url || buildPublicReceiptUrl(activeBill.bill_id, form.mobile.trim())
-            setReceiptUrl(url)
-            setSuccess(
-              verifyResponse.whatsapp?.sent
-                ? 'Payment successful. Receipt has been sent on WhatsApp.'
-                : 'Payment successful. Receipt is ready to download.'
-            )
 
-            const refreshed = await lookupPublicFees({
-              ...form,
-              class: form.class.trim(),
-              section: form.section.trim(),
-              roll_number: form.roll_number.trim(),
-              month: form.month.trim(),
-              mobile: form.mobile.trim(),
-            })
-            setFeeData(refreshed)
-          } catch (verifyError) {
-            setError(verifyError?.message || 'Payment verification failed')
-          } finally {
-            setPayLoading(false)
+            if (statusResponse.status === 'paid') {
+              await completePaymentUi(statusResponse)
+              return
+            }
+          } catch (statusError) {
+            if (attempt >= 2) {
+              setError(statusError?.message || 'Unable to check payment status')
+            }
           }
-        },
-        modal: {
-          ondismiss: () => setPayLoading(false),
-        },
+        }
+
+        if (!completed) {
+          setPayLoading(false)
+          setSuccess('Payment status is still pending. Please fetch fee status again after a moment.')
+        }
       }
 
-      const razorpay = new window.Razorpay(options)
-      razorpay.open()
+      const cashfree = window.Cashfree({
+        mode: orderResponse.cashfree_mode || 'sandbox',
+      })
+
+      cashfree
+        .checkout({
+          paymentSessionId,
+          redirectTarget: '_modal',
+        })
+        .then(async (paymentResult = {}) => {
+          if (completed) return
+
+          try {
+            const verifyResponse = await verifyPublicFeePayment({
+              cashfree_order_id: cashfreeOrderId,
+              cf_payment_id:
+                paymentResult?.paymentDetails?.cf_payment_id ||
+                paymentResult?.paymentDetails?.payment_id ||
+                paymentResult?.cf_payment_id ||
+                paymentResult?.payment_id,
+              bill_id: activeBill.bill_id,
+              mobile: form.mobile.trim(),
+            })
+            await completePaymentUi(verifyResponse)
+          } catch (verifyError) {
+            setError(verifyError?.message || 'Payment verification failed')
+            setPayLoading(false)
+          }
+        })
+        .catch(() => {
+          if (!completed) {
+            setSuccess('Checking payment status. Please wait for confirmation.')
+          }
+        })
+
+      pollPaymentStatus()
     } catch (err) {
       setError(err?.message || 'Unable to start payment')
       setPayLoading(false)

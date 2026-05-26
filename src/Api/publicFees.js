@@ -27,8 +27,13 @@ export const verifyPublicFeePayment = async (payload) =>
     'Failed to verify payment'
   )
 
+export const getPublicFeePaymentStatus = async (orderId, payload) =>
+  withPublicErrorHandling(
+    () => publicApi.get(`/api/public-fees/status/${orderId}`, { params: payload }),
+    'Failed to check payment status'
+  )
+
 export const buildPublicReceiptUrl = (billId, mobile) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
   return `${baseUrl}/api/public-fees/receipt/${billId}?mobile=${encodeURIComponent(mobile || '')}`
 }
-
