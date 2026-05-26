@@ -14,16 +14,16 @@
     --ry-brand: #d4ab5b;
     --ry-brand-strong: #b9862f;
     --ry-success: #34d399;
-    --site-bg: #eff6fb;
-    --site-bg-soft: #e7f1f7;
-    --site-surface: rgba(255, 255, 255, 0.82);
+    --site-bg: #f6faff;
+    --site-bg-soft: #eaf4ff;
+    --site-surface: rgba(255, 255, 255, 0.92);
     --site-surface-strong: #ffffff;
-    --site-border: rgba(148, 163, 184, 0.28);
-    --site-text: #0f172a;
-    --site-muted: #475569;
-    --site-primary: #0f172a;
-    --site-accent: #0f766e;
-    --site-accent-soft: #e0f2fe;
+    --site-border: rgba(147, 197, 253, 0.42);
+    --site-text: #0b1d3a;
+    --site-muted: #334b73;
+    --site-primary: #0b1d3a;
+    --site-accent: #1d7ff2;
+    --site-accent-soft: #e8f2ff;
   }
 
   *,
@@ -47,9 +47,9 @@
     text-rendering: optimizeLegibility;
     line-height: 1.55;
     background:
-      radial-gradient(circle at 8% -4%, rgba(212, 171, 91, 0.2), transparent 38%),
-      radial-gradient(circle at 88% 12%, rgba(77, 122, 194, 0.12), transparent 44%),
-      linear-gradient(160deg, #fffef9 0%, #f9f3e7 46%, #f3ead8 100%);
+      radial-gradient(circle at 12% 10%, rgba(191, 226, 255, 0.72), transparent 34%),
+      radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.96), transparent 38%),
+      linear-gradient(145deg, #eef7ff 0%, #f8fbff 54%, #ffffff 100%);
   }
 
   h1,
@@ -89,9 +89,9 @@
     position: relative;
     isolation: isolate;
     background:
-      radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 28%),
-      radial-gradient(circle at 85% 10%, rgba(15, 118, 110, 0.11), transparent 30%),
-      linear-gradient(180deg, #f8fcff 0%, #eff6fb 44%, #f7fafc 100%);
+      radial-gradient(circle at 12% 10%, rgba(191, 226, 255, 0.72), transparent 34%),
+      radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.96), transparent 38%),
+      linear-gradient(145deg, #eef7ff 0%, #f8fbff 54%, #ffffff 100%);
   }
 
   .gps-site-shell {
@@ -110,19 +110,19 @@
   }
 
   .gps-site-panel {
-    border-radius: 1.75rem;
+    border-radius: 1.25rem;
     border: 1px solid var(--site-border);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.78));
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 18px 42px rgba(15, 47, 92, 0.08);
+    backdrop-filter: blur(18px);
   }
 
   .gps-site-panel-muted {
-    border-radius: 1.75rem;
+    border-radius: 1.25rem;
     border: 1px solid var(--site-border);
-    background: linear-gradient(180deg, rgba(240, 249, 255, 0.86), rgba(255, 255, 255, 0.84));
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.06);
-    backdrop-filter: blur(20px);
+    background: rgba(232, 242, 255, 0.72);
+    box-shadow: 0 18px 42px rgba(15, 47, 92, 0.07);
+    backdrop-filter: blur(18px);
   }
 
   .gps-site-label {
@@ -130,10 +130,10 @@
     align-items: center;
     gap: 0.5rem;
     border-radius: 999px;
-    border: 1px solid rgba(8, 145, 178, 0.18);
-    background: rgba(224, 242, 254, 0.9);
+    border: 1px solid rgba(29, 127, 242, 0.24);
+    background: rgba(232, 242, 255, 0.94);
     padding: 0.45rem 0.95rem;
-    color: #0e7490;
+    color: #1d5fb8;
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.16em;
@@ -159,36 +159,36 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #0f172a 0%, #155e75 100%);
+    border-radius: 0.8rem;
+    background: linear-gradient(135deg, #2688ff 0%, #0f6ee8 100%);
     padding: 0.9rem 1.4rem;
     color: #fff;
     font-size: 0.95rem;
     font-weight: 700;
-    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+    box-shadow: 0 14px 30px rgba(29, 127, 242, 0.22);
   }
 
   .gps-site-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.22);
+    box-shadow: 0 16px 34px rgba(29, 127, 242, 0.28);
   }
 
   .gps-site-button-secondary {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.34);
-    background: rgba(255, 255, 255, 0.92);
+    border-radius: 0.8rem;
+    border: 1px solid rgba(147, 197, 253, 0.72);
+    background: rgba(255, 255, 255, 0.72);
     padding: 0.88rem 1.35rem;
-    color: #0f172a;
+    color: #0b1d3a;
     font-size: 0.95rem;
     font-weight: 700;
   }
 
   .gps-site-button-secondary:hover {
-    border-color: rgba(8, 145, 178, 0.26);
-    background: rgba(240, 249, 255, 0.98);
+    border-color: rgba(29, 127, 242, 0.35);
+    background: rgba(232, 242, 255, 0.98);
   }
 
   .gps-site-chip {
@@ -205,7 +205,7 @@
   }
 
   .gps-site-stat {
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     border: 1px solid var(--site-border);
     background: rgba(255, 255, 255, 0.8);
     padding: 1.5rem;
@@ -215,14 +215,14 @@
   .gps-site-photo-frame {
     position: relative;
     overflow: hidden;
-    border-radius: 1.55rem;
+    border-radius: 1rem;
     border: 1px solid rgba(255, 255, 255, 0.75);
     box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
   }
 
   .gps-site-input {
     width: 100%;
-    border-radius: 1rem;
+    border-radius: 0.9rem;
     border: 1px solid rgba(148, 163, 184, 0.32);
     background: rgba(255, 255, 255, 0.96);
     padding: 0.82rem 1rem;
@@ -235,8 +235,8 @@
   }
 
   .gps-site-input:focus {
-    border-color: rgba(8, 145, 178, 0.34);
-    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12);
+    border-color: rgba(29, 127, 242, 0.45);
+    box-shadow: 0 0 0 4px rgba(29, 127, 242, 0.12);
   }
 
   .gps-site-scrollbar {
@@ -256,6 +256,29 @@
   .gps-site-scrollbar::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: rgba(14, 116, 144, 0.55);
+  }
+
+  .gps-site [class*="text-cyan-"],
+  .gps-site [class*="text-emerald-"],
+  .gps-site [class*="text-amber-"] {
+    color: #1d5fb8 !important;
+  }
+
+  .gps-site [class*="border-cyan-"],
+  .gps-site [class*="border-emerald-"],
+  .gps-site [class*="border-amber-"] {
+    border-color: rgba(147, 197, 253, 0.58) !important;
+  }
+
+  .gps-site [class*="bg-cyan-"],
+  .gps-site [class*="bg-emerald-"],
+  .gps-site [class*="bg-amber-"] {
+    background-color: rgba(232, 242, 255, 0.82) !important;
+  }
+
+  .gps-site .bg-slate-50,
+  .gps-site .bg-slate-100 {
+    background-color: rgba(248, 251, 255, 0.88) !important;
   }
 
   .gps-site-marquee-track {
