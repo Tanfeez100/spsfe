@@ -117,8 +117,6 @@ function FeeList({ onViewInvoice, onPayFee }) {
         'Tuition',
         'Exam',
         'Annual',
-        'Computer',
-        'Transport',
         'Prev Due',
         'Total Fee',
         'Paid',
@@ -141,8 +139,6 @@ function FeeList({ onViewInvoice, onPayFee }) {
           parseFloat(fee.tuition_fee) || 0,
           parseFloat(fee.exam_fee) || 0,
           parseFloat(fee.annual_fee) || 0,
-          parseFloat(fee.computer_fee) || 0,
-          parseFloat(fee.transport_fee) || 0,
           parseFloat(fee.previous_due) || 0,
           totalFee,
           paidAmount,
@@ -155,8 +151,6 @@ function FeeList({ onViewInvoice, onPayFee }) {
         tuition: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.tuition_fee) || 0), 0),
         exam: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.exam_fee) || 0), 0),
         annual: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0),
-        computer: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.computer_fee) || 0), 0),
-        transport: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.transport_fee) || 0), 0),
         prevDue: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0),
         totalFee: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0),
         totalPaid: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_paid || f.paid_amount) || 0), 0),
@@ -177,8 +171,6 @@ function FeeList({ onViewInvoice, onPayFee }) {
         totals.tuition,
         totals.exam,
         totals.annual,
-        totals.computer,
-        totals.transport,
         totals.prevDue,
         totals.totalFee,
         totals.totalPaid,
@@ -218,7 +210,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
                 Total: {totalCount} {totalCount === 1 ? 'record' : 'records'}
               </span>
               {statusFilter !== 'all' && filteredFeeList.length !== feeList.length && (
-                <span className="text-xs sm:text-sm text-cyan-200 dark:text-cyan-200 bg-cyan-300/15 dark:bg-cyan-500/20 px-2 sm:px-3 py-1.5 rounded-full font-medium truncate border border-cyan-400/30">
+                <span className="text-xs sm:text-sm text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/20 px-2 sm:px-3 py-1.5 rounded-full font-medium truncate border border-teal-200 dark:border-teal-700/50">
                   Showing: {filteredFeeList.length}
                 </span>
               )}
@@ -279,7 +271,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
               setFeeList([])
               setFilteredFeeList([])
             }}
-            className="w-full px-2 sm:px-4 py-1.5 sm:py-2 text-sm border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 text-slate-700 dark:text-slate-300 hover:text-cyan-200 dark:hover:text-cyan-200 transition-colors"
+            className="w-full px-2 sm:px-4 py-1.5 sm:py-2 text-sm border border-teal-200 dark:border-teal-700/50 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/10 text-teal-700 dark:text-teal-300 transition-colors"
           >
             Reset
           </button>
@@ -304,8 +296,8 @@ function FeeList({ onViewInvoice, onPayFee }) {
                   onClick={() => setStatusFilter('all')}
                   className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${
                     statusFilter === 'all'
-                      ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 hover:text-cyan-200 dark:hover:text-cyan-200 border border-cyan-200/30 dark:border-cyan-700/50'
+                      ? 'bg-[#0f766e] text-white shadow-sm shadow-teal-500/20'
+                      : 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/10 border border-teal-200 dark:border-teal-700/50'
                   }`}
                 >
                   <span className="material-symbols-outlined text-xs">apps</span>
@@ -320,8 +312,8 @@ function FeeList({ onViewInvoice, onPayFee }) {
                   onClick={() => setStatusFilter('paid')}
                   className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
                     statusFilter === 'paid'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50'
+                      ? 'bg-[#0f766e] text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50'
                   }`}
                 >
                   <span className="material-symbols-outlined text-xs">check_circle</span>
@@ -340,7 +332,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
                   onClick={() => setStatusFilter('unpaid')}
                   className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
                     statusFilter === 'unpaid'
-                      ? 'bg-rose-500 text-white shadow-sm'
+                      ? 'bg-[#be123c] text-white shadow-sm'
                       : 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-rose-200 dark:border-rose-700/50'
                   }`}
                 >
@@ -360,7 +352,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
                   onClick={() => setStatusFilter('partial')}
                   className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
                     statusFilter === 'partial'
-                      ? 'bg-amber-500 text-white shadow-sm'
+                      ? 'bg-[#b45309] text-white shadow-sm'
                       : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50'
                   }`}
                 >
@@ -410,25 +402,23 @@ function FeeList({ onViewInvoice, onPayFee }) {
       ) : (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
-            <table className="w-full">
+            <table className="fee-list-table w-full">
             <thead>
-              <tr className="bg-cyan-500 dark:bg-cyan-500 border-b-2 border-cyan-200/30 dark:border-cyan-700/50">
-                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-bold text-white sticky left-0 bg-cyan-500 dark:bg-cyan-500 z-10 border-r border-cyan-200/30 dark:border-cyan-700/50">Student</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-white">Roll</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-white hidden sm:table-cell">Class</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-white hidden md:table-cell">Section</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Month</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Tuition</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Exam</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Annual</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Computer</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Transport</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white hidden lg:table-cell">Prev Due</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white bg-cyan-500/20 dark:bg-cyan-500/20">Total</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white">Paid</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white">Due</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-white">Status</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-white sticky right-0 bg-cyan-500 dark:bg-cyan-500 border-l border-cyan-200/30 dark:border-cyan-700/50">Action</th>
+              <tr className="!bg-[#38bdf8] border-b-2 border-sky-200/60 dark:border-sky-700/50">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-bold !text-white sticky left-0 !bg-[#38bdf8] z-10 border-r border-sky-200/40 dark:border-sky-700/50">Student</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Roll</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden sm:table-cell">Class</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden md:table-cell">Section</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Month</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Tuition</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Exam</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Annual</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Prev Due</th>
+                <th className="fee-total-heading px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white !bg-[#38bdf8]">Total</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Paid</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Due</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Status</th>
+                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white sticky right-0 !bg-[#38bdf8] border-l border-sky-200/40 dark:border-sky-700/50">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -456,10 +446,8 @@ function FeeList({ onViewInvoice, onPayFee }) {
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.tuition_fee) || 0).toLocaleString('en-IN')}</td>
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.exam_fee) || 0).toLocaleString('en-IN')}</td>
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.annual_fee) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.computer_fee) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.transport_fee) || 0).toLocaleString('en-IN')}</td>
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-orange-600 dark:text-orange-400 font-medium hidden lg:table-cell">₹{(parseFloat(fee.previous_due) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white font-bold bg-cyan-50/30 dark:bg-cyan-900/10">
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white font-bold bg-teal-50/80 dark:bg-teal-900/10">
                       ₹{totalFee.toLocaleString('en-IN')}
                     </td>
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
@@ -492,11 +480,10 @@ function FeeList({ onViewInvoice, onPayFee }) {
                               paid_amount: paidAmount,
                               net_payable: netPayable
                             })}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500 hover:bg-orange-500/90 text-white rounded text-xs font-medium transition-colors shadow-sm shadow-orange-500/20"
+                            className="inline-flex min-w-[64px] items-center justify-center px-3 py-1.5 bg-orange-500 hover:bg-orange-500/90 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-orange-500/20"
                             title="Pay Fee"
                           >
-                            <span className="material-symbols-outlined text-sm">payments</span>
-                            <span className="hidden sm:inline">Pay</span>
+                            Pay
                           </button>
                         )}
                         
@@ -504,11 +491,10 @@ function FeeList({ onViewInvoice, onPayFee }) {
                         {(billStatus === 'paid' || billStatus === 'partial' || netPayable === 0 || netPayable < 0 || paidAmount > 0) && (
                           <button
                             onClick={() => onViewInvoice && onViewInvoice(fee.bill_id)}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-500 hover:bg-cyan-500/90 text-white rounded text-xs font-medium transition-colors shadow-sm shadow-cyan-500/20"
+                            className="inline-flex min-w-[76px] items-center justify-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20"
                             title="View Invoice"
                           >
-                            <span className="material-symbols-outlined text-sm">description</span>
-                            <span className="hidden sm:inline">Invoice</span>
+                            Invoice
                           </button>
                         )}
                       </div>
@@ -520,7 +506,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
             {/* Summary Row */}
             {filteredFeeList.length > 0 && (
               <tfoot>
-                <tr className="bg-cyan-500/20 dark:bg-cyan-500/20 border-t-2 border-cyan-200/30 dark:border-cyan-700/50 font-bold text-xs sm:text-sm">
+                <tr className="bg-teal-50 dark:bg-teal-900/20 border-t-2 border-teal-200 dark:border-teal-700/50 font-bold text-xs sm:text-sm">
                   <td colSpan={5} className="px-2 sm:px-4 py-2 sm:py-3 text-right text-slate-900 dark:text-white">
                     Total ({filteredFeeList.length}):
                   </td>
@@ -534,15 +520,9 @@ function FeeList({ onViewInvoice, onPayFee }) {
                     ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0).toLocaleString('en-IN')}
                   </td>
                   <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.computer_fee) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.transport_fee) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
                     ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0).toLocaleString('en-IN')}
                   </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white font-bold">
+                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right bg-teal-100/80 dark:bg-teal-900/20 text-slate-900 dark:text-white font-bold">
                     ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0).toLocaleString('en-IN')}
                   </td>
                   <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
@@ -556,6 +536,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
                       {filteredFeeList.filter(f => f.bill_status === 'paid' || (f.net_payable || 0) === 0 || (f.net_payable || 0) < 0).length}/{filteredFeeList.length}
                     </span>
                   </td>
+                  <td className="px-2 sm:px-3 py-2 sm:py-3 sticky right-0 bg-teal-50 dark:bg-teal-900/20"></td>
                 </tr>
               </tfoot>
             )}

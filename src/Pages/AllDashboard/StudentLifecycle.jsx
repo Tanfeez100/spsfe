@@ -379,7 +379,7 @@ function StudentLifecycle() {
             onClick={() => setActiveTab('active')}
             className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${
               activeTab === 'active'
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-[#dff5e8] text-[#1f665c] border border-[#b7e4c7]'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
@@ -389,7 +389,7 @@ function StudentLifecycle() {
             onClick={() => setActiveTab('left')}
             className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${
               activeTab === 'left'
-                ? 'bg-amber-600 text-white'
+                ? 'bg-[#dff5e8] text-[#1f665c] border border-[#b7e4c7]'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
@@ -448,18 +448,6 @@ function StudentLifecycle() {
                     <p>Academic Year: {student.AcademicYear || student.academic_year || '--'}</p>
                   </div>
 
-                  <div className="mt-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Student UUID</p>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 break-all">{studentId || '--'}</p>
-                      <button
-                        onClick={() => handleCopyId(studentId)}
-                        className="px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-[11px] font-semibold"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )
             })}
@@ -470,7 +458,6 @@ function StudentLifecycle() {
             <table className="w-full text-sm">
               <thead className="bg-[#137fec]">
                 <tr>
-                  <th className="px-3 py-2 text-left font-bold text-white">UUID</th>
                   <th className="px-3 py-2 text-left font-bold text-white">Roll</th>
                   <th className="px-3 py-2 text-left font-bold text-white">Name</th>
                   <th className="px-3 py-2 text-left font-bold text-white">Father</th>
@@ -486,17 +473,6 @@ function StudentLifecycle() {
                   const studentId = getStudentId(student)
                   return (
                     <tr key={studentId || index} className="border-b border-slate-200 hover:bg-cyan-300/8">
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs break-all">{studentId || '--'}</span>
-                          <button
-                            onClick={() => handleCopyId(studentId)}
-                            className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </td>
                       <td className="px-3 py-2">{student.Roll || student.roll_no || '--'}</td>
                       <td className="px-3 py-2 font-medium">{student.Name || student.name || '--'}</td>
                       <td className="px-3 py-2">{student.Father || student.father_name || '--'}</td>
@@ -527,7 +503,7 @@ function StudentLifecycle() {
 
                 {paginatedList.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="8" className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
                       No students found in this list
                     </td>
                   </tr>
@@ -587,9 +563,6 @@ function StudentLifecycle() {
         >
           <div className="w-full max-w-md gps-card rounded-xl shadow-xl p-4">
             <h3 className="text-lg font-bold text-slate-900">Mark Student Leave</h3>
-            <p className="text-xs text-slate-600 mb-3">
-              UUID: {getStudentId(leaveModal.student)}
-            </p>
             <form onSubmit={submitLeave} className="space-y-3">
               <input
                 type="date"
@@ -638,9 +611,6 @@ function StudentLifecycle() {
         >
           <div className="w-full max-w-lg gps-card rounded-xl shadow-xl p-4">
             <h3 className="text-lg font-bold text-slate-900">Rejoin Student</h3>
-            <p className="text-xs text-slate-600 mb-3">
-              UUID: {getStudentId(rejoinModal.student)}
-            </p>
             <form onSubmit={submitRejoin} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 value={rejoinModal.class}

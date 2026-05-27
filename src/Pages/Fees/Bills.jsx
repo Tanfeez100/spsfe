@@ -298,24 +298,26 @@ function Bills() {
         onChange={handleTabChange} 
         sx={{
           '& .MuiTab-root': {
-            color: 'rgb(148, 163, 184)',
+            color: 'rgb(88, 28, 135)',
+            fontWeight: 700,
             '&.Mui-selected': {
-              color: 'rgb(6, 182, 212)',
+              color: 'rgb(190, 18, 60)',
             },
           },
           '& .MuiTabs-indicator': {
-            backgroundColor: 'rgb(6, 182, 212)',
+            backgroundColor: 'rgb(190, 18, 60)',
+            height: 3,
           },
         }}
       >
-        <Tab label="Bills Management" />
-        <Tab label="Close Month" />
+<Tab label="Billing Management" />
+      <Tab label="Close Month" />
       </Tabs>
 
       {activeTab === 0 && (
         <div>
-          {/* Existing Bills Management UI */}
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Bills Management</h3>
+          {/* Existing Billing Management UI */}
+          <h3 className="text-lg font-bold text-slate-900 dark:text-black">Billing Management</h3>
 
           {/* Action Type Selection */}
           <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
@@ -325,8 +327,8 @@ function Bills() {
                 onClick={() => setActionType('generate')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   actionType === 'generate'
-                    ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20'
-                    : 'bg-white dark:bg-slate-800 border border-cyan-200/30 dark:border-cyan-700/50 text-slate-700 dark:text-slate-300 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 hover:text-cyan-200 dark:hover:text-cyan-200'
+                    ? 'bg-[#2888d6] text-white shadow-lg shadow-cyan-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-900/10'
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">receipt_long</span>
@@ -336,8 +338,8 @@ function Bills() {
                 onClick={() => setActionType('downloadData')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   actionType === 'downloadData'
-                    ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20'
-                    : 'bg-white dark:bg-slate-800 border border-cyan-200/30 dark:border-cyan-700/50 text-slate-700 dark:text-slate-300 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 hover:text-cyan-200 dark:hover:text-cyan-200'
+                    ? 'bg-[#0f766e] text-white shadow-lg shadow-teal-500/20'
+                    : 'bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-700/50 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/10'
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">download</span>
@@ -477,7 +479,7 @@ function Bills() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-500/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-cyan-500/20"
+                className="px-6 py-2 bg-[#be123c] text-white rounded-lg hover:bg-[#9f1239] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-rose-500/20"
               >
                 {loading ? (
                   <>
@@ -508,14 +510,13 @@ function Bills() {
               <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-cyan-500 dark:bg-cyan-500 border-b-2 border-cyan-200/30 dark:border-cyan-700/50">
-                      <th className="px-4 py-3 text-left font-bold text-white">Student</th>
-                      <th className="px-3 py-3 text-center font-bold text-white">Class</th>
-                      <th className="px-3 py-3 text-center font-bold text-white">Roll</th>
-                      <th className="px-3 py-3 text-center font-bold text-white">Month</th>
-                      <th className="px-3 py-3 text-center font-bold text-white">Transport</th>
-                      <th className="px-3 py-3 text-left font-bold text-white">Fee Items</th>
-                      <th className="px-3 py-3 text-center font-bold text-white">Bill ID</th>
+                    <tr className="!bg-[#0f766e] border-b-2 border-teal-200/60 dark:border-teal-700/50">
+                      <th className="px-4 py-3 text-left font-bold !text-white">Student</th>
+                      <th className="px-3 py-3 text-center font-bold !text-white">Class</th>
+                      <th className="px-3 py-3 text-center font-bold !text-white">Roll</th>
+                      <th className="px-3 py-3 text-center font-bold !text-white">Month</th>
+                      <th className="px-3 py-3 text-left font-bold !text-white">Fee Items</th>
+                      <th className="px-3 py-3 text-center font-bold !text-white">Bill ID</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -534,17 +535,6 @@ function Bills() {
                         </td>
                         <td className="px-3 py-3 text-center text-slate-900 dark:text-white">
                           {bill.month || '--'}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          {bill.student?.uses_transport ? (
-                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-xs font-semibold">
-                              Yes (₹{bill.student?.transport_charge || 0})
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 rounded-full text-xs font-semibold">
-                              No
-                            </span>
-                          )}
                         </td>
                         <td className="px-3 py-3">
                           {bill.items && bill.items.length > 0 ? (
@@ -600,7 +590,7 @@ function Bills() {
             <button
               onClick={handleCloseMonth}
               disabled={loading}
-              className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-500/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-cyan-500/20"
+              className="px-4 py-2 bg-[#b45309] text-white rounded-lg hover:bg-[#92400e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-amber-500/20"
             >
               {loading ? (
                 <>

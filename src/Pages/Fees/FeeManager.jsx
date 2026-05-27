@@ -13,13 +13,48 @@ function FeeManager() {
   const [paymentData, setPaymentData] = useState(null)
 
   const tabs = [
-    { id: 'structure', label: 'Fee Structure', icon: 'settings' },
-   
-    { id: 'list', label: 'Fee List', icon: 'list' },
-    { id: 'pay', label: 'Pay Fees', icon: 'payments' },
-    { id: 'invoice', label: 'Invoice', icon: 'description' },
-    { id: 'bills', label: 'Bills', icon: 'print' },
-    { id: 'migration', label: 'Migration Setup', icon: 'sync_saved_locally' },
+    {
+      id: 'structure',
+      label: 'Fee Structure',
+      icon: 'settings',
+      activeClass: 'bg-[#6d28d9] text-white shadow-md shadow-violet-500/25',
+      inactiveClass: 'text-violet-700 hover:text-violet-900 hover:bg-violet-50 border border-transparent hover:border-violet-200',
+    },
+    {
+      id: 'list',
+      label: 'Fee List',
+      icon: 'list',
+      activeClass: 'bg-[#0f766e] text-white shadow-md shadow-teal-500/25',
+      inactiveClass: 'text-teal-700 hover:text-teal-900 hover:bg-teal-50 border border-transparent hover:border-teal-200',
+    },
+    {
+      id: 'pay',
+      label: 'Pay Fees',
+      icon: 'payments',
+      activeClass: 'bg-[#c2410c] text-white shadow-md shadow-orange-500/25',
+      inactiveClass: 'text-orange-700 hover:text-orange-900 hover:bg-orange-50 border border-transparent hover:border-orange-200',
+    },
+    {
+      id: 'invoice',
+      label: 'Invoice',
+      icon: 'description',
+      activeClass: 'bg-[#be123c] text-white shadow-md shadow-rose-500/25',
+      inactiveClass: 'text-rose-700 hover:text-rose-900 hover:bg-rose-50 border border-transparent hover:border-rose-200',
+    },
+    {
+      id: 'bills',
+      label: 'Billing',
+      icon: 'print',
+      activeClass: 'bg-[#0f766e] text-white shadow-md shadow-teal-500/25',
+      inactiveClass: 'text-teal-700 hover:text-teal-900 hover:bg-teal-50 border border-transparent hover:border-teal-200',
+    },
+    {
+      id: 'migration',
+      label: 'Migration Setup',
+      icon: 'sync_saved_locally',
+      activeClass: 'bg-[#4338ca] text-white shadow-md shadow-indigo-500/25',
+      inactiveClass: 'text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50 border border-transparent hover:border-indigo-200',
+    },
   ]
 
   const handlePayFee = (feeData) => {
@@ -34,15 +69,15 @@ function FeeManager() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap gap-1">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-1.5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap gap-1.5">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
               activeTab === tab.id
-                ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+                ? tab.activeClass
+                : tab.inactiveClass
             }`}
           >
             <span className="material-symbols-outlined text-base">{tab.icon}</span>

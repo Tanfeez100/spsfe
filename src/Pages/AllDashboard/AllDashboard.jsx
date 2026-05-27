@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import SEO from '../../Components/SEO/SEO'
 import Sidebar from '../../Components/Sidebar'
 import ResultView from '../../Components/ResultView/ResultView'
@@ -23,7 +23,7 @@ const CustomPieTooltip = ({ active, payload }) => {
       <div
         style={{
           backgroundColor: 'rgba(7, 20, 36, 0.96)',
-          border: '1px solid rgba(64, 212, 255, 0.25)',
+          border: '1px solid rgba(148, 163, 184, 0.28)',
           borderRadius: '12px',
           padding: '8px 12px',
           fontSize: '12px',
@@ -43,6 +43,7 @@ const CustomPieTooltip = ({ active, payload }) => {
 
 function Dashboard({ initialView = 'dashboard' }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { sidebarOpen, setSidebarOpen } = useOutletContext()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeView, setActiveView] = useState('dashboard')
@@ -58,6 +59,18 @@ function Dashboard({ initialView = 'dashboard' }) {
     loading: true
   })
   const isTeacher = loginType !== 'student' && user?.role === 'teacher'
+  const routeViewMap = {
+    '/dashboard': 'dashboard',
+    '/students': 'student',
+    '/leave-rejoin': 'studentLifecycle',
+    '/class-promotion': 'classPromotion',
+    '/subjects': 'subject',
+    '/teachers': 'teachers',
+    '/fees': 'fees',
+    '/marks-upload': 'uploadMarks',
+    '/upload-photo': 'uploadPhoto',
+    '/result-view': 'result',
+  }
 
   async function fetchDashboardData() {
     setDashboardData(prev => ({ ...prev, loading: true }))
@@ -141,17 +154,44 @@ function Dashboard({ initialView = 'dashboard' }) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(currentUser)
       setLoginType(loginTypeFromStorage)
-      
-      // Set initial view based on login type
-      if (loginTypeFromStorage === 'student') {
-        setActiveView('result')
-      } else if (currentUser?.role === 'teacher') {
-        setActiveView('uploadMarks')
-      } else {
-        setActiveView(initialView || 'dashboard')
-      }
     }
   }, [navigate, initialView])
+
+  useEffect(() => {
+    const pathname = location.pathname
+    const mappedView = routeViewMap[pathname]
+
+    if (loginType === 'student') {
+      if (pathname !== '/result-view') {
+        navigate('/result-view', { replace: true })
+        return
+      }
+      if (activeView !== 'result') {
+        setActiveView('result')
+      }
+      return
+    }
+
+    if (isTeacher) {
+      if (pathname !== '/marks-upload') {
+        navigate('/marks-upload', { replace: true })
+        return
+      }
+      if (activeView !== 'uploadMarks') {
+        setActiveView('uploadMarks')
+      }
+      return
+    }
+
+    if (mappedView && activeView !== mappedView) {
+      setActiveView(mappedView)
+      return
+    }
+
+    if (!mappedView && !pathname.startsWith('/results')) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [activeView, isTeacher, location.pathname, loginType, navigate])
 
   useEffect(() => {
     if (loginType !== 'student' && !isTeacher && activeView === 'dashboard') {
@@ -159,13 +199,6 @@ function Dashboard({ initialView = 'dashboard' }) {
       fetchDashboardData()
     }
   }, [loginType, activeView, isTeacher])
-
-  useEffect(() => {
-    if (isTeacher && activeView !== 'uploadMarks') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveView('uploadMarks')
-    }
-  }, [isTeacher, activeView])
 
   return (
     <>
@@ -184,14 +217,14 @@ function Dashboard({ initialView = 'dashboard' }) {
       />
       
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 overflow-y-auto w-full" data-route-scroll-container="true">
+      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden w-full" data-route-scroll-container="true">
           <div className="p-3 sm:p-4 lg:p-6 w-full max-w-full">
             {loginType !== 'student' && !isTeacher && activeView === 'dashboard' && (
               <div className="space-y-4 sm:space-y-6">
-                <div className="gps-card p-5 sm:p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100/75">Control Center</p>
+                <div className="gps-card border border-green-100  transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_rgba(96,165,250,0.18)] sm:p-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Control Center</p>
                   <h2 className="mt-2 text-2xl font-extrabold text-black sm:text-3xl">Dashboard Analytics</h2>
-                  <p className="mt-2 text-sm text-slate-300">
+                  <p className="mt-2 text-sm text-slate-500">
                     Real-time overview of students, class setup and subject distribution across the school.
                   </p>
                 </div>
@@ -210,36 +243,36 @@ function Dashboard({ initialView = 'dashboard' }) {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {/* Total Students */}
-                    <div className="gps-kpi-card p-4 sm:p-5">
+                    <div className="gps-kpi-card border border-sky-200 bg-[linear-gradient(135deg,#ffffff_0%,#e0f2fe_65%,#f0f9ff_100%)] p-4 shadow-[0_16px_34px_rgba(125,211,252,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:border-sky-300 hover:shadow-[0_22px_42px_rgba(56,189,248,0.18)] sm:p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-300">Total Students</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-300/15 flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-cyan-200 text-base sm:text-lg">people</span>
+                        <span className="text-xs sm:text-sm font-medium text-slate-500">Total Students</span>
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
+                          <span className="material-symbols-outlined text-sky-600 text-base sm:text-lg">people</span>
                         </div>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-white">{dashboardData.totalStudents}</p>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalStudents}</p>
                     </div>
 
                     {/* Total Classes */}
-                    <div className="gps-kpi-card p-4 sm:p-5">
+                    <div className="gps-kpi-card border border-emerald-200 bg-[linear-gradient(135deg,#ffffff_0%,#dcfce7_65%,#f0fdf4_100%)] p-4 shadow-[0_16px_34px_rgba(134,239,172,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300 hover:shadow-[0_22px_42px_rgba(74,222,128,0.18)] sm:p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-300">Total Classes</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-300/15 flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-emerald-200 text-base sm:text-lg">class</span>
+                        <span className="text-xs sm:text-sm font-medium text-slate-500">Total Classes</span>
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
+                          <span className="material-symbols-outlined text-emerald-600 text-base sm:text-lg">class</span>
                         </div>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-white">{dashboardData.totalClasses}</p>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalClasses}</p>
                     </div>
 
                     {/* Total Subjects */}
-                    <div className="gps-kpi-card p-4 sm:p-5">
+                    <div className="gps-kpi-card border border-violet-200 bg-[linear-gradient(135deg,#ffffff_0%,#ede9fe_65%,#f5f3ff_100%)] p-4 shadow-[0_16px_34px_rgba(196,181,253,0.14)] transition-all duration-300 hover:-translate-y-1.5 hover:border-violet-300 hover:shadow-[0_22px_42px_rgba(167,139,250,0.18)] sm:p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-300">Total Subjects</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-300/15 flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-sky-200 text-base sm:text-lg">book</span>
+                        <span className="text-xs sm:text-sm font-medium text-slate-500">Total Subjects</span>
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-violet-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
+                          <span className="material-symbols-outlined text-violet-600 text-base sm:text-lg">book</span>
                         </div>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-white">{dashboardData.totalSubjects}</p>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalSubjects}</p>
                     </div>
                   </div>
                 )}
@@ -274,7 +307,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                               contentStyle={{
                                 fontSize: 12,
                                 borderRadius: 12,
-                                border: '1px solid rgba(64, 212, 255, 0.25)',
+                                border: '1px solid rgba(148, 163, 184, 0.28)',
                                 background: 'rgba(7, 20, 36, 0.96)',
                                 color: '#e6f2ff',
                               }}
@@ -282,7 +315,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                               wrapperStyle={{ background: 'transparent' }}
                               cursor={{ fill: 'transparent' }}
                             />
-                            <Bar dataKey="value" fill="#40d4ff" name="Students" cursor="pointer" />
+                            <Bar dataKey="value" fill="#7dd3fc" name="Students" cursor="pointer" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -302,11 +335,11 @@ function Dashboard({ initialView = 'dashboard' }) {
                               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                               labelStyle={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }}
                               outerRadius={60}
-                              fill="#40d4ff"
+                              fill="#7dd3fc"
                               dataKey="value"
                             >
                               {dashboardData.studentsBySection.map((entry, index) => {
-                                const colors = ['#40d4ff', '#34d399', '#60a5fa', '#3b82f6', '#22d3ee', '#14b8a6']
+                                const colors = ['#7dd3fc', '#86efac', '#f9a8d4', '#c4b5fd', '#fdba74', '#93c5fd']
                                 return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                               })}
                             </Pie>
@@ -344,7 +377,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                               contentStyle={{
                                 fontSize: 12,
                                 borderRadius: 12,
-                                border: '1px solid rgba(64, 212, 255, 0.25)',
+                                border: '1px solid rgba(148, 163, 184, 0.28)',
                                 background: 'rgba(7, 20, 36, 0.96)',
                                 color: '#e6f2ff',
                               }}
@@ -353,8 +386,8 @@ function Dashboard({ initialView = 'dashboard' }) {
                               cursor={{ fill: 'transparent' }}
                             />
                             <Legend wrapperStyle={{ fontSize: 10, color: '#d3e7ff' }} />
-                            <Bar dataKey="subjects" fill="#40d4ff" name="Subjects" cursor="pointer" />
-                            <Bar dataKey="sections" fill="#34d399" name="Sections" cursor="pointer" />
+                            <Bar dataKey="subjects" fill="#60a5fa" name="Subjects" cursor="pointer" />
+                            <Bar dataKey="sections" fill="#86efac" name="Sections" cursor="pointer" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>

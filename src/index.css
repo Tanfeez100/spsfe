@@ -4,18 +4,18 @@
   :root {
     --font-body: "Manrope", sans-serif;
     --font-heading: "Lexend", sans-serif;
-    --ry-bg: #f9f4ea;
-    --ry-bg-soft: #f3ecdc;
+    --ry-bg: #ffffff;
+    --ry-bg-soft: #ffffff;
     --ry-surface: #ffffff;
-    --ry-surface-alt: #fffaf0;
+    --ry-surface-alt: #ffffff;
     --ry-border: #d8c6a3;
     --ry-text: #1f2d45;
     --ry-muted: #6e7f9d;
     --ry-brand: #d4ab5b;
     --ry-brand-strong: #b9862f;
     --ry-success: #34d399;
-    --site-bg: #f6faff;
-    --site-bg-soft: #eaf4ff;
+    --site-bg: #ffffff;
+    --site-bg-soft: #ffffff;
     --site-surface: rgba(255, 255, 255, 0.92);
     --site-surface-strong: #ffffff;
     --site-border: rgba(147, 197, 253, 0.42);
@@ -46,10 +46,7 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     line-height: 1.55;
-    background:
-      radial-gradient(circle at 12% 10%, rgba(191, 226, 255, 0.72), transparent 34%),
-      radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.96), transparent 38%),
-      linear-gradient(145deg, #eef7ff 0%, #f8fbff 54%, #ffffff 100%);
+    background: #ffffff;
   }
 
   h1,
@@ -80,18 +77,13 @@
   .gps-page {
     position: relative;
     isolation: isolate;
-    background:
-      radial-gradient(circle at 90% 5%, rgba(212, 171, 91, 0.16), transparent 30%),
-      radial-gradient(circle at 5% 95%, rgba(56, 96, 167, 0.1), transparent 42%);
+    background: #ffffff;
   }
 
   .gps-site {
     position: relative;
     isolation: isolate;
-    background:
-      radial-gradient(circle at 12% 10%, rgba(191, 226, 255, 0.72), transparent 34%),
-      radial-gradient(circle at 86% 12%, rgba(255, 255, 255, 0.96), transparent 38%),
-      linear-gradient(145deg, #eef7ff 0%, #f8fbff 54%, #ffffff 100%);
+    background: #ffffff;
   }
 
   .gps-site-shell {
@@ -241,7 +233,7 @@
 
   .gps-site-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(14, 116, 144, 0.55) rgba(226, 232, 240, 0.7);
+    scrollbar-color: rgba(0, 0, 0, 0.55) rgba(243, 244, 246, 0.9);
   }
 
   .gps-site-scrollbar::-webkit-scrollbar {
@@ -255,7 +247,7 @@
 
   .gps-site-scrollbar::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: rgba(14, 116, 144, 0.55);
+    background: rgba(0, 0, 0, 0.55);
   }
 
   .gps-site [class*="text-cyan-"],
@@ -305,25 +297,22 @@
   .gps-auth-page {
     position: relative;
     isolation: isolate;
-    background:
-      radial-gradient(circle at 6% 8%, rgba(125, 211, 252, 0.26), transparent 28%),
-      radial-gradient(circle at 92% 4%, rgba(191, 219, 254, 0.32), transparent 32%),
-      linear-gradient(180deg, #fafdff 0%, #f4faff 48%, #eef7ff 100%);
+    background: #ffffff;
   }
 
   .gps-auth-card {
     border-radius: 1.35rem;
-    border: 1px solid rgba(186, 230, 253, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.18);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 252, 255, 0.98));
     color: #0f172a;
     box-shadow:
-      0 18px 42px rgba(14, 116, 144, 0.09),
+      0 18px 42px rgba(0, 0, 0, 0.08),
       inset 0 0 0 1px rgba(255, 255, 255, 0.55);
   }
 
   .gps-auth-card-soft {
     border-radius: 1.1rem;
-    border: 1px solid rgba(186, 230, 253, 0.92);
+    border: 1px solid rgba(0, 0, 0, 0.16);
     background: linear-gradient(180deg, rgba(240, 249, 255, 0.92), rgba(255, 255, 255, 0.96));
     color: #0f172a;
     backdrop-filter: blur(12px);
@@ -353,14 +342,14 @@
     padding: 0.72rem 1.2rem;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-    box-shadow: 0 16px 34px rgba(14, 165, 233, 0.28);
+    background: #000000;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2);
     transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
   }
 
   .gps-auth-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 18px 36px rgba(14, 165, 233, 0.34);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
     filter: brightness(1.02);
   }
 
@@ -381,24 +370,26 @@
 
   .gps-card {
     border-radius: 1.35rem;
-    border: 1px solid rgba(186, 230, 253, 0.92);
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.18);
     background: linear-gradient(160deg, rgba(255, 255, 255, 0.99), rgba(240, 249, 255, 0.96));
     color: #0f172a;
     box-shadow:
-      0 12px 30px rgba(14, 116, 144, 0.1),
+      0 12px 30px rgba(0, 0, 0, 0.08),
       inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   }
 
   .gps-card-soft {
     border-radius: 1.1rem;
-    border: 1px solid rgba(186, 230, 253, 0.88);
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.16);
     background: linear-gradient(180deg, rgba(240, 249, 255, 0.92), rgba(255, 255, 255, 0.96));
     color: #1e3a5f;
     backdrop-filter: blur(12px);
   }
 
   .gps-glass {
-    border: 1px solid rgba(186, 230, 253, 0.82);
+    border: 1px solid rgba(0, 0, 0, 0.14);
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(14px);
   }
@@ -427,14 +418,14 @@
     padding: 0.72rem 1.2rem;
     font-weight: 700;
     color: #ffffff;
-    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-    box-shadow: 0 14px 34px rgba(14, 165, 233, 0.28);
+    background: #000000;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
     transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
   }
 
   .gps-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 18px 36px rgba(14, 165, 233, 0.34);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
     filter: brightness(1.02);
   }
 
@@ -446,7 +437,7 @@
     border-radius: 0.9rem;
     padding: 0.68rem 1.15rem;
     font-weight: 700;
-    border: 1px solid rgba(186, 230, 253, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.18);
     background: rgba(255, 255, 255, 0.96);
     color: #0f172a;
   }
@@ -459,7 +450,7 @@
   .gps-input {
     width: 100%;
     border-radius: 0.82rem;
-    border: 1px solid rgba(186, 230, 253, 0.94);
+    border: 1px solid rgba(0, 0, 0, 0.18);
     background: rgba(255, 255, 255, 0.98);
     color: #0f172a;
     padding: 0.7rem 0.9rem;
@@ -490,10 +481,11 @@
 
   .gps-kpi-card {
     border-radius: 1rem;
-    border: 1px solid rgba(186, 230, 253, 0.9);
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.18);
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(239, 248, 255, 0.97));
     color: #0f172a;
-    box-shadow: 0 12px 26px rgba(14, 116, 144, 0.1);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
   }
 
   .gps-page [class*="text-cyan-"] {
@@ -545,101 +537,182 @@
   }
 
   .app-shell {
+    --admin-bg: #ffffff;
+    --admin-bg-soft: #ffffff;
+    --admin-surface: #ffffff;
+    --admin-surface-muted: #ffffff;
+    --admin-border: rgba(0, 0, 0, 0.16);
+    --admin-border-strong: rgba(0, 0, 0, 0.34);
+    --admin-text: #172033;
+    --admin-muted: #607087;
+    --admin-accent: #000000;
+    --admin-accent-strong: #111111;
+    --admin-accent-soft: #f8fafc;
+    --admin-warm: #ffffff;
     background: #ffffff;
-    color: #0f172a;
+    color: var(--admin-text);
   }
 
   .app-shell [class~="text-[#0d141b]"],
   .app-shell .text-slate-900 {
-    color: #16233a !important;
+    color: var(--admin-text) !important;
   }
 
   .app-shell .text-slate-800 {
-    color: #21324f !important;
+    color: #24324a !important;
   }
 
   .app-shell .text-slate-400 {
-    color: #607497 !important;
+    color: var(--admin-muted) !important;
   }
 
   .app-shell .text-slate-300 {
-    color: #556c8d !important;
+    color: #66748a !important;
   }
 
   .app-shell .text-slate-200 {
-    color: #435b7e !important;
+    color: #52637a !important;
   }
 
   .app-shell .text-slate-100 {
-    color: #304b6f !important;
+    color: #3f556f !important;
   }
 
   .app-shell .text-slate-700 {
-    color: #334766 !important;
+    color: #3b4d66 !important;
   }
 
   .app-shell .text-slate-600 {
-    color: #4d6486 !important;
+    color: #5a6b82 !important;
   }
 
   .app-shell .text-slate-500 {
-    color: #6d81a1 !important;
+    color: #728095 !important;
   }
 
   .app-shell [class*="text-cyan-"] {
-    color: #0284c7 !important;
+    color: var(--admin-accent) !important;
+  }
+
+  .app-shell [class*="text-sky-"],
+  .app-shell [class*="text-blue-"],
+  .app-shell [class*="text-emerald-"] {
+    color: var(--admin-accent) !important;
   }
 
   .app-shell [class*="border-cyan-"] {
-    border-color: rgba(56, 189, 248, 0.48) !important;
+    border-color: var(--admin-border-strong) !important;
+  }
+
+  .app-shell [class*="border-sky-"],
+  .app-shell [class*="border-blue-"],
+  .app-shell [class*="border-emerald-"] {
+    border-color: var(--admin-border-strong) !important;
+  }
+
+  .app-shell [class*="bg-cyan-"] {
+    background-color: var(--admin-accent-soft) !important;
+  }
+
+  .app-shell [class*="bg-sky-"],
+  .app-shell [class*="bg-blue-"],
+  .app-shell [class*="bg-emerald-"] {
+    background-color: var(--admin-accent-soft) !important;
+  }
+
+  .app-shell [class*="bg-cyan-400"],
+  .app-shell [class*="bg-cyan-500"],
+  .app-shell [class*="bg-cyan-600"],
+  .app-shell [class*="bg-cyan-700"],
+  .app-shell [class*="bg-sky-400"],
+  .app-shell [class*="bg-sky-500"],
+  .app-shell [class*="bg-sky-600"],
+  .app-shell [class*="bg-blue-400"],
+  .app-shell [class*="bg-blue-500"],
+  .app-shell [class*="bg-blue-600"],
+  .app-shell [class*="bg-blue-700"],
+  .app-shell [class*="bg-emerald-400"],
+  .app-shell [class*="bg-emerald-500"],
+  .app-shell [class*="bg-emerald-600"] {
+    background-color: var(--admin-accent) !important;
+  }
+
+  .app-shell [class*="hover:bg-cyan-500"]:hover,
+  .app-shell [class*="hover:bg-cyan-600"]:hover,
+  .app-shell [class*="hover:bg-cyan-700"]:hover {
+    background-color: var(--admin-accent-strong) !important;
+  }
+
+  .app-shell [class*="shadow-cyan-"] {
+    --tw-shadow-color: rgba(0, 0, 0, 0.16) !important;
+  }
+
+  .app-shell [class*="hover:bg-cyan-"]:hover {
+    background-color: #f8fafc !important;
+  }
+
+  .app-shell [class*="hover:bg-cyan-500"]:hover,
+  .app-shell [class*="hover:bg-cyan-600"]:hover,
+  .app-shell [class*="hover:bg-cyan-700"]:hover {
+    background-color: var(--admin-accent-strong) !important;
+  }
+
+  .app-shell [class*="focus:border-cyan-"]:focus,
+  .app-shell [class*="focus-within:border-cyan-"]:focus-within {
+    border-color: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .app-shell [class*="focus:ring-cyan-"]:focus,
+  .app-shell [class*="focus-within:ring-cyan-"]:focus-within {
+    --tw-ring-color: rgba(0, 0, 0, 0.16) !important;
   }
 
   .app-shell .gps-card .text-white,
   .app-shell .gps-card-soft .text-white,
   .app-shell .gps-kpi-card .text-white {
-    color: #0f172a !important;
+    color: var(--admin-text) !important;
   }
 
   .app-shell .gps-card [class*="text-white"],
   .app-shell .gps-card-soft [class*="text-white"],
   .app-shell .gps-kpi-card [class*="text-white"] {
-    color: #0f172a !important;
+    color: var(--admin-text) !important;
   }
 
   .app-shell .gps-card .text-slate-200,
   .app-shell .gps-card-soft .text-slate-200,
   .app-shell .gps-kpi-card .text-slate-200 {
-    color: #475569 !important;
+    color: var(--admin-muted) !important;
   }
 
   .app-shell .gps-card [class*="text-slate-200"],
   .app-shell .gps-card-soft [class*="text-slate-200"],
   .app-shell .gps-kpi-card [class*="text-slate-200"] {
-    color: #475569 !important;
+    color: var(--admin-muted) !important;
   }
 
   .app-shell .gps-card .text-slate-300,
   .app-shell .gps-card-soft .text-slate-300,
   .app-shell .gps-kpi-card .text-slate-300 {
-    color: #64748b !important;
+    color: #6b7789 !important;
   }
 
   .app-shell .gps-card [class*="text-slate-300"],
   .app-shell .gps-card-soft [class*="text-slate-300"],
   .app-shell .gps-kpi-card [class*="text-slate-300"] {
-    color: #64748b !important;
+    color: #6b7789 !important;
   }
 
   .app-shell .gps-glass {
-    background: rgba(255, 255, 255, 0.9) !important;
-    border-color: rgba(186, 230, 253, 0.82) !important;
-    box-shadow: 0 12px 26px rgba(14, 116, 144, 0.1) !important;
+    background: #ffffff !important;
+    border-color: var(--admin-border) !important;
+    box-shadow: 0 12px 28px rgba(68, 82, 72, 0.08) !important;
   }
 
   .app-shell .bg-white,
   .app-shell .bg-slate-50,
   .app-shell .bg-slate-100 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .from-white {
@@ -649,13 +722,13 @@
 
   .app-shell .to-slate-50,
   .app-shell .to-slate-100 {
-    --tw-gradient-to: rgba(242, 249, 255, 0.96) var(--tw-gradient-to-position) !important;
+    --tw-gradient-to: rgba(255, 255, 255, 0.96) var(--tw-gradient-to-position) !important;
   }
 
   .app-shell .from-slate-50,
   .app-shell .from-slate-100 {
-    --tw-gradient-from: rgba(248, 252, 255, 0.98) var(--tw-gradient-from-position) !important;
-    --tw-gradient-to: rgba(248, 252, 255, 0) var(--tw-gradient-to-position) !important;
+    --tw-gradient-from: rgba(255, 255, 255, 0.98) var(--tw-gradient-from-position) !important;
+    --tw-gradient-to: rgba(255, 255, 255, 0) var(--tw-gradient-to-position) !important;
   }
 
   .app-shell .to-white {
@@ -663,51 +736,57 @@
   }
 
   .app-shell .bg-blue-50 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .bg-green-50 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .bg-amber-50 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .bg-red-50 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .bg-purple-50 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .bg-orange-50 {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
   }
 
   .app-shell .gps-card,
   .app-shell .gps-card-soft,
   .app-shell .gps-kpi-card,
   .app-shell .gps-glass {
-    background: #ffffff !important;
+    background: var(--admin-surface) !important;
+  }
+
+  .app-shell .gps-card,
+  .app-shell .gps-card-soft,
+  .app-shell .gps-kpi-card {
+    border-color: rgba(0, 0, 0, 0.18) !important;
   }
 
   .app-shell .border-slate-200,
   .app-shell .border-slate-300 {
-    border-color: rgba(186, 230, 253, 0.86) !important;
+    border-color: var(--admin-border) !important;
   }
 
   .app-shell .border-blue-200 {
-    border-color: rgba(74, 132, 206, 0.45) !important;
+    border-color: rgba(76, 112, 156, 0.3) !important;
   }
 
   .app-shell .border-green-200 {
-    border-color: rgba(52, 181, 130, 0.45) !important;
+    border-color: rgba(55, 139, 105, 0.32) !important;
   }
 
   .app-shell .border-amber-200 {
-    border-color: rgba(206, 148, 57, 0.46) !important;
+    border-color: rgba(183, 121, 61, 0.34) !important;
   }
 
   .app-shell .border-red-200 {
@@ -716,17 +795,17 @@
 
   .app-shell .text-blue-700,
   .app-shell .text-blue-800 {
-    color: #2d5fa4 !important;
+    color: #000000 !important;
   }
 
   .app-shell .text-green-700,
   .app-shell .text-green-800 {
-    color: #1f8f69 !important;
+    color: #000000 !important;
   }
 
   .app-shell .text-amber-700,
   .app-shell .text-amber-800 {
-    color: #9d6a22 !important;
+    color: var(--admin-warm) !important;
   }
 
   .app-shell .text-red-700,
@@ -752,32 +831,45 @@
   .app-shell .shadow-md,
   .app-shell .shadow-lg,
   .app-shell .shadow-xl {
-    box-shadow: 0 12px 28px rgba(14, 116, 144, 0.12) !important;
+    box-shadow: 0 12px 28px rgba(68, 82, 72, 0.09) !important;
   }
 
   .app-shell table thead tr {
-    background: linear-gradient(135deg, #eff8ff, #dbeffd) !important;
+    background: #ffffff !important;
   }
 
   .app-shell table th {
-    color: #0f3d56 !important;
+    color: #264439 !important;
     font-weight: 700 !important;
   }
 
   .app-shell table td {
-    color: #233a58 !important;
+    color: #27364a !important;
   }
 
   .app-shell table tbody tr:hover {
-    background: rgba(224, 242, 254, 0.58) !important;
+    background: #f8fafc !important;
+  }
+
+  .app-shell .fee-list-table thead tr {
+    background: #38bdf !important;
+  }
+
+  .app-shell .fee-list-table thead th {
+    color: #ffffff !important;
+    background: #4b9275 !important;
+  }
+
+  .app-shell .fee-list-table thead th.fee-total-heading {
+    background: #4b9275 !important;
   }
 
   .app-shell input,
   .app-shell select,
   .app-shell textarea {
-    border-color: rgba(186, 230, 253, 0.96) !important;
-    background: rgba(255, 255, 255, 0.95) !important;
-    color: #0f172a !important;
+    border-color: var(--admin-border) !important;
+    background: #ffffff !important;
+    color: var(--admin-text) !important;
   }
 
   .app-shell input[type="date"],
@@ -790,7 +882,7 @@
 
   .app-shell input::placeholder,
   .app-shell textarea::placeholder {
-    color: #8393ad !important;
+    color: #8d968f !important;
   }
 
   .sidebar-scroll {

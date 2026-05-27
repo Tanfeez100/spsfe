@@ -2,6 +2,19 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clearSession, getLoginType, getUser, logout } from '../Api/auth'
 
+const viewPathMap = {
+  dashboard: '/dashboard',
+  student: '/students',
+  studentLifecycle: '/leave-rejoin',
+  classPromotion: '/class-promotion',
+  subject: '/subjects',
+  teachers: '/teachers',
+  fees: '/fees',
+  uploadMarks: '/marks-upload',
+  uploadPhoto: '/upload-photo',
+  result: '/result-view',
+}
+
 function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapsed, setSidebarCollapsed }) {
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -79,26 +92,26 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
         } ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="h-full p-3 sm:p-4">
-          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#d7e9f7]/90 bg-white">
-            <div className="flex items-center justify-between border-b border-[#d7e9f7] px-3 py-3">
+          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_12px_28px_rgba(0,0,0,0.08)]">
+            <div className="flex items-center justify-between border-b border-black/15 px-3 py-3">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="hidden rounded-lg border border-[#bae6fd]/80 bg-[#f0f9ff] p-1.5 text-[#0369a1] hover:bg-[#e0f2fe] lg:inline-flex"
+                  className="hidden rounded-lg border border-[#d1d5db] bg-white p-1.5 text-black hover:bg-[#f8fafc] lg:inline-flex"
                   title={sidebarCollapsed ? 'Expand' : 'Collapse'}
                 >
                   <span className="material-symbols-outlined text-base">{sidebarCollapsed ? 'menu_open' : 'menu'}</span>
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="rounded-lg border border-[#bae6fd]/80 bg-[#f0f9ff] p-1.5 text-[#0369a1] lg:hidden"
+                  className="rounded-lg border border-[#d1d5db] bg-white p-1.5 text-black lg:hidden"
                   aria-label="Close sidebar"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
               <p
-                className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0284c7] ${
+                className={`text-[11px] font-semibold uppercase tracking-[0.14em] text-black ${
                   collapsedDesktopOnly ? 'lg:hidden' : ''
                 }`}
               >
@@ -112,7 +125,8 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
                   <button
                     key={item.id}
                     onClick={() => {
-                      if (item.id === 'classPromotion') navigate('/admin/class-promotion')
+                      const targetPath = viewPathMap[item.id]
+                      if (targetPath) navigate(targetPath)
                       setActiveView(item.id)
                       setIsOpen(false)
                     }}
@@ -120,8 +134,8 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
                       collapsedDesktopOnly ? 'lg:justify-center' : ''
                     } ${
                       activeView === item.id
-                        ? 'bg-[#0ea5e9] text-white'
-                        : 'text-[#4b6182] hover:bg-[#0ea5e9] hover:text-white'
+                        ? 'bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,0.18)]'
+                        : 'text-[#53647b] hover:bg-[#f8fafc] hover:text-black'
                     }`}
                     title={collapsedDesktopOnly ? item.label : ''}
                   >
@@ -132,7 +146,7 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
               </div>
             </nav>
 
-            <div className="border-t border-[#d7e9f7] p-2.5">
+            <div className="border-t border-black/15 p-2.5">
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}

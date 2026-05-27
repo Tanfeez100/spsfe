@@ -271,19 +271,19 @@ function ViewMarks() {
       <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Class */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Class <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">class</span>
               {loadingSubjects ? (
-                <div className="w-full py-2.5 px-2 text-sm text-slate-500 dark:text-slate-400">Loading...</div>
+                <div className="min-w-0 w-full py-2.5 px-2 text-sm text-slate-500 dark:text-slate-400">Loading...</div>
               ) : (
                 <select
                   value={filters.class}
                   onChange={(e) => handleFilterChange('class', e.target.value)}
-                  className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white"
+                  className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                   required
                 >
                   <option value="">Select Class</option>
@@ -292,20 +292,25 @@ function ViewMarks() {
                   ))}
                 </select>
               )}
+              {!loadingSubjects ? (
+                <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                  expand_more
+                </span>
+              ) : null}
             </div>
           </div>
 
           {/* Section */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Section
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">category</span>
               <select
                 value={filters.section}
                 onChange={(e) => handleFilterChange('section', e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white"
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                 disabled={!filters.class}
               >
                 <option value="">All Sections</option>
@@ -313,20 +318,23 @@ function ViewMarks() {
                   <option key={section} value={section}>Section {section}</option>
                 ))}
               </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
           </div>
 
           {/* Terminal */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Terminal <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">calendar_today</span>
               <select
                 value={filters.terminal}
                 onChange={(e) => handleFilterChange('terminal', e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white"
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                 required
               >
                 <option value="">Select Terminal</option>
@@ -334,6 +342,9 @@ function ViewMarks() {
                   <option key={terminal} value={terminal}>{terminal}</option>
                 ))}
               </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
           </div>
         </div>
@@ -407,12 +418,12 @@ function ViewMarks() {
                 </h3>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   {/* Student Dropdown - Small, inside card on right */}
-                  <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all w-full sm:w-48">
+                  <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all w-full sm:w-48">
                     <span className="material-symbols-outlined pl-2 text-slate-500 dark:text-slate-400 text-sm">person</span>
                     <select
                       value={selectedStudent}
                       onChange={(e) => setSelectedStudent(e.target.value)}
-                      className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs text-slate-900 dark:text-white"
+                      className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-1.5 pl-2 pr-8 text-xs text-slate-900 dark:text-white"
                     >
                       {marksData.students.map((student) => (
                         <option key={student.student_id} value={student.student_id}>
@@ -420,6 +431,9 @@ function ViewMarks() {
                         </option>
                       ))}
                     </select>
+                    <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-sm">
+                      expand_more
+                    </span>
                   </div>
 
                 </div>

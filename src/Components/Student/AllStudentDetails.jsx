@@ -422,45 +422,45 @@ function AllStudentDetails() {
       <div className="bg-cyan-50/30 dark:bg-cyan-900/20 rounded-lg p-3 sm:p-4 shadow-md border border-cyan-200/30 dark:border-cyan-800/50">
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
           {/* Class Filter */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Class
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+            <div className="flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-1.5 sm:pl-2 text-cyan-200 text-base shrink-0">class</span>
               <input
                 type="text"
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
                 placeholder="1, 4"
-                className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                className="min-w-0 w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
               />
             </div>
           </div>
 
           {/* Roll Number Filter */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Roll
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+            <div className="flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-1.5 sm:pl-2 text-cyan-200 text-base shrink-0">badge</span>
               <input
                 type="text"
                 value={rollFilter}
                 onChange={(e) => setRollFilter(e.target.value)}
                 placeholder="Roll"
-                className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                className="min-w-0 w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
               />
             </div>
           </div>
 
           {/* Section Filter */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Section
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-1.5 sm:pl-2 text-cyan-200 text-base shrink-0">category</span>
               <select
                 value={sectionFilter}
@@ -468,7 +468,7 @@ function AllStudentDetails() {
                   setSectionFilter(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white dropdown-cyan"
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-1.5 pl-2 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white dropdown-cyan"
               >
                 <option value="" className="bg-cyan-50 dark:bg-slate-800">All</option>
                 {uniqueSections.map((section) => (
@@ -477,34 +477,40 @@ function AllStudentDetails() {
                   </option>
                 ))}
               </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
           </div>
 
           {/* Search */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Status
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-1.5 sm:pl-2 text-cyan-200 text-base shrink-0">flag</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white dropdown-cyan"
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-1.5 pl-2 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white dropdown-cyan"
               >
                 <option value="all" className="bg-cyan-50 dark:bg-slate-800">All</option>
                 <option value="active" className="bg-cyan-50 dark:bg-slate-800">Active</option>
                 <option value="left" className="bg-cyan-50 dark:bg-slate-800">Left</option>
               </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
           </div>
 
           {/* Search */}
-          <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+          <div className="col-span-2 min-w-0 sm:col-span-2 lg:col-span-1">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Search
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+            <div className="flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-1.5 sm:pl-2 text-cyan-200 text-base shrink-0">search</span>
               <input
                 type="text"
@@ -514,7 +520,7 @@ function AllStudentDetails() {
                   setCurrentPage(1)
                 }}
                 placeholder="Name"
-                className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                className="min-w-0 w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -557,14 +563,13 @@ function AllStudentDetails() {
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Mobile</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden xl:table-cell">Address</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Transport</th>
-                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-white">Status</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-white">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {paginatedStudents.length === 0 ? (
                   <tr>
-                    <td colSpan="11" className="px-2 sm:px-4 py-6 sm:py-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    <td colSpan="10" className="px-2 sm:px-4 py-6 sm:py-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                       No students found
                     </td>
                   </tr>
@@ -616,17 +621,6 @@ function AllStudentDetails() {
                           <span className="inline-flex items-center gap-1 text-xs text-red-400">
                             <span className="material-symbols-outlined text-sm">cancel</span>
                             No
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
-                        {studentLeft ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                            Left
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold  text-white dark:bg-green-900/70">
-                            Active
                           </span>
                         )}
                       </td>

@@ -585,14 +585,14 @@ function SubmitMarks() {
         {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Class */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Class <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">class</span>
               {loadingSubjects ? (
-                <div className="w-full py-2.5 px-2 text-sm text-slate-500 dark:text-slate-400">
+                <div className="min-w-0 w-full py-2.5 px-2 text-sm text-slate-500 dark:text-slate-400">
                   Loading...
                 </div>
               ) : (
@@ -600,7 +600,7 @@ function SubmitMarks() {
                   name="class"
                   value={formData.class}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white"
+                  className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                   required
                 >
                   <option value="">Select Class</option>
@@ -611,21 +611,26 @@ function SubmitMarks() {
                   ))}
                 </select>
               )}
+              {!loadingSubjects ? (
+                <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                  expand_more
+                </span>
+              ) : null}
             </div>
           </div>
 
           {/* Section */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Section <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">category</span>
               <select
                 name="section"
                 value={formData.section}
                 onChange={handleChange}
-                className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white"
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                 required
                 disabled={!formData.class || loadingSections}
               >
@@ -638,6 +643,9 @@ function SubmitMarks() {
                   </option>
                 ))}
               </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
             {formData.class && !loadingSections && availableSections.length === 0 && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
@@ -647,17 +655,17 @@ function SubmitMarks() {
           </div>
 
           {/* Terminal */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Terminal <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">calendar_today</span>
               <select
                 name="terminal"
                 value={formData.terminal}
                 onChange={handleChange}
-                className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white"
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                 required
               >
                 <option value="">Select Terminal</option>
@@ -667,22 +675,25 @@ function SubmitMarks() {
                   </option>
                 ))}
               </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
           </div>
 
           {/* Roll Number */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
               Roll Number <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
+            <div className="flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-3 text-slate-500 dark:text-slate-400 text-base">badge</span>
               <input
                 type="number"
                 name="roll_no"
                 value={formData.roll_no}
                 onChange={handleChange}
-                className="w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                className="min-w-0 w-full bg-transparent border-none focus:ring-0 py-2.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
                 placeholder="Enter roll number"
                 min="1"
                 required

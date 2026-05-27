@@ -310,16 +310,6 @@ function PayFees({ initialData, onPaymentComplete }) {
                   <span className="font-medium text-slate-900 dark:text-white">₹{parseFloat(feeDetails.annual_fee || 0).toLocaleString('en-IN')}</span>
                 </div>
                 
-                <div className="flex justify-between items-center text-sm gap-0 flex-nowrap">
-                  <span className="text-slate-600 dark:text-slate-400">Computer Fee:</span>
-                  <span className="font-medium text-slate-900 dark:text-white">₹{parseFloat(feeDetails.computer_fee || 0).toLocaleString('en-IN')}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-sm gap-0 flex-nowrap">
-                  <span className="text-slate-600 dark:text-slate-400">Transport Fee:</span>
-                  <span className="font-medium text-slate-900 dark:text-white">₹{parseFloat(feeDetails.transport_fee || 0).toLocaleString('en-IN')}</span>
-                </div>
-                
                 {feeDetails.previous_due && parseFloat(feeDetails.previous_due) > 0 && (
                   <div className="flex justify-between items-center text-sm gap-0 flex-nowrap">
                     <span className="text-orange-600 dark:text-orange-400">Previous Due:</span>
