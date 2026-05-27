@@ -100,19 +100,19 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
     // Header - School Name
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("GYANODAY PUBLIC SCHOOL", x + billWidth / 2, y + 6, { align: "center" });
+    doc.text("STAR PUBLIC SCHOOL", x + billWidth / 2, y + 6, { align: "center" });
 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text(
-      "Blaspur Dainmanwa Road, Harinagar (W. Champaran)",
+      "Meghwal mathia Bazar, West Champaran, Bihar 845106",
       x + billWidth / 2,
       y + 10,
       { align: "center" }
     );
 
     doc.text(
-      "Mob: 9876543210, 9123456789",
+      "Mob: 9006457330",
       x + billWidth / 2,
       y + 14,
       { align: "center" }
@@ -294,9 +294,9 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
               <div className="flex flex-col h-full">
                 {/* Header */}
                 <div className="text-center mb-2">
-                  <p style={{ fontSize: '10pt', fontWeight: 'bold', margin: '2px 0' }}>GYANODAY PUBLIC SCHOOL</p>
-                  <p style={{ fontSize: '8pt', margin: '1px 0' }}>Blaspur Dainmanwa Road, Harinagar (W. Champaran)</p>
-                  <p style={{ fontSize: '8pt', margin: '1px 0' }}>Mob: 9876543210, 9123456789</p>
+                  <p style={{ fontSize: '10pt', fontWeight: 'bold', margin: '2px 0' }}>STAR PUBLIC SCHOOL</p>
+                  <p style={{ fontSize: '8pt', margin: '1px 0' }}>Meghwal mathia Bazar, West Champaran, Bihar 845106</p>
+                  <p style={{ fontSize: '8pt', margin: '1px 0' }}>Mob: 9006457330</p>
                   <p style={{ fontSize: '9pt', fontWeight: 'bold', margin: '2px 0' }}>Invoice #{invoiceData.invoice_number || invoiceData.bill_id || '--'}</p>
                 </div>
 

@@ -222,7 +222,7 @@ function PublicFeePayment() {
     <WebsiteLayout>
       <SEO
         title="Online Fee Payment"
-        description="Pay Gyanoday Public School fees online through the public fee payment portal."
+        description="Pay Star Public School fees online through the public fee payment portal."
         canonicalPath="/pay-fees"
       />
 

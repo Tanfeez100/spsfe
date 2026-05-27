@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getAllStudents, deleteStudent, leaveStudent, rejoinStudent } from '../../Api/students'
 import { emitToast } from '../../Api/auth'
-import AddStudent from './AddStudent'
 import EditStudent from './EditStudent'
 
 function AllStudentDetails() {
+  const navigate = useNavigate()
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -14,7 +15,6 @@ function AllStudentDetails() {
   const [sectionFilter, setSectionFilter] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
@@ -336,6 +336,40 @@ function AllStudentDetails() {
     }
   }
 
+  if (isEditModalOpen && selectedStudent) {
+    const handleCloseEdit = () => {
+      setIsEditModalOpen(false)
+      setSelectedStudent(null)
+    }
+
+    return (
+      <div className="w-full min-h-full" style={{ fontFamily: "'Lexend', sans-serif" }}>
+        <div className="mb-2 flex items-center gap-4 px-5 py-3 sm:px-8 sm:py-4">
+          <button
+            onClick={handleCloseEdit}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-900 dark:text-white"
+            title="Back to Students"
+          >
+            <span className="material-symbols-outlined text-2xl">arrow_back</span>
+          </button>
+          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white">Edit Student</h1>
+        </div>
+
+        <div className="px-4 sm:px-7 pb-5">
+          <EditStudent
+            isOpen={true}
+            onClose={handleCloseEdit}
+            onSuccess={() => {
+              fetchStudents()
+            }}
+            studentData={selectedStudent}
+            fullPage={true}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3 sm:space-y-4" style={{ fontFamily: "'Lexend', sans-serif" }}>
       <style>{`
@@ -408,7 +442,7 @@ function AllStudentDetails() {
             Total: <span className="font-bold text-cyan-200">{count}</span>
           </div>
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => navigate('/students/add')}
             className="flex items-center justify-center gap-1.5 sm:gap-2 bg-cyan-500 hover:bg-cyan-500/90 text-white font-bold px-3 sm:px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/20 transition-all text-xs sm:text-sm order-1 sm:order-2"
           >
             <span className="material-symbols-outlined text-base">person_add</span>
@@ -551,9 +585,9 @@ function AllStudentDetails() {
             scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)'
           }}>
             <table className="w-full text-xs sm:text-sm">
-              <thead className="bg-slate-100">
+              <thead className="bg-blue-700 dark:bg-blue-800">
                 <tr>
-                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-red">S.No</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white">S.No</th>
                  
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white">Name</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden md:table-cell">Father</th>
@@ -562,7 +596,7 @@ function AllStudentDetails() {
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Section</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Mobile</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden xl:table-cell">Address</th>
-                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Transport</th>
+                  {/* <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Transport</th> */}
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-white">Action</th>
                 </tr>
               </thead>
@@ -587,35 +621,35 @@ function AllStudentDetails() {
                       <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-slate-900 dark:text-white truncate">
                         {student.Name || '-'}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-slate-900 hidden md:table-cell truncate">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden md:table-cell truncate">
                         {student.Father || '-'}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-slate-900 hidden sm:table-cell">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden sm:table-cell">
                         {getStudentClass(student) || '-'}
                       </td>
-                        <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-slate-900 text-slate-900">
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-slate-900 dark:text-white">
                         {student.Roll || '-'}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-slate-900 hidden lg:table-cell">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden lg:table-cell">
                         {getStudentSection(student) || '-'}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-slate-900 hidden lg:table-cell">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden lg:table-cell">
                         {student.Mobile || '-'}
                       </td>
                       <td
-                        className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-slate-900 hidden xl:table-cell"
+                        className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden xl:table-cell"
                         title={addressInfo.full || undefined}
                       >
                         {addressInfo.display}
                       </td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-600 dark:text-slate-300 hidden lg:table-cell">
+                      {/* <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-600 dark:text-slate-300 hidden lg:table-cell">
                         {student.Transport && student.Transport !== "No" && typeof student.Transport === 'number' ? (
                           <div className="flex flex-col gap-0.5">
                             <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                               <span className="material-symbols-outlined text-sm">check_circle</span>
                               Yes
                             </span>
-                            <span className="text-xs text-slate-900 dark:text-slate-900">₹{student.Transport}</span>
+                            <span className="text-xs text-slate-900 dark:text-white">₹{student.Transport}</span>
                           </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs text-red-400">
@@ -623,7 +657,7 @@ function AllStudentDetails() {
                             No
                           </span>
                         )}
-                      </td>
+                      </td> */}
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                         <div className="flex items-center justify-center gap-1 flex-wrap">
                           <button
@@ -631,10 +665,10 @@ function AllStudentDetails() {
                               setSelectedStudent(student)
                               setIsEditModalOpen(true)
                             }}
-                            className="p-1 text-cyan-200 hover:bg-cyan-500/10 hover:border-2 hover:border-cyan-400 dark:hover:bg-cyan-900/20 rounded-lg transition-colors"
+                            className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-md"
                             title="Edit"
                           >
-                            <span className="material-symbols-outlined text-base">edit</span>
+                            <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
                         </div>
                       </td>
@@ -747,6 +781,7 @@ function AllStudentDetails() {
                 >
                   Cancel
                 </button>
+      
                 <button
                   type="submit"
                   disabled={statusActionLoading}
@@ -840,15 +875,6 @@ function AllStudentDetails() {
           </div>
         </div>
       )}
-
-      {/* Add Student Modal */}
-      <AddStudent
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => {
-          fetchStudents()
-        }}
-      />
 
       {/* Edit Student Modal */}
       <EditStudent

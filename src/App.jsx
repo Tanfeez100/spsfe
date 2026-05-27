@@ -7,6 +7,7 @@ import { scrollToPageTop } from './utils/scrollToPageTop'
 const Layout = lazy(() => import('./Components/Layout'))
 const AllLogin = lazy(() => import('./Pages/Auth/AllLogin'))
 const Dashboard = lazy(() => import('./Pages/AllDashboard/AllDashboard'))
+const AddStudentPage = lazy(() => import('./Pages/AllDashboard/AddStudentPage'))
 const Results = lazy(() => import('./Pages/Results/Results'))
 const ResultsPortal = lazy(() => import('./Pages/Results/ResultsPortal'))
 const Home = lazy(() => import('./Pages/Website/Home'))
@@ -157,6 +158,15 @@ function App() {
           <Route path="/result" element={<Results />} />
           <Route path="/results/:classSlug/roll-:rollNumber" element={<Results />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/students/add" element={<AddStudentPage />} />
+          </Route>
           <Route
             element={
               <ProtectedRoute allowedRoles={['admin', 'teacher', 'student', 'accountant']}>

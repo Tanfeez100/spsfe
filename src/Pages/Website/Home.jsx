@@ -125,7 +125,7 @@ function Home() {
     <WebsiteLayout>
       <SEO
         title="Best School in Harinagar Ramnagar West Champaran"
-        description="Gyanoday Public School is a trusted school in Harinagar, Ramnagar, West Champaran with disciplined learning, parent communication, admissions support, activities and secure result access."
+        description="Star Public School is a trusted school in Harinagar, Ramnagar, West Champaran with disciplined learning, parent communication, admissions support, activities and secure result access."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/"
         jsonLd={buildSchoolJsonLd({ path: '/' })}

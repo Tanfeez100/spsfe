@@ -9,8 +9,8 @@ function About() {
   return (
     <WebsiteLayout>
       <SEO
-        title="About Gyanoday Public School"
-        description="Learn about Gyanoday Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar and how the school supports disciplined learning, values and parent communication."
+        title="About Star Public School"
+        description="Learn about Star Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar and how the school supports disciplined learning, values and parent communication."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/about"
         jsonLd={buildSchoolJsonLd({ path: '/about' })}

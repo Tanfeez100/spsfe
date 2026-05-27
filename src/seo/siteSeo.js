@@ -1,19 +1,19 @@
 const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://gyanodaypublicschool.in').replace(/\/+$/, '')
 
-export const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Gyanoday Public School'
-export const SCHOOL_SHORT_NAME = 'Gyanoday Public School'
-export const SCHOOL_PHONE = import.meta.env.VITE_SCHOOL_PHONE || '+91 7870225302'
-export const SCHOOL_EMAIL = import.meta.env.VITE_SCHOOL_EMAIL || 'gpschool2025@gmail.com'
+export const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Star Public School'
+export const SCHOOL_SHORT_NAME = 'Star Public School'
+export const SCHOOL_PHONE = import.meta.env.VITE_SCHOOL_PHONE || '+91 9006457330'
+export const SCHOOL_EMAIL = import.meta.env.VITE_SCHOOL_EMAIL || 'a9006457330@gmail.com'
 export const SCHOOL_ADDRESS =
   import.meta.env.VITE_SCHOOL_ADDRESS ||
-  'Belaspur Dainmanwa Road, Harinagar, Ramnagar, West Champaran, Bihar 845103'
-export const SCHOOL_LOCALITY = 'Harinagar'
-export const SCHOOL_AREA = 'Ramnagar (Bettiah)'
+  'Meghwal mathia Bazar, West Champaran, Bihar 845106'
+export const SCHOOL_LOCALITY = 'West Champaran'
+export const SCHOOL_AREA = 'West Champaran'
 export const SCHOOL_DISTRICT = 'West Champaran'
 export const SCHOOL_STATE = 'Bihar'
 export const SCHOOL_COUNTRY = 'IN'
 export const SCHOOL_KEYWORDS = [
-  'Gyanoday Public School',
+  'Star Public School',
   'Harinagar school',
   'Ramnagar Bettiah school',
   'West Champaran school',
@@ -36,7 +36,7 @@ export const SCHOOL_KEYWORDS = [
 ].join(', ')
 
 export const DEFAULT_DESCRIPTION =
-  'Gyanoday Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar offers disciplined learning, student care, admissions guidance, campus updates and secure result access.'
+  'Star Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar offers disciplined learning, student care, admissions guidance, campus updates and secure result access.'
 
 export const PUBLIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
@@ -79,7 +79,7 @@ export const buildSchoolJsonLd = ({ path = '/' } = {}) => {
     description: DEFAULT_DESCRIPTION,
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Belaspur Dainmanwa Road',
+      streetAddress: 'Meghwal mathia Bazar',
       addressLocality: SCHOOL_LOCALITY,
       addressRegion: SCHOOL_STATE,
       addressCountry: SCHOOL_COUNTRY,

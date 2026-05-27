@@ -38,8 +38,8 @@ function Admission() {
   return (
     <WebsiteLayout>
       <SEO
-        title="Admission at Gyanoday Public School"
-        description="Explore admissions at Gyanoday Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar. Clear steps, document guidance and parent support."
+        title="Admission at Star Public School"
+        description="Explore admissions at Star Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar. Clear steps, document guidance and parent support."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/admission"
         jsonLd={buildSchoolJsonLd({ path: '/admission' })}

@@ -5,7 +5,7 @@ function Header({ sidebarOpen, setSidebarOpen }) {
   const user = getUser()
   const userInitial = user?.email?.charAt(0).toUpperCase() || 'U'
   const roleLabel = user?.role ? String(user.role).toUpperCase() : 'USER'
-  const schoolName = import.meta.env.VITE_SCHOOL_NAME || 'Gyanoday Public School'
+  const schoolName = import.meta.env.VITE_SCHOOL_NAME || 'Star Public School'
 
   return (
     <header className="relative z-40 px-3 pt-3 sm:px-4 sm:pt-4 lg:px-6">

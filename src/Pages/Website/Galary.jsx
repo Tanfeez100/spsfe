@@ -22,7 +22,7 @@ function Galary() {
     <WebsiteLayout>
       <SEO
         title="School Gallery"
-        description="Browse the Gyanoday Public School gallery in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar and see academics, events and campus life."
+        description="Browse the Star Public School gallery in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar and see academics, events and campus life."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/gallery"
         jsonLd={buildSchoolJsonLd({ path: '/gallery' })}

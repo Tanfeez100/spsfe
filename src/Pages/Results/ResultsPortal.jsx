@@ -8,7 +8,7 @@ import { useResultSearchOptions } from './useResultSearchOptions'
 const sanitizeSessionValue = (value) => String(value ?? '').replace(/[^0-9-]/g, '').replace(/-+/g, '-').slice(0, 7)
 
 function ResultsPortal() {
-  const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Gyanoday Public School'
+  const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Star Public School'
   const navigate = useNavigate()
   const terminals = useMemo(() => ['First', 'Second', 'Third', 'Annual'], [])
 

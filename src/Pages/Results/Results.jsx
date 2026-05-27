@@ -142,8 +142,8 @@ const buildCloudinaryPassportPhotoUrl = (url) => {
 }
 
 function Results() {
-  const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Gyanoday Public School'
-  const SCHOOL_ADDRESS = import.meta.env.VITE_SCHOOL_ADDRESS || 'Belaspur Dainmanwa Road, Harinagar, Ramnagar, West Champaran, Bihar'
+  const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Star Public School'
+  const SCHOOL_ADDRESS = import.meta.env.VITE_SCHOOL_ADDRESS || 'Meghwal mathia Bazar, West Champaran, Bihar 845106'
   const cardRef = useRef(null)
 
   const [searchParams] = useSearchParams()
@@ -682,7 +682,7 @@ function Results() {
     <WebsiteLayout>
       <SEO
         title="Student Result"
-        description="Secure published result card for Gyanoday Public School students."
+        description="Secure published result card for Star Public School students."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath={canonicalPath}
         jsonLd={buildSchoolJsonLd({ path: canonicalPath })}

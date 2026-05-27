@@ -19,7 +19,7 @@ const normalizeMobileValue = (value) => value.replace(/\D/g, '').slice(0, 10)
 const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
 const normalizeAddressValue = (value) => value.slice(0, 50)
 
-function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
+function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false }) {
   const [formData, setFormData] = useState({
     name: '',
     father_name: '',
@@ -288,18 +288,34 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen && !fullPage) return null
+
+  const formClass = fullPage
+    ? 'px-6 py-6 sm:px-12 lg:px-24 lg:py-8 space-y-4'
+    : 'px-6 py-6 sm:px-12 lg:px-24 lg:py-8 space-y-4 overflow-y-auto scrollbar-cyan'
+  const gridClass = 'grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3'
+  const fullRowClass = 'col-span-1 sm:col-span-2 lg:col-span-3'
+  const labelClass = 'block text-[13px] font-black text-slate-900 dark:text-slate-100 mb-2'
+  const fieldShellClass = 'flex min-h-11 items-center rounded-md border border-slate-300 bg-white shadow-sm focus-within:border-slate-500 focus-within:ring-1 focus-within:ring-slate-400 transition-all'
+  const fieldIconClass = 'material-symbols-outlined shrink-0 pl-3 pr-2 text-black text-[22px]'
+  const inputClass = 'w-full min-w-0 bg-transparent border-none focus:ring-0 py-2 px-2 text-sm font-medium text-slate-900 placeholder:text-slate-500'
+  const siteInputClass = 'w-full min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-500 focus:ring-1 focus:ring-slate-400'
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-20" style={{ fontFamily: "'Lexend', sans-serif" }}>
+    <div
+      className={fullPage ? 'w-full rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900' : 'fixed inset-0 z-[9999] flex items-center justify-center p-4'}
+      style={{ fontFamily: "'Lexend', sans-serif" }}
+    >
       {/* Blurred Background */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-        onClick={onClose}
-      ></div>
+      {!fullPage ? (
+        <div
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+          onClick={onClose}
+        ></div>
+      ) : null}
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[calc(90vh-5rem)] overflow-hidden z-[9999]">
+      <div className={fullPage ? 'w-full' : 'relative z-[9999] flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl dark:bg-slate-800'}>
         <style>{`
           .scrollbar-cyan::-webkit-scrollbar {
             width: 8px;
@@ -337,18 +353,20 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
           }
         `}</style>
         {/* Header */}
-        <div className="bg-cyan-500 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
-          <h2 className="text-xl font-black">Edit Student</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
+        {!fullPage ? (
+          <div className="bg-black text-white px-6 py-4 rounded-t-lg flex items-center justify-between shrink-0">
+            <h2 className="text-xl font-black">Edit Student</h2>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        ) : null}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-12rem)] scrollbar-cyan" style={{
+        <form onSubmit={handleSubmit} className={formClass} style={{
           scrollbarWidth: 'thin',
           scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)'
         }}>
@@ -365,21 +383,21 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={gridClass}>
             {/* Name */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Name <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">person</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>person</span>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter student name"
                   required
                 />
@@ -391,18 +409,18 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Father Name */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Father Name <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">family_restroom</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>family_restroom</span>
                 <input
                   type="text"
                   name="father_name"
                   value={formData.father_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter father name"
                   required
                 />
@@ -414,18 +432,18 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Mother Name */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Mother Name <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">family_restroom</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>family_restroom</span>
                 <input
                   type="text"
                   name="mother_name"
                   value={formData.mother_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter mother name"
                   required
                 />
@@ -437,16 +455,16 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Gender */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Gender <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">wc</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>wc</span>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white"
+                  className={inputClass}
                   required
                 >
                   <option value="Male">Male</option>
@@ -458,18 +476,18 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Class */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Class <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">class</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>class</span>
                 <input
                   type="text"
                   name="class"
                   value={formData.class}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter class"
                   required
                 />
@@ -481,17 +499,17 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Roll Number */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Roll Number <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">badge</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>badge</span>
                 <input
                   type="number"
                   name="roll_no"
                   value={formData.roll_no}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter roll number"
                   required
                 />
@@ -500,11 +518,11 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Section */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Section <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">category</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>category</span>
                 <input
                   type="text"
                   name="section"
@@ -512,7 +530,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   maxLength={1}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter section (e.g., A, B)"
                   required
                 />
@@ -524,11 +542,11 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Mobile */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Mobile <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">phone</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>phone</span>
                 <input
                   type="tel"
                   name="mobile"
@@ -538,7 +556,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
                   maxLength={10}
                   pattern="[6-9][0-9]{9}"
                   inputMode="numeric"
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter mobile number"
                   title="Enter a 10-digit mobile number starting with 6, 7, 8, or 9."
                   required
@@ -551,11 +569,11 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
             {/* Aadhaar */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className={labelClass}>
                 Aadhaar Number <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">fingerprint</span>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>fingerprint</span>
                 <input
                   type="text"
                   name="aadhaar_card"
@@ -564,7 +582,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
                   onBlur={handleBlur}
                   maxLength={12}
                   inputMode="numeric"
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter 12 digit Aadhaar"
                 />
               </div>
@@ -573,45 +591,52 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
               ) : null}
             </div>
 
-            {/* Photo Upload */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Student Photo
-              </label>
-              <input
-                type="file"
-                name="photoFile"
-                accept="image/*"
-                onChange={handleChange}
-                className="gps-site-input"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Upload a student photo or paste a direct image URL below.
-              </p>
-            </div>
+            <div className={`${fullRowClass} grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2`}>
+              {/* Photo Upload */}
+              <div>
+                <label className={labelClass}>
+                  Student Photo
+                </label>
+                <input
+                  type="file"
+                  name="photoFile"
+                  accept="image/*"
+                  onChange={handleChange}
+                  className={siteInputClass}
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Upload a student photo or paste a direct image URL.
+                </p>
+              </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Photo URL
-              </label>
-              <input
-                type="text"
-                name="photo_url"
-                value={formData.photo_url}
-                onChange={handleChange}
-                className="gps-site-input"
-                placeholder="Direct image URL"
-              />
+              <div>
+                <label className={labelClass}>
+                  Photo URL
+                </label>
+                <div className={fieldShellClass}>
+                  <span className={fieldIconClass}>link</span>
+                  <input
+                    type="text"
+                    name="photo_url"
+                    value={formData.photo_url}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="Direct image URL"
+                  />
+                </div>
+              </div>
             </div>
 
             {formData.photoFile ? (
-              <StudentPhotoAdjuster
-                previewUrl={formData.photo_url}
-                adjustment={photoAdjustment}
-                onChange={setPhotoAdjustment}
-              />
+              <div className={fullRowClass}>
+                <StudentPhotoAdjuster
+                  previewUrl={formData.photo_url}
+                  adjustment={photoAdjustment}
+                  onChange={setPhotoAdjustment}
+                />
+              </div>
             ) : formData.photo_url ? (
-              <div className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className={`${fullRowClass} rounded-md border border-slate-200 bg-slate-50 p-3`}>
                 <p className="text-xs font-semibold text-slate-500 mb-2">Photo preview</p>
                 <img
                   src={formData.photo_url}
@@ -624,19 +649,19 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
           {/* Address */}
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className={labelClass}>
               Address <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-start border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-              <span className="material-symbols-outlined pl-2 pt-2 text-cyan-200 text-base">home</span>
+            <div className={fieldShellClass}>
+              <span className={fieldIconClass}>home</span>
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 maxLength={50}
-                rows="3"
-                className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 resize-none"
+                rows="1"
+                className={`${inputClass} h-10 resize-none leading-6`}
                 placeholder="Enter student address"
                 required
               ></textarea>
@@ -648,53 +673,53 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
           {/* Uses Transport */}
           <div className="flex items-center gap-2">
-            <input
+            {/* <input
               type="checkbox"
               name="uses_transport"
               checked={formData.uses_transport}
               onChange={handleChange}
-              className="w-4 h-4 rounded border-cyan-300 text-cyan-500 focus:ring-cyan-400"
+              className="w-5 h-5 rounded border-slate-300 text-black focus:ring-slate-400"
               id="uses_transport_edit"
-            />
-            <label htmlFor="uses_transport_edit" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+            /> */}
+            {/* <label htmlFor="uses_transport_edit" className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
               Uses Transport
-            </label>
+            </label> */}
           </div>
 
           {/* Transport Charge (conditional) */}
           {formData.uses_transport && (
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {/* <label className={labelClass}>
                 Transport Charge
-              </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">local_shipping</span>
-                <input
+              </label> */}
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>local_shipping</span>
+                {/* <input
                   type="number"
                   name="transport_charge"
                   value={formData.transport_charge || ''}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  className={inputClass}
                   placeholder="Enter transport charge"
                   step="0.01"
-                />
+                /> */}
               </div>
             </div>
           )}
 
           {/* Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-end gap-8 pt-4 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              className="px-2 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-transparent rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-bold text-white bg-cyan-500 hover:bg-cyan-500/90 rounded-lg shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-5 py-3 text-sm font-bold text-white bg-black hover:bg-slate-900 rounded-md shadow-lg shadow-slate-900/15 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>

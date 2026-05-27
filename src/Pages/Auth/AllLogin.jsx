@@ -47,7 +47,7 @@ function AllLogin() {
     <div className="gps-auth-page min-h-screen text-slate-900">
       <SEO
         title="Admin Login"
-        description="Secure staff login for Gyanoday Public School."
+        description="Secure staff login for Star Public School."
         canonicalPath="/login"
       />
       <WebsiteHeader />

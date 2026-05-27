@@ -204,7 +204,7 @@ function Dashboard({ initialView = 'dashboard' }) {
     <>
       <SEO
         title="School Dashboard"
-        description="Internal dashboard for Gyanoday Public School staff."
+        description="Internal dashboard for Star Public School staff."
         canonicalPath="/dashboard"
       />
       <Sidebar 
