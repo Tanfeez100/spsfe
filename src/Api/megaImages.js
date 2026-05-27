@@ -15,13 +15,13 @@ const toMessage = (error) => {
   return error?.message || 'Request failed'
 }
 
-export const uploadSingleImage = async (file, { isPublic = false } = {}) => {
+export const uploadSingleImage = async (file, { isPublic = false, provider = 'cloudinary' } = {}) => {
   try {
     const formData = new FormData()
     formData.append('image', file)
 
     const response = await api.post('/api/mega/images', formData, {
-      params: { public: isPublic ? 'true' : 'false' },
+      params: { public: isPublic ? 'true' : 'false', provider },
     })
     return response.data
   } catch (error) {
@@ -29,13 +29,13 @@ export const uploadSingleImage = async (file, { isPublic = false } = {}) => {
   }
 }
 
-export const uploadBulkImages = async (files, { isPublic = false } = {}) => {
+export const uploadBulkImages = async (files, { isPublic = false, provider = 'cloudinary' } = {}) => {
   try {
     const formData = new FormData()
     Array.from(files || []).forEach((f) => formData.append('images', f))
 
     const response = await api.post('/api/mega/images/bulk', formData, {
-      params: { public: isPublic ? 'true' : 'false' },
+      params: { public: isPublic ? 'true' : 'false', provider },
     })
     return response.data
   } catch (error) {

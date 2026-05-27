@@ -35,5 +35,6 @@ export const getPublicFeePaymentStatus = async (orderId, payload) =>
 
 export const buildPublicReceiptUrl = (billId, mobile) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
-  return `${baseUrl}/api/public-fees/receipt/${billId}?mobile=${encodeURIComponent(mobile || '')}`
+  const query = mobile ? `?mobile=${encodeURIComponent(mobile)}` : ''
+  return `${baseUrl}/api/public-fees/receipt/${billId}${query}`
 }

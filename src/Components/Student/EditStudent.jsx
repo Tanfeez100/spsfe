@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import api from '../../Api/auth'
 import { updateStudent } from '../../Api/students'
+import StudentPhotoAdjuster, {
+  DEFAULT_PHOTO_ADJUSTMENT,
+  createAdjustedStudentPhotoFile,
+} from './StudentPhotoAdjuster'
 
 const normalizeAlphaSpaceUpper = (value) =>
   value
@@ -11,6 +16,7 @@ const normalizeAlphaSpaceUpper = (value) =>
 const normalizeClassValue = (value) => value.replace(/[^a-zA-Z0-9]/g, '')
 const normalizeSectionValue = (value) => value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1)
 const normalizeMobileValue = (value) => value.replace(/\D/g, '').slice(0, 10)
+const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
 const normalizeAddressValue = (value) => value.slice(0, 50)
 
 function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
@@ -23,6 +29,9 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
     roll_no: '',
     section: '',
     mobile: '',
+    aadhaar_card: '',
+    photo_url: '',
+    photoFile: null,
     address: '',
     uses_transport: false,
     transport_charge: null
@@ -31,6 +40,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
+  const [photoAdjustment, setPhotoAdjustment] = useState(DEFAULT_PHOTO_ADJUSTMENT)
 
   const validateField = (fieldName, fieldValue) => {
     const value = (fieldValue ?? '').toString().trim()
@@ -59,6 +69,16 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
       return ''
     }
 
+    if (fieldName === 'aadhaar_card') {
+      if (!value) return 'Aadhaar number is required.'
+      if (!/^\d{12}$/.test(value)) return 'Aadhaar number must be 12 digits.'
+      return ''
+    }
+
+    if (fieldName === 'photo_url') {
+      return ''
+    }
+
     if (fieldName === 'address') {
       if (!value) return 'Address is required.'
       if (value.length > 50) return 'Address cannot exceed 50 characters.'
@@ -80,19 +100,39 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
         roll_no: studentData.Roll || studentData.roll_no || studentData.roll || '',
         section: normalizeSectionValue(studentData.Section || studentData.section || ''),
         mobile: normalizeMobileValue((studentData.Mobile || studentData.mobile || '').toString()),
+        aadhaar_card: normalizeAadhaarValue((studentData.Aadhaar || studentData.aadhaar_card || '').toString()),
+        photo_url: studentData.PhotoUrl || studentData.photo_url || studentData.photo || '',
+        photoFile: null,
         address: normalizeAddressValue(studentData.Address || studentData.address || ''),
         uses_transport: studentData.Transport && studentData.Transport !== "No" && typeof studentData.Transport === 'number',
         transport_charge: (studentData.Transport && typeof studentData.Transport === 'number') ? studentData.Transport : null
       })
       setFieldErrors({})
+      setPhotoAdjustment(DEFAULT_PHOTO_ADJUSTMENT)
       // Log student data for debugging
       console.log('Student data for edit:', studentData)
     }
   }, [studentData, isOpen])
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value, type, checked, files } = e.target
     let nextValue = value
+
+    if (type === 'file') {
+      const file = files?.[0] || null
+      setFormData((prev) => ({
+        ...prev,
+        photoFile: file,
+        photo_url: file ? URL.createObjectURL(file) : prev.photo_url,
+      }))
+      setPhotoAdjustment(DEFAULT_PHOTO_ADJUSTMENT)
+      setFieldErrors((prev) => ({
+        ...prev,
+        photoFile: file ? '' : prev.photoFile,
+      }))
+      setError('')
+      return
+    }
 
     if (type !== 'checkbox') {
       if (name === 'name' || name === 'father_name' || name === 'mother_name') {
@@ -109,6 +149,10 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
 
       if (name === 'mobile') {
         nextValue = normalizeMobileValue(value)
+      }
+
+      if (name === 'aadhaar_card') {
+        nextValue = normalizeAadhaarValue(value)
       }
 
       if (name === 'address') {
@@ -140,7 +184,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
       name === 'class' ||
       name === 'address' ||
       name === 'mobile' ||
-      name === 'section'
+      name === 'section' ||
+      name === 'aadhaar_card'
     ) {
       const trimmedValue = value.trim()
       setFormData(prev => ({
@@ -152,6 +197,13 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
         [name]: validateField(name, trimmedValue)
       }))
     }
+  }
+
+  const uploadStudentPhoto = async (file) => {
+    const form = new FormData()
+    form.append('image', file)
+    const response = await api.post('/api/mega/images?public=true&provider=cloudinary&preset=student-photo-manual', form)
+    return response?.data?.file?.url || null
   }
 
   const handleSubmit = async (e) => {
@@ -168,6 +220,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
         class: normalizeClassValue(formData.class).trim(),
         section: normalizeSectionValue(formData.section).trim(),
         mobile: normalizeMobileValue(formData.mobile).trim(),
+        aadhaar_card: normalizeAadhaarValue(formData.aadhaar_card).trim(),
+        photo_url: formData.photo_url?.trim() || '',
         address: normalizeAddressValue(formData.address).trim(),
       }
 
@@ -178,6 +232,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
         class: validateField('class', normalizedFormData.class),
         section: validateField('section', normalizedFormData.section),
         mobile: validateField('mobile', normalizedFormData.mobile),
+        aadhaar_card: validateField('aadhaar_card', normalizedFormData.aadhaar_card),
         address: validateField('address', normalizedFormData.address),
       }
 
@@ -188,10 +243,19 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
         return
       }
 
+      if (formData.photoFile) {
+        const adjustedPhotoFile = await createAdjustedStudentPhotoFile(formData.photoFile, photoAdjustment)
+        const uploadedUrl = await uploadStudentPhoto(adjustedPhotoFile || formData.photoFile)
+        if (!uploadedUrl) {
+          throw new Error('Failed to upload student photo')
+        }
+        normalizedFormData.photo_url = uploadedUrl
+      }
+
       const submitData = {
         ...normalizedFormData,
         roll_no: parseInt(normalizedFormData.roll_no, 10) || 0,
-        transport_charge: normalizedFormData.uses_transport ? (normalizedFormData.transport_charge ? parseFloat(normalizedFormData.transport_charge) : null) : null
+        transport_charge: normalizedFormData.uses_transport ? (normalizedFormData.transport_charge ? parseFloat(normalizedFormData.transport_charge) : null) : null,
       }
       
       // Get student ID from studentData - try multiple possible field names (API uses ID uppercase)
@@ -484,6 +548,78 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData }) {
                 <p className="mt-1 text-xs text-red-500">{fieldErrors.mobile}</p>
               ) : null}
             </div>
+
+            {/* Aadhaar */}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Aadhaar Number <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">fingerprint</span>
+                <input
+                  type="text"
+                  name="aadhaar_card"
+                  value={formData.aadhaar_card}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  maxLength={12}
+                  inputMode="numeric"
+                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
+                  placeholder="Enter 12 digit Aadhaar"
+                />
+              </div>
+              {fieldErrors.aadhaar_card ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.aadhaar_card}</p>
+              ) : null}
+            </div>
+
+            {/* Photo Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Student Photo
+              </label>
+              <input
+                type="file"
+                name="photoFile"
+                accept="image/*"
+                onChange={handleChange}
+                className="gps-site-input"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Upload a student photo or paste a direct image URL below.
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Photo URL
+              </label>
+              <input
+                type="text"
+                name="photo_url"
+                value={formData.photo_url}
+                onChange={handleChange}
+                className="gps-site-input"
+                placeholder="Direct image URL"
+              />
+            </div>
+
+            {formData.photoFile ? (
+              <StudentPhotoAdjuster
+                previewUrl={formData.photo_url}
+                adjustment={photoAdjustment}
+                onChange={setPhotoAdjustment}
+              />
+            ) : formData.photo_url ? (
+              <div className="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold text-slate-500 mb-2">Photo preview</p>
+                <img
+                  src={formData.photo_url}
+                  alt="Student preview"
+                  className="h-24 w-24 rounded-lg object-cover border border-slate-200"
+                />
+              </div>
+            ) : null}
           </div>
 
           {/* Address */}

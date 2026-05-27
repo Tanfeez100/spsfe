@@ -896,6 +896,18 @@
     border-color: rgb(6, 182, 212) !important;
   }
 
+  [class*="focus:ring"],
+  [class*="focus-within:ring"],
+  [class*="focus-visible:ring"] {
+    --tw-ring-inset: inset;
+  }
+
+  [class*="focus:ring"]:focus,
+  [class*="focus-visible:ring"]:focus-visible,
+  [class*="focus-within:ring"]:focus-within {
+    outline-offset: -2px;
+  }
+
   @media (min-width: 640px) {
     .gps-header-shell {
       width: min(1320px, calc(100% - 3rem));

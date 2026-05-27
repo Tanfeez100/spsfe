@@ -23,7 +23,7 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
       { id: 'teachers', label: 'Teachers', icon: 'groups' },
       { id: 'fees', label: 'Fees', icon: 'payments' },
       { id: 'uploadMarks', label: 'Marks Upload', icon: 'upload' },
-      // { id: 'uploadPhoto', label: 'Upload Photo', icon: 'photo_camera' },
+      { id: 'uploadPhoto', label: 'Upload Photo', icon: 'photo_camera' },
     ],
     teacher: [{ id: 'uploadMarks', label: 'Marks Upload', icon: 'upload' }],
     student: [

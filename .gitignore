@@ -26,3 +26,10 @@ Microsoft/
 postman_collections
 package-lock.json
 package.json
+postman_collections/*.json
+Postman_Collection.json
+*.postman_collection.json
+*.postman_environment.json
+*.postman_globals.json
+Postman_*.json
+postman_*.json

@@ -173,6 +173,24 @@
   }
 }
 
+.result-print img {
+  image-rendering: auto !important;
+  object-fit: cover !important;
+}
+
+.result-print img.student-result-photo {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+.result-print img.student-result-photo-bg {
+  filter: blur(10px) saturate(0.9) !important;
+  opacity: 0.28 !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform: scale(1.12) !important;
+}
+
 .pdf-capture-mode.pdf-capture-aggressive *,
 .pdf-capture-mode .pdf-capture-aggressive * {
   background-image: none !important;

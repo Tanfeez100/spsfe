@@ -290,15 +290,17 @@ function PublicFeePayment() {
               </label>
 
               <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                Mobile Number
+                Mobile Number (optional)
                 <input
-                  required
                   value={form.mobile}
                   onChange={(event) => handleChange('mobile', event.target.value)}
                   className="gps-site-input mt-1"
                   inputMode="tel"
-                  placeholder="Registered mobile number"
+                  placeholder="Registered mobile number for WhatsApp receipt"
                 />
+                <p className="mt-1 text-xs text-slate-500">
+                  Provide a registered mobile number if you want a WhatsApp receipt. Otherwise leave blank.
+                </p>
               </label>
             </div>
 

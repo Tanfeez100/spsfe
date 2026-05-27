@@ -131,6 +131,16 @@ const getOrderedTerminalKeys = (keys = []) => {
   return [...knownTerminals, ...customTerminals]
 }
 
+const buildCloudinaryPassportPhotoUrl = (url) => {
+  const rawUrl = String(url || '').trim()
+  if (!rawUrl || !rawUrl.includes('/image/upload/')) return rawUrl || null
+
+  const transforms = 'f_auto,q_auto,c_fill,g_face,w_318,h_414'
+  if (/\/image\/upload\/[^/]*c_fill[^/]*\//.test(rawUrl)) return rawUrl
+
+  return rawUrl.replace('/image/upload/', `/image/upload/${transforms}/`)
+}
+
 function Results() {
   const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Gyanoday Public School'
   const SCHOOL_ADDRESS = import.meta.env.VITE_SCHOOL_ADDRESS || 'Belaspur Dainmanwa Road, Harinagar, Ramnagar, West Champaran, Bihar'
@@ -258,6 +268,11 @@ function Results() {
   }, [classValue, roll, terminal, section, session])
 
   const student = data?.student
+  const studentPhotoUrl = student?.photo_url || student?.PhotoUrl || student?.photo || null
+  const studentPassportPhotoUrl = useMemo(
+    () => buildCloudinaryPassportPhotoUrl(studentPhotoUrl),
+    [studentPhotoUrl]
+  )
   const marks = useMemo(() => (
     Array.isArray(data?.marks) ? data.marks : []
   ), [data?.marks])
@@ -837,7 +852,33 @@ function Results() {
                         </div>
                       </div>
 
-                      <div aria-hidden="true" className="hidden h-[78px] w-[78px] sm:block sm:justify-self-end" />
+                      <div className="flex justify-center sm:justify-self-end">
+                        <div className="flex h-[126px] w-[96px] items-center justify-center rounded-[10px] border border-[#c8d3df] bg-white p-0.5 shadow-[0_0_0_1px_rgba(0,0,0,0.02)] sm:h-[138px] sm:w-[106px]">
+                          {studentPassportPhotoUrl ? (
+                            <div className="relative h-full w-full overflow-hidden rounded-[8px] bg-white">
+                              <img
+                                src={studentPhotoUrl}
+                                alt=""
+                                aria-hidden="true"
+                                loading="lazy"
+                                decoding="async"
+                                className="student-result-photo-bg absolute inset-0 h-full w-full"
+                              />
+                              <img
+                                src={studentPassportPhotoUrl}
+                                alt={`${student?.name || 'Student'} photo`}
+                                loading="lazy"
+                                decoding="async"
+                                className="student-result-photo relative z-10 h-full w-full"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-[#f1f5f9] text-[10px] font-black uppercase tracking-[0.12em] text-[#64748b]">
+                              Photo
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
