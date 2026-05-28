@@ -4,6 +4,7 @@ import { emitToast } from '../../Api/auth';
 import { Tabs, Tab } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import schoolLogo from '../../assets/logo.png';
 
 // Ensure autoTable is properly registered
 jsPDF.API.autoTable = autoTable;
@@ -110,8 +111,6 @@ function Bills() {
     const billWidth = (pageWidth - margin * 3) / 2;
     const billHeight = (pageHeight - margin * 3) / 2;
 
-    const logoUrl = "src/assets/logo.jpeg"; // Path to the logo in assets
-
     bills.forEach((bill, index) => {
       const position = index % 4;
       const col = position % 2;
@@ -128,7 +127,7 @@ function Bills() {
       doc.rect(x, y, billWidth, billHeight);
 
       // Add logo on the left side, smaller size
-      doc.addImage(logoUrl, "jpeg", x + 2, y + 2, 8, 8); // Adjusted dimensions for a smaller logo
+      doc.addImage(schoolLogo, "PNG", x + 2, y + 2, 8, 8); // Adjusted dimensions for a smaller logo
 
       // Center school details
       doc.setFontSize(10);
@@ -138,7 +137,10 @@ function Bills() {
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       doc.text(
-      "Meghwal mathia Bazar, West Champaran, Bihar 845106",
+        "Meghwal mathia Bazar, West Champaran, Bihar 845106",
+        x + billWidth / 2,
+        y + 10,
+        { align: "center", maxWidth: billWidth - 16 }
       );
 
       // ✅ Mobile Number Added
