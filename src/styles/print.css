@@ -100,7 +100,7 @@
     height: auto;
     overflow: visible;
     pointer-events: none;
-    opacity: 0;
+    opacity: 1;
   }
 
   .result-print.pdf-export-mode {

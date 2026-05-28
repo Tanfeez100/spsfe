@@ -560,16 +560,15 @@ function Results() {
     await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)))
   }
 
-  const createHighQualityPdfBlob = async () => {
+  const createResultCardCanvas = async () => {
     const sourceCard = cardRef.current
     if (!sourceCard) {
       throw new Error('Result card not found.')
     }
 
     const { default: html2canvas } = await import('html2canvas')
-    const sourceRect = sourceCard.getBoundingClientRect()
-    const desktopCaptureWidth = 920
-    const initialCaptureWidth = Math.max(Math.ceil(sourceRect.width), desktopCaptureWidth, 1)
+    const exportCaptureWidth = 920
+    const initialCaptureWidth = exportCaptureWidth
     const exportHost = document.createElement('div')
     exportHost.className = 'pdf-export-host'
     exportHost.style.width = `${initialCaptureWidth}px`
@@ -604,7 +603,7 @@ function Results() {
       exportHost.style.minWidth = `${captureWidth}px`
       exportHost.style.height = `${captureHeight}px`
 
-      const captureScale = Math.min(4, Math.max(window.devicePixelRatio || 1, 3))
+      const captureScale = 4
       const captureViewportWidth = Math.max(
         Math.round(window.innerWidth || 0),
         Math.round(document.documentElement?.clientWidth || 0),
@@ -619,6 +618,7 @@ function Results() {
       const canvas = await html2canvas(clonedCard, {
         scale: captureScale,
         useCORS: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
         width: captureWidth,
@@ -630,34 +630,70 @@ function Results() {
       })
 
       if (!canvas.width || !canvas.height) {
-        throw new Error('Unable to capture result card for PDF.')
+        throw new Error('Unable to capture result card.')
       }
 
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'pt',
-        format: 'a4',
-        compress: true,
-      })
-
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const pageHeight = doc.internal.pageSize.getHeight()
-      const renderSidePadding = 10
-      const renderTopPadding = 10
-      const renderBottomPadding = 10
-      const renderWidthLimit = pageWidth - (renderSidePadding * 2)
-      const renderHeightLimit = pageHeight - renderTopPadding - renderBottomPadding
-      const fitScale = Math.min(renderWidthLimit / canvas.width, renderHeightLimit / canvas.height)
-      const renderWidth = canvas.width * fitScale
-      const renderHeight = canvas.height * fitScale
-      const renderX = (pageWidth - renderWidth) / 2
-      const renderY = (pageHeight - renderHeight) / 2
-
-      doc.addImage(canvas, 'PNG', renderX, renderY, renderWidth, renderHeight, undefined, 'FAST')
-
-      return doc.output('blob')
+      return canvas
     } finally {
       document.body.removeChild(exportHost)
+    }
+  }
+
+  const createHighQualityPdfBlob = async () => {
+    const canvas = await createResultCardCanvas()
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4',
+      compress: false,
+    })
+
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const renderSidePadding = 10
+    const renderTopPadding = 10
+    const renderBottomPadding = 10
+    const renderWidthLimit = pageWidth - (renderSidePadding * 2)
+    const renderHeightLimit = pageHeight - renderTopPadding - renderBottomPadding
+    const fitScale = Math.min(renderWidthLimit / canvas.width, renderHeightLimit / canvas.height)
+    const renderWidth = canvas.width * fitScale
+    const renderHeight = canvas.height * fitScale
+    const renderX = (pageWidth - renderWidth) / 2
+    const renderY = (pageHeight - renderHeight) / 2
+
+    doc.addImage(canvas, 'PNG', renderX, renderY, renderWidth, renderHeight, undefined, 'SLOW')
+
+    return doc.output('blob')
+  }
+
+  const createHighQualityPngBlob = async () => {
+    const canvas = await createResultCardCanvas()
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error('Unable to create PNG image.'))
+        }
+      }, 'image/png')
+    })
+  }
+
+  const handleDownloadPng = async () => {
+    if (!data || pdfBusy) return
+
+    setPdfBusy(true)
+    try {
+      const pngBlob = await createHighQualityPngBlob()
+      triggerBlobDownload(pngBlob, `${downloadFileName}.png`)
+      fireToast('success', 'Download', 'Exact PNG downloaded.')
+    } catch (err) {
+      console.error('PNG download failed:', err)
+      const message = err?.message ? `Unable to download PNG. ${err.message}` : 'Unable to download PNG.'
+      fireToast('error', 'Download failed', message)
+    } finally {
+      setPdfBusy(false)
     }
   }
 
@@ -716,6 +752,19 @@ function Results() {
                 >
                   <span className="material-symbols-outlined text-sm">{pdfBusy ? 'hourglass_top' : 'picture_as_pdf'}</span>
                   {pdfBusy ? 'Preparing PDF...' : 'Download PDF'}
+                </button>
+                <button
+                  type="button"
+                  disabled={pdfBusy}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    handleDownloadPng()
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#061b66] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#061b66]/90 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="material-symbols-outlined text-sm">{pdfBusy ? 'hourglass_top' : 'image'}</span>
+                  {pdfBusy ? 'Preparing...' : 'Download PNG'}
                 </button>
               </>
             ) : null}
