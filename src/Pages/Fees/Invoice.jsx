@@ -3,6 +3,23 @@ import { getInvoiceDetails, downloadInvoicePDF } from '../../Api/fees';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const formatCurrency = (value) =>
+  `Rs. ${Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const getStatusTone = (status) => {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'paid') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+  if (normalized === 'partial') {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+  return 'border-rose-200 bg-rose-50 text-rose-700';
+};
+
 function Invoice({ billId: propBillId = '', onBillIdChange }) {
   const [billId, setBillId] = useState(propBillId);
   const [invoiceData, setInvoiceData] = useState(null);
@@ -221,21 +238,27 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-slate-900 dark:text-white">Invoice Details</h3>
+      <div>
+        <h3 className="text-lg font-bold text-slate-950 dark:text-white">Invoice Details</h3>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          Search a bill and review the receipt-ready invoice summary.
+        </p>
+      </div>
 
       {/* Search */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={billId}
           onChange={(e) => handleBillIdChange(e.target.value)}
           placeholder="Enter Bill ID"
-          className="w-full flex-1 px-3 py-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
+          className="w-full flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:focus:border-indigo-300 dark:focus:ring-indigo-500/20"
         />
         <button
           onClick={() => handleFetchInvoice()}
           disabled={loading}
-          className="w-full sm:w-auto px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-500/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           {loading ? (
             <>
@@ -253,12 +276,13 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
           <button
             onClick={handleDownloadPDF}
             disabled={loading}
-            className="w-full sm:w-auto px-4 py-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 text-slate-700 dark:text-slate-300 hover:text-cyan-200 dark:hover:text-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="material-symbols-outlined text-sm">download</span>
             Download PDF
           </button>
         )}
+      </div>
       </div>
 
       {/* Messages */}
@@ -383,13 +407,14 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
           </div>
 
           {/* Screen Display View */}
-          <div className="print:hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-6">
+          <div className="print:hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           {/* Invoice Header */}
-          <div className="bg-gradient-to-r from-cyan-50/30 to-cyan-500/10 dark:from-cyan-900/30 dark:to-cyan-800/20 rounded-xl p-5 border border-cyan-200/30 dark:border-cyan-700/50">
+          <div className="border-b border-slate-200 bg-slate-950 p-5 text-white dark:border-slate-700">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Invoice #{invoiceData.invoice_number || invoiceData.bill_id || '--'}</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-200">Invoice</p>
+                <h4 className="mt-1 text-xl font-black text-white">#{invoiceData.invoice_number || invoiceData.bill_id || '--'}</h4>
+                <p className="mt-1 text-sm text-slate-300">
                   Date: {invoiceData.date ? new Date(invoiceData.date).toLocaleDateString('en-IN', { 
                     year: 'numeric', 
                     month: 'long', 
@@ -398,49 +423,51 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-semibold mb-1">Bill ID</p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white break-all">{invoiceData.bill_id || '--'}</p>
+                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Bill ID</p>
+                <p className="max-w-xs break-all rounded-md bg-white/8 px-3 py-2 text-sm font-semibold text-white">{invoiceData.bill_id || '--'}</p>
               </div>
             </div>
           </div>
 
+          <div className="space-y-6 p-5 sm:p-6">
+
           {/* Student Info */}
           {invoiceData.student && (
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
-              <h4 className="text-md font-bold text-slate-900 dark:text-white mb-4">Student Information</h4>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/60">
+              <h4 className="mb-4 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Student Information</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">Name:</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Name</span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {invoiceData.student.name || '--'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">Father Name:</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Father Name</span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {invoiceData.student.father_name || '--'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">Roll Number:</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Roll Number</span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {invoiceData.student.roll_no || '--'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">Class:</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Class</span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {invoiceData.student.class || '--'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">Section:</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Section</span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {invoiceData.student.section || '--'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">Month:</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Month</span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {invoiceData.month || '--'}
                   </span>
@@ -452,25 +479,26 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
           {/* Bill Items */}
           {invoiceData.items && invoiceData.items.length > 0 && (
             <div>
-              <h4 className="text-md font-bold text-slate-900 dark:text-white mb-4">Fee Items</h4>
+              <h4 className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Fee Items</h4>
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-cyan-500 dark:bg-cyan-500 border-b-2 border-cyan-200/30 dark:border-cyan-700/50">
-                      <th className="px-4 py-3 text-left font-bold text-white">S.No</th>
-                      <th className="px-4 py-3 text-left font-bold text-white">Fee Name</th>
-                      <th className="px-4 py-3 text-right font-bold text-white">Amount</th>
+                    <tr className="border-b border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                      <th className="px-4 py-3 text-left font-bold text-slate-700 dark:text-slate-200">S.No</th>
+                      <th className="px-4 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Fee Name</th>
+                      <th className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-200">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoiceData.items.map((item, index) => (
-                      <tr key={item.id || index} className="border-b border-cyan-200/30 dark:border-cyan-700/50 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 transition-colors">
-                        <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400">{index + 1}</td>
+                      <tr key={item.id || index} className="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/70">
+                        <td className="px-4 py-3 text-center text-slate-500 dark:text-slate-400">{index + 1}</td>
                         <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">{item.fee_name || item.name || '--'}</td>
                         <td className="px-4 py-3 text-right text-slate-900 dark:text-white font-semibold">₹{(item.amount || 0).toLocaleString('en-IN')}</td>
                       </tr>
                     ))}
-                    <tr className="bg-cyan-500/20 dark:bg-cyan-500/20 border-t-2 border-cyan-200/30 dark:border-cyan-700/50 font-bold">
+                    <tr className="border-t border-slate-200 bg-indigo-50 font-bold dark:border-slate-700 dark:bg-indigo-950/30">
                       <td colSpan={2} className="px-4 py-3 text-right text-slate-900 dark:text-white">Total:</td>
                       <td className="px-4 py-3 text-right text-slate-900 dark:text-white">
                         ₹{invoiceData.items.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString('en-IN')}
@@ -479,29 +507,31 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                   </tbody>
                 </table>
               </div>
+              </div>
             </div>
           )}
 
           {/* Payments */}
           {invoiceData.payments && invoiceData.payments.length > 0 && (
             <div>
-              <h4 className="text-md font-bold text-slate-900 dark:text-white mb-4">Payment History</h4>
+              <h4 className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Payment History</h4>
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-cyan-500 dark:bg-cyan-500 border-b-2 border-cyan-200/30 dark:border-cyan-700/50">
-                      <th className="px-4 py-3 text-left font-bold text-white">Receipt No</th>
-                      <th className="px-4 py-3 text-left font-bold text-white">Payment Date</th>
-                      <th className="px-4 py-3 text-left font-bold text-white">Payment Mode</th>
-                      <th className="px-4 py-3 text-right font-bold text-white">Amount Paid</th>
+                    <tr className="border-b border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                      <th className="px-4 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Receipt No</th>
+                      <th className="px-4 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Payment Date</th>
+                      <th className="px-4 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Payment Mode</th>
+                      <th className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-200">Amount Paid</th>
                       {invoiceData.payments.some(p => p.transaction_id) && (
-                        <th className="px-4 py-3 text-left font-bold text-white">Transaction ID</th>
+                        <th className="px-4 py-3 text-left font-bold text-slate-700 dark:text-slate-200">Transaction ID</th>
                       )}
                     </tr>
                   </thead>
                   <tbody>
                     {invoiceData.payments.map((payment, index) => (
-                      <tr key={payment.id || index} className="border-b border-cyan-200/30 dark:border-cyan-700/50 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10">
+                      <tr key={payment.id || index} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/70">
                         <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">
                           {payment.receipt_no || '--'}
                         </td>
@@ -513,11 +543,11 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                           }) : '--'}
                         </td>
                         <td className="px-4 py-3 text-slate-900 dark:text-white capitalize">
-                          <span className="px-2 py-1 bg-cyan-300/15 dark:bg-cyan-500/20 text-cyan-200 dark:text-cyan-200 rounded-md text-xs font-medium border border-cyan-400/30">
+                          <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200">
                             {payment.payment_mode || '--'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-green-600 dark:text-green-400 font-bold">
+                        <td className="px-4 py-3 text-right font-bold text-emerald-700 dark:text-emerald-300">
                           ₹{(payment.amount_paid || payment.amount || 0).toLocaleString('en-IN')}
                         </td>
                         {invoiceData.payments.some(p => p.transaction_id) && (
@@ -530,13 +560,14 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                   </tbody>
                 </table>
               </div>
+              </div>
             </div>
           )}
 
           {/* Summary */}
           {invoiceData.summary && (
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 rounded-xl p-6 border-2 border-slate-200 dark:border-slate-700">
-              <h4 className="text-md font-bold text-slate-900 dark:text-white mb-4">Payment Summary</h4>
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/60">
+              <h4 className="mb-4 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Payment Summary</h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                   <span className="text-slate-600 dark:text-slate-400 font-medium">Total Amount:</span>
@@ -546,14 +577,14 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                   <span className="text-slate-600 dark:text-slate-400 font-medium">Total Paid:</span>
-                  <span className="font-bold text-lg text-green-600 dark:text-green-400">
+                  <span className="font-bold text-lg text-emerald-700 dark:text-emerald-300">
                     ₹{(invoiceData.summary.total_paid || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
                 {invoiceData.summary.advance_used > 0 && (
                   <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                     <span className="text-slate-600 dark:text-slate-400 font-medium">Advance Used:</span>
-                    <span className="font-bold text-amber-600 dark:text-amber-400">
+                    <span className="font-bold text-amber-700 dark:text-amber-300">
                       ₹{(invoiceData.summary.advance_used || 0).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -561,7 +592,7 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                 {invoiceData.summary.total_paid_including_advance !== undefined && (
                   <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                     <span className="text-slate-600 dark:text-slate-400 font-medium">Total Paid (Incl. Advance):</span>
-                    <span className="font-bold text-green-600 dark:text-green-400">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-300">
                       ₹{(invoiceData.summary.total_paid_including_advance || 0).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -570,8 +601,8 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                   <span className="text-slate-600 dark:text-slate-400 font-medium">Remaining:</span>
                   <span className={`font-bold text-lg ${
                     (invoiceData.summary.remaining || 0) > 0 
-                      ? 'text-red-600 dark:text-red-400' 
-                      : 'text-green-600 dark:text-green-400'
+                      ? 'text-rose-700 dark:text-rose-300'
+                      : 'text-emerald-700 dark:text-emerald-300'
                   }`}>
                     ₹{(invoiceData.summary.remaining || 0).toLocaleString('en-IN')}
                   </span>
@@ -579,26 +610,21 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                 {invoiceData.summary.active_advance_balance > 0 && (
                   <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                     <span className="text-slate-600 dark:text-slate-400 font-medium">Active Advance Balance:</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="font-bold text-indigo-700 dark:text-indigo-300">
                       ₹{(invoiceData.summary.active_advance_balance || 0).toLocaleString('en-IN')}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-3">
                   <span className="text-slate-600 dark:text-slate-400 font-semibold">Status:</span>
-                  <span className={`px-4 py-2 rounded-lg text-sm font-bold ${
-                    invoiceData.summary.status === 'paid' 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                      : invoiceData.summary.status === 'partial'
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                  }`}>
+                  <span className={`rounded-lg border px-4 py-2 text-sm font-bold ${getStatusTone(invoiceData.summary.status)}`}>
                     {invoiceData.summary.status ? invoiceData.summary.status.charAt(0).toUpperCase() + invoiceData.summary.status.slice(1) : '--'}
                   </span>
                 </div>
               </div>
             </div>
           )}
+          </div>
           </div>
         </>
       )}

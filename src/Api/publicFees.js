@@ -15,6 +15,12 @@ export const lookupPublicFees = async (payload) =>
     'Failed to fetch fee status'
   )
 
+export const lookupPublicReceipt = async (payload) =>
+  withPublicErrorHandling(
+    () => publicApi.post('/api/public-fees/receipt-lookup', payload),
+    'Failed to find receipt'
+  )
+
 export const createPublicFeeOrder = async (payload) =>
   withPublicErrorHandling(
     () => publicApi.post('/api/public-fees/order', payload),
@@ -37,4 +43,9 @@ export const buildPublicReceiptUrl = (billId, mobile) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
   const query = mobile ? `?mobile=${encodeURIComponent(mobile)}` : ''
   return `${baseUrl}/api/public-fees/receipt/${billId}${query}`
+}
+
+export const buildPublicInvoiceUrl = (billId) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+  return `${baseUrl}/api/invoice/public/download/${billId}`
 }

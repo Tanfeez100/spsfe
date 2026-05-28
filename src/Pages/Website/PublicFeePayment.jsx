@@ -3,6 +3,7 @@ import WebsiteLayout from '../../Components/Website/WebsiteLayout'
 import SEO from '../../Components/SEO/SEO'
 import {
   buildPublicReceiptUrl,
+  buildPublicInvoiceUrl,
   createPublicFeeOrder,
   getPublicFeePaymentStatus,
   lookupPublicFees,
@@ -45,6 +46,7 @@ function PublicFeePayment() {
   const [feeData, setFeeData] = useState(null)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [payLoading, setPayLoading] = useState(false)
+  const [receiptLoading, setReceiptLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [receiptUrl, setReceiptUrl] = useState('')
@@ -218,6 +220,51 @@ function PublicFeePayment() {
     }
   }
 
+  const handleReceiptDownload = async () => {
+    setError('')
+    setSuccess('')
+    setReceiptUrl('')
+
+    if (!form.class.trim() || !form.section.trim() || !form.roll_number.trim() || !form.month.trim()) {
+      setError('Please enter class, section, roll number and fee month')
+      return
+    }
+
+    setReceiptLoading(true)
+    try {
+      const response = await lookupPublicFees({
+        class: form.class.trim(),
+        section: form.section.trim(),
+        roll_number: form.roll_number.trim(),
+        month: form.month.trim(),
+        mobile: form.mobile.trim(),
+      })
+      const bill = response.active_bill || response.bills?.[0] || null
+
+      if (!bill?.bill_id) {
+        throw new Error('No fee bill found for selected month')
+      }
+
+      if (Number(bill.total_paid || 0) <= 0) {
+        throw new Error('Receipt is available only after payment is recorded for this month')
+      }
+
+      const url = buildPublicInvoiceUrl(bill.bill_id)
+
+      if (!url) {
+        throw new Error('Receipt link could not be created')
+      }
+
+      setReceiptUrl(url)
+      setSuccess('Receipt found. Download started.')
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      setError(err?.message || 'Unable to download receipt')
+    } finally {
+      setReceiptLoading(false)
+    }
+  }
+
   return (
     <WebsiteLayout>
       <SEO
@@ -306,11 +353,21 @@ function PublicFeePayment() {
 
             <button
               type="submit"
-              disabled={lookupLoading || payLoading}
+              disabled={lookupLoading || payLoading || receiptLoading}
               className="gps-site-button mt-6 w-full justify-center !rounded-xl"
             >
               <span className="material-symbols-outlined text-base">{lookupLoading ? 'sync' : 'search'}</span>
               {lookupLoading ? 'Fetching...' : 'Fetch Fee Status'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleReceiptDownload}
+              disabled={lookupLoading || payLoading || receiptLoading}
+              className="gps-site-button-secondary mt-3 w-full justify-center !rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-base">{receiptLoading ? 'sync' : 'download'}</span>
+              {receiptLoading ? 'Finding receipt...' : 'Download Receipt'}
             </button>
 
             {error ? (
