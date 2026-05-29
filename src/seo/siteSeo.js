@@ -12,8 +12,57 @@ export const SCHOOL_AREA = 'West Champaran'
 export const SCHOOL_DISTRICT = 'West Champaran'
 export const SCHOOL_STATE = 'Bihar'
 export const SCHOOL_COUNTRY = 'IN'
+export const SCHOOL_VISIBLE_LOCATION = 'Meghwal Mathia, Ramnagar, West Champaran'
+export const SCHOOL_NEARBY_SERVICE_AREAS = [
+  'Gidha',
+  'Khajuria',
+  'Matiaria Khurd',
+  'Matiaria Kalan',
+  'Katsikri',
+  'Harpur',
+  'Kanghusri',
+  'Phulkaul',
+  'Phulwaria',
+  'Bakri Pachrukhiya',
+  'Bakwa',
+  'Barwa',
+  'Sonha',
+  'Jharatwa',
+  'Mahui',
+  'Chamardih Bargon',
+  'Rupwaliya',
+  'Kunriya',
+  'Singahi',
+  'Bargajwa',
+  'Majurha',
+  'Birkehni',
+  'Madhubani',
+  'Churiharwa',
+  'Bakhraha',
+  'Bankatwa',
+  'Belatandi',
+  'Damrapur',
+  'Dhayar',
+  'Dhobaha',
+  'Gobardhana',
+  'Gobrahia',
+  'Karmaha',
+  'Naurangia',
+]
+
 export const SCHOOL_KEYWORDS = [
   'Star Public School',
+  'Star Public School Meghwal Mathia',
+  'Star Public School Meghwal Mathia Ramnagar',
+  'school in Meghwal Mathia',
+  'best school in Meghwal Mathia',
+  'private school in Meghwal Mathia',
+  'public school in Meghwal Mathia',
+  'English medium school near Meghwal Mathia',
+  'admission in Meghwal Mathia school',
+  'school near Mathia Gram Panchayat',
+  'school near Meghwal Bazar',
+  'best school near Meghwal Mathia Ramnagar',
   'Harinagar school',
   'Ramnagar Bettiah school',
   'West Champaran school',
@@ -32,11 +81,13 @@ export const SCHOOL_KEYWORDS = [
   'bachon ke liye accha school ramnagar',
   'bachon ke liye accha school west champaran',
   'bachon ke liye accha school dainmarwa',
-  'school in belagola'
+  'school in belagola',
+  ...SCHOOL_NEARBY_SERVICE_AREAS.map((village) => `school near ${village}`),
+  ...SCHOOL_NEARBY_SERVICE_AREAS.map((village) => `best school near ${village}`),
 ].join(', ')
 
 export const DEFAULT_DESCRIPTION =
-  'Star Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar offers disciplined learning, student care, admissions guidance, campus updates and secure result access.'
+  'Star Public School in Meghwal Mathia, Ramnagar, West Champaran, Bihar offers disciplined learning, student care, admissions guidance, campus updates, online fee payment and secure result access.'
 
 export const PUBLIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
@@ -71,6 +122,7 @@ export const buildSchoolJsonLd = ({ path = '/' } = {}) => {
   return {
     '@context': 'https://schema.org',
     '@type': 'School',
+    '@id': `${buildAbsoluteUrl('/')}#school`,
     name: SCHOOL_NAME,
     alternateName: SCHOOL_SHORT_NAME,
     url,
@@ -80,14 +132,33 @@ export const buildSchoolJsonLd = ({ path = '/' } = {}) => {
     address: {
       '@type': 'PostalAddress',
       streetAddress: 'Meghwal mathia Bazar',
-      addressLocality: SCHOOL_LOCALITY,
+      addressLocality: 'Ramnagar',
+      addressRegion: SCHOOL_STATE,
+      postalCode: '845106',
+      addressCountry: SCHOOL_COUNTRY,
+    },
+    location: {
+      '@type': 'Place',
+      name: SCHOOL_VISIBLE_LOCATION,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Meghwal mathia Bazar',
+        addressLocality: 'Ramnagar',
+        addressRegion: SCHOOL_STATE,
+        postalCode: '845106',
+        addressCountry: SCHOOL_COUNTRY,
+      },
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      addressLocality: 'Meghwal Mathia',
       addressRegion: SCHOOL_STATE,
       addressCountry: SCHOOL_COUNTRY,
     },
     areaServed: [
       {
-        '@type': 'AdministrativeArea',
-        name: SCHOOL_LOCALITY,
+        '@type': 'Place',
+        name: SCHOOL_VISIBLE_LOCATION,
       },
       {
         '@type': 'AdministrativeArea',
@@ -101,11 +172,23 @@ export const buildSchoolJsonLd = ({ path = '/' } = {}) => {
         '@type': 'AdministrativeArea',
         name: `${SCHOOL_DISTRICT}, ${SCHOOL_STATE}`,
       },
+      ...SCHOOL_NEARBY_SERVICE_AREAS.map((name) => ({
+        '@type': 'Place',
+        name,
+      })),
     ],
     foundingLocation: {
       '@type': 'Place',
-      name: `${SCHOOL_LOCALITY}, ${SCHOOL_DISTRICT}, ${SCHOOL_STATE}`,
+      name: `${SCHOOL_VISIBLE_LOCATION}, ${SCHOOL_STATE}`,
     },
+    knowsAbout: [
+      'school admission',
+      'primary education',
+      'student results',
+      'online fee payment',
+      'disciplined learning',
+      'parent communication',
+    ],
     sameAs: [],
     logo: buildAbsoluteUrl('/logo.png'),
     image: [buildAbsoluteUrl('/logo.png')],
