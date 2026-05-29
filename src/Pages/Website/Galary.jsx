@@ -21,8 +21,8 @@ function Galary() {
   return (
     <WebsiteLayout>
       <SEO
-        title="School Gallery"
-        description="Browse the Star Public School gallery in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar and see academics, events and campus life."
+        title="School Gallery Meghwal Mathia"
+        description="Browse the Star Public School gallery in Meghwal Mathia, Ramnagar, West Champaran and see academics, events and campus life."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/gallery"
         jsonLd={buildSchoolJsonLd({ path: '/gallery' })}

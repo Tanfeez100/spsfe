@@ -124,8 +124,8 @@ function Home() {
   return (
     <WebsiteLayout>
       <SEO
-        title="Best School in Harinagar Ramnagar West Champaran"
-        description="Star Public School is a trusted school in Harinagar, Ramnagar, West Champaran with disciplined learning, parent communication, admissions support, activities and secure result access."
+        title="Best School in Meghwal Mathia Ramnagar West Champaran"
+        description="Star Public School in Meghwal Mathia, Ramnagar, West Champaran offers disciplined learning, admissions support, parent communication, activities, online fee payment and secure result access."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/"
         jsonLd={buildSchoolJsonLd({ path: '/' })}

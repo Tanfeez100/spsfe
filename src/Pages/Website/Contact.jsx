@@ -22,8 +22,8 @@ function Contact() {
   return (
     <WebsiteLayout>
       <SEO
-        title="Contact Star Public School"
-        description="Contact Star Public School in Harinagar, Ramnagar (Bettiah), West Champaran, Bihar for admissions, result support and campus visits."
+        title="Contact Star Public School Meghwal Mathia"
+        description="Contact Star Public School in Meghwal Mathia, Ramnagar, West Champaran for admissions, result support, online fee support and campus visits."
         keywords={SCHOOL_KEYWORDS}
         canonicalPath="/contact"
         jsonLd={buildSchoolJsonLd({ path: '/contact' })}
