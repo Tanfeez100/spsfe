@@ -1,4 +1,4 @@
-const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://gyanodaypublicschool.in').replace(/\/+$/, '')
+const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://starpublischool.website').replace(/\/+$/, '')
 
 export const SCHOOL_NAME = import.meta.env.VITE_SCHOOL_NAME || 'Star Public School'
 export const SCHOOL_SHORT_NAME = 'Star Public School'
@@ -72,9 +72,9 @@ export const SCHOOL_KEYWORDS = [
   'admission in Harinagar school',
   'results portal school Bihar',
   'Best school in Ramnagar Belagola',
-  'gyanodaypublicschool',
-  'gyanday public school',
-  'gonday public school',
+  'Star Public School',
+  'Star Public School Meghwal Mathia',
+  'Star Public School Ramnagar',
   'rannagar me best school',
   'harinagar me best school',
   'bachon ke liye accha school harinagar',
