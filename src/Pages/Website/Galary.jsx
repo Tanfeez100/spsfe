@@ -1,11 +1,41 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import WebsiteLayout from '../../Components/Website/WebsiteLayout'
 import SEO from '../../Components/SEO/SEO'
 import { buildSchoolJsonLd, SCHOOL_KEYWORDS } from '../../seo/siteSeo'
+import { listPublicGalleryImages } from '../../Api/megaImages'
 import { galleryRows, schoolProfile, siteMedia } from './siteContent'
 
 function Galary() {
+  const [bestMomentItems, setBestMomentItems] = useState([])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadBestMoments = async () => {
+      try {
+        const response = await listPublicGalleryImages()
+        const files = response?.files || response?.images || []
+        if (mounted) setBestMomentItems(Array.isArray(files) ? files : [])
+      } catch {
+        if (mounted) setBestMomentItems([])
+      }
+    }
+
+    loadBestMoments()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const bestMoments = useMemo(
+    () =>
+      bestMomentItems
+        .filter((item) => item?.url)
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)),
+    [bestMomentItems]
+  )
+
   const previewCards = [
     { src: siteMedia.galleryFeature[0], alt: 'School building exterior', title: 'Campus exterior' },
     { src: siteMedia.galleryFeature[1], alt: 'Open hall and learning space', title: 'Open learning space' },
@@ -84,11 +114,43 @@ function Galary() {
 
       <section className="gps-site-section pt-0">
         <div className="gps-site-shell space-y-8">
+          {bestMoments.length ? (
+            <article className="gps-site-panel min-w-0 p-5 sm:p-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-3xl">
+                  <span className="gps-site-label">Gallery row 01</span>
+                  <h2 className="mt-4 text-3xl font-extrabold text-slate-900">Best moments</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+                    Fresh campus photos uploaded by the school team are added here automatically.
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-slate-500">{bestMoments.length} live frames</p>
+              </div>
+
+              <div className="gps-site-scrollbar mt-6 w-full overflow-x-auto pb-4">
+                <div className="flex min-w-max items-stretch gap-4 pr-2">
+                  {bestMoments.map((photo, index) => (
+                    <article
+                      key={photo.public_id || photo.nodeId || `${photo.url}-${index}`}
+                      className="flex w-[220px] shrink-0 flex-col overflow-hidden rounded-[1.45rem] border border-slate-200/80 bg-white shadow-[0_18px_34px_rgba(15,23,42,0.08)] sm:w-[250px] lg:w-[260px]"
+                    >
+                      <img src={photo.url} alt={`Best moment ${index + 1}`} loading="lazy" decoding="async" className="h-[280px] w-full object-cover sm:h-[300px] lg:h-[320px]" />
+                      <div className="flex min-h-[82px] flex-col p-4">
+                        <p className="line-clamp-2 text-sm font-bold uppercase tracking-[0.18em] text-cyan-700">Best moment {index + 1}</p>
+                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">Recently added school gallery photo.</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ) : null}
+
           {galleryRows.map((row, index) => (
             <article key={row.title} className="gps-site-panel min-w-0 p-5 sm:p-6">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div className="max-w-3xl">
-                  <span className="gps-site-label">Gallery row 0{index + 1}</span>
+                  <span className="gps-site-label">Gallery row {String(index + (bestMoments.length ? 2 : 1)).padStart(2, '0')}</span>
                   <h2 className="mt-4 text-3xl font-extrabold text-slate-900">{row.title}</h2>
                   <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">{row.description}</p>
                 </div>

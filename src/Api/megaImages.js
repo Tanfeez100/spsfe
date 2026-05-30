@@ -1,4 +1,4 @@
-import api from './auth'
+import api, { publicApi } from './auth'
 
 // MEGA Images APIs
 // Based on your Postman collection:
@@ -15,13 +15,13 @@ const toMessage = (error) => {
   return error?.message || 'Request failed'
 }
 
-export const uploadSingleImage = async (file, { isPublic = false, provider = 'cloudinary' } = {}) => {
+export const uploadSingleImage = async (file, { isPublic = false, provider = 'cloudinary', folder } = {}) => {
   try {
     const formData = new FormData()
     formData.append('image', file)
 
     const response = await api.post('/api/mega/images', formData, {
-      params: { public: isPublic ? 'true' : 'false', provider },
+      params: { public: isPublic ? 'true' : 'false', provider, folder },
     })
     return response.data
   } catch (error) {
@@ -29,13 +29,13 @@ export const uploadSingleImage = async (file, { isPublic = false, provider = 'cl
   }
 }
 
-export const uploadBulkImages = async (files, { isPublic = false, provider = 'cloudinary' } = {}) => {
+export const uploadBulkImages = async (files, { isPublic = false, provider = 'cloudinary', folder } = {}) => {
   try {
     const formData = new FormData()
     Array.from(files || []).forEach((f) => formData.append('images', f))
 
     const response = await api.post('/api/mega/images/bulk', formData, {
-      params: { public: isPublic ? 'true' : 'false', provider },
+      params: { public: isPublic ? 'true' : 'false', provider, folder },
     })
     return response.data
   } catch (error) {
@@ -43,10 +43,10 @@ export const uploadBulkImages = async (files, { isPublic = false, provider = 'cl
   }
 }
 
-export const listImages = async ({ isPublic = false, includeLinks = true } = {}) => {
+export const listImages = async ({ isPublic = false, includeLinks = true, provider = 'cloudinary', folder } = {}) => {
   try {
     const response = await api.get('/api/mega/images', {
-      params: { public: isPublic ? 'true' : 'false', includeLinks: includeLinks ? 'true' : 'false' },
+      params: { public: isPublic ? 'true' : 'false', includeLinks: includeLinks ? 'true' : 'false', provider, folder },
     })
     return response.data
   } catch (error) {
@@ -54,15 +54,26 @@ export const listImages = async ({ isPublic = false, includeLinks = true } = {})
   }
 }
 
-export const deleteImage = async (nodeId) => {
+export const listPublicGalleryImages = async () => {
   try {
-    const response = await api.delete(`/api/mega/images/${nodeId}`)
+    const response = await publicApi.get('/api/mega/images/public')
     return response.data
   } catch (error) {
     throw toMessage(error)
   }
 }
 
-export default { uploadSingleImage, uploadBulkImages, listImages, deleteImage }
+export const deleteImage = async (nodeId, { provider = 'cloudinary' } = {}) => {
+  try {
+    const response = await api.delete(`/api/mega/images/${encodeURIComponent(nodeId)}`, {
+      params: { provider },
+    })
+    return response.data
+  } catch (error) {
+    throw toMessage(error)
+  }
+}
+
+export default { uploadSingleImage, uploadBulkImages, listImages, listPublicGalleryImages, deleteImage }
 
 

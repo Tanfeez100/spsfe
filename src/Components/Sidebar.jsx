@@ -5,7 +5,6 @@ import { clearSession, getLoginType, getUser, logout } from '../Api/auth'
 const viewPathMap = {
   dashboard: '/dashboard',
   student: '/students',
-  studentLifecycle: '/leave-rejoin',
   classPromotion: '/class-promotion',
   subject: '/subjects',
   teachers: '/teachers',
@@ -30,7 +29,6 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
     admin: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
       { id: 'student', label: 'Student', icon: 'person_add' },
-      { id: 'studentLifecycle', label: 'Leave/Rejoin', icon: 'sync_alt' },
       { id: 'classPromotion', label: 'Class Promotion', icon: 'arrow_upward' },
       { id: 'subject', label: 'Subject', icon: 'book' },
       { id: 'teachers', label: 'Teachers', icon: 'groups' },

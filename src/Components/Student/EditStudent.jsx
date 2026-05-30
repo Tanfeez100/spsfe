@@ -17,6 +17,7 @@ const normalizeClassValue = (value) => value.replace(/[^a-zA-Z0-9]/g, '')
 const normalizeSectionValue = (value) => value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1)
 const normalizeMobileValue = (value) => value.replace(/\D/g, '').slice(0, 10)
 const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
+const normalizePenValue = (value) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 32)
 const normalizeAddressValue = (value) => value.slice(0, 50)
 
 function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false }) {
@@ -30,6 +31,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
     section: '',
     mobile: '',
     aadhaar_card: '',
+    pen_number: '',
     photo_url: '',
     photoFile: null,
     address: '',
@@ -75,6 +77,12 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
       return ''
     }
 
+    if (fieldName === 'pen_number') {
+      if (!value) return ''
+      if (!/^[A-Z0-9]+$/.test(value)) return 'PEN must contain only letters and numbers.'
+      return ''
+    }
+
     if (fieldName === 'photo_url') {
       return ''
     }
@@ -101,6 +109,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         section: normalizeSectionValue(studentData.Section || studentData.section || ''),
         mobile: normalizeMobileValue((studentData.Mobile || studentData.mobile || '').toString()),
         aadhaar_card: normalizeAadhaarValue((studentData.Aadhaar || studentData.aadhaar_card || '').toString()),
+        pen_number: normalizePenValue((studentData.PenNumber || studentData.pen_number || studentData.PEN || studentData.pen || '').toString()),
         photo_url: studentData.PhotoUrl || studentData.photo_url || studentData.photo || '',
         photoFile: null,
         address: normalizeAddressValue(studentData.Address || studentData.address || ''),
@@ -155,6 +164,10 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         nextValue = normalizeAadhaarValue(value)
       }
 
+      if (name === 'pen_number') {
+        nextValue = normalizePenValue(value)
+      }
+
       if (name === 'address') {
         nextValue = normalizeAddressValue(value)
       }
@@ -185,7 +198,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
       name === 'address' ||
       name === 'mobile' ||
       name === 'section' ||
-      name === 'aadhaar_card'
+      name === 'aadhaar_card' ||
+      name === 'pen_number'
     ) {
       const trimmedValue = value.trim()
       setFormData(prev => ({
@@ -221,6 +235,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         section: normalizeSectionValue(formData.section).trim(),
         mobile: normalizeMobileValue(formData.mobile).trim(),
         aadhaar_card: normalizeAadhaarValue(formData.aadhaar_card).trim(),
+        pen_number: normalizePenValue(formData.pen_number).trim(),
         photo_url: formData.photo_url?.trim() || '',
         address: normalizeAddressValue(formData.address).trim(),
       }
@@ -233,6 +248,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         section: validateField('section', normalizedFormData.section),
         mobile: validateField('mobile', normalizedFormData.mobile),
         aadhaar_card: validateField('aadhaar_card', normalizedFormData.aadhaar_card),
+        pen_number: validateField('pen_number', normalizedFormData.pen_number),
         address: validateField('address', normalizedFormData.address),
       }
 
@@ -588,6 +604,29 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
               </div>
               {fieldErrors.aadhaar_card ? (
                 <p className="mt-1 text-xs text-red-500">{fieldErrors.aadhaar_card}</p>
+              ) : null}
+            </div>
+
+            {/* PEN */}
+            <div>
+              <label className={labelClass}>
+                PEN Number <span className="text-slate-500">(Optional)</span>
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>id_card</span>
+                <input
+                  type="text"
+                  name="pen_number"
+                  value={formData.pen_number}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  maxLength={32}
+                  className={inputClass}
+                  placeholder="Enter PEN number"
+                />
+              </div>
+              {fieldErrors.pen_number ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.pen_number}</p>
               ) : null}
             </div>
 

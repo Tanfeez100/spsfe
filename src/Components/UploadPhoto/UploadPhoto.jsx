@@ -5,6 +5,8 @@ function UploadPhoto() {
   // Public-only module (as per requirement)
   const isPublic = true
   const includeLinks = true
+  const provider = 'cloudinary'
+  const folder = 'best-moments'
 
   const [singleFile, setSingleFile] = useState(null)
   const [bulkFiles, setBulkFiles] = useState([])
@@ -30,7 +32,7 @@ function UploadPhoto() {
     setLoading(true)
     setError('')
     try {
-      const res = await listImages({ isPublic, includeLinks })
+      const res = await listImages({ isPublic, includeLinks, provider, folder })
       setItems(res)
     } catch (err) {
       const msg = typeof err === 'string' ? err : err?.message
@@ -54,7 +56,7 @@ function UploadPhoto() {
     setError('')
     setSuccess('')
     try {
-      const res = await uploadSingleImage(singleFile, { isPublic })
+      const res = await uploadSingleImage(singleFile, { isPublic, provider, folder })
       setSuccess(res?.message || 'Image uploaded successfully')
       setSingleFile(null)
       await refresh()
@@ -75,7 +77,7 @@ function UploadPhoto() {
     setError('')
     setSuccess('')
     try {
-      const res = await uploadBulkImages(bulkFiles, { isPublic })
+      const res = await uploadBulkImages(bulkFiles, { isPublic, provider, folder })
       setSuccess(res?.message || `Uploaded ${res?.count || bulkFiles.length} images`)
       setBulkFiles([])
       await refresh()
@@ -106,7 +108,7 @@ function UploadPhoto() {
     setError('')
     setSuccess('')
     try {
-      const res = await deleteImage(nodeId)
+      const res = await deleteImage(nodeId, { provider })
       setSuccess(res?.message || 'Deleted')
       await refresh()
     } catch (err) {
@@ -122,7 +124,7 @@ function UploadPhoto() {
         <div>
           <h2 className="text-2xl font-black text-[#0d141b] dark:text-white">Upload Photo</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Upload images to MEGA storage (single/bulk), list with links, and delete.
+            Upload images to Cloudinary. Public uploads appear automatically in website gallery Best moments.
           </p>
         </div>
 
@@ -149,7 +151,7 @@ function UploadPhoto() {
           </span>
         </div>
         <div className="text-xs text-slate-500 dark:text-slate-400">
-          Folder: <span className="font-black">public</span>
+          Provider: <span className="font-black">Cloudinary</span> · Folder: <span className="font-black">public/best-moments</span>
         </div>
       </div>
 

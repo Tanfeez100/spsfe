@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import jsPDF from 'jspdf'
 import { getStudentResultPublic } from '../../Api/marks'
 import schoolLogo from '../../assets/logo.png'
+import stampcert from '../../assets/stampcert.png'
 import SEO from '../../Components/SEO/SEO'
 import WebsiteLayout from '../../Components/Website/WebsiteLayout'
 import { SCHOOL_KEYWORDS, buildSchoolJsonLd, parseClassSlug, parseRollSlug } from '../../seo/siteSeo'
@@ -1070,7 +1071,7 @@ function Results() {
                           <div className="w-full max-w-[230px] text-center text-[11px] font-black uppercase tracking-[0.08em] text-[#061b66] sm:text-[15px]">
                             <div className="mb-2 flex justify-center">
                               <img
-                                src={schoolLogo}
+                                src={stampcert}
                                 alt="Temporary principal sign and stamp placeholder"
                                 loading="lazy"
                                 decoding="async"

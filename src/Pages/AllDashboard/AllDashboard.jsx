@@ -4,7 +4,6 @@ import SEO from '../../Components/SEO/SEO'
 import Sidebar from '../../Components/Sidebar'
 import ResultView from '../../Components/ResultView/ResultView'
 import Student from './Student'
-import StudentLifecycle from './StudentLifecycle'
 import Subject from './Subject'
 import UploadMarks from './UploadMarks'
 import ClassPromotion from './ClassPromotion'
@@ -62,7 +61,6 @@ function Dashboard({ initialView = 'dashboard' }) {
   const routeViewMap = {
     '/dashboard': 'dashboard',
     '/students': 'student',
-    '/leave-rejoin': 'studentLifecycle',
     '/class-promotion': 'classPromotion',
     '/subjects': 'subject',
     '/teachers': 'teachers',
@@ -458,8 +456,6 @@ function Dashboard({ initialView = 'dashboard' }) {
             
             {!isTeacher && activeView === 'student' && <Student />}
 
-            {!isTeacher && activeView === 'studentLifecycle' && <StudentLifecycle />}
-            
             {!isTeacher && activeView === 'subject' && <Subject />}
             
             {activeView === 'uploadMarks' && <UploadMarks />}

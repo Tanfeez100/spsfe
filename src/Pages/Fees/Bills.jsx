@@ -5,6 +5,8 @@ import { Tabs, Tab } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import schoolLogo from '../../assets/logo.png';
+import paymentQr from '../../assets/high_quality_qr.png';
+import stampcert from '../../assets/stampcert.png';
 
 // Ensure autoTable is properly registered
 jsPDF.API.autoTable = autoTable;
@@ -100,9 +102,30 @@ function Bills() {
     }
   };
 
+  // Helper function to render Devanagari text as image for PDF
+  const renderTextAsImage = (text, fontSize = 12, fontFamily = "Arial, sans-serif") => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 40;
+    const ctx = canvas.getContext("2d");
+    
+    if (ctx) {
+      ctx.fillStyle = "#000000";
+      ctx.font = `bold ${fontSize}px ${fontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+    
+    return canvas.toDataURL("image/png");
+  };
+
   // Updated the generateReceiptPDF function for a more professional layout
   const generateReceiptPDF = (bills) => {
     const doc = new jsPDF("p", "mm", "a4");
+    
+    // Add support for UTF-8 and Unicode characters including Devanagari
+    doc.setLanguage('hi');
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -110,6 +133,10 @@ function Bills() {
     const margin = 10;
     const billWidth = (pageWidth - margin * 3) / 2;
     const billHeight = (pageHeight - margin * 3) / 2;
+    const formatBillAmount = (amount) => {
+      const numericAmount = Number(amount || 0);
+      return numericAmount === 0 ? "" : numericAmount;
+    };
 
     bills.forEach((bill, index) => {
       const position = index % 4;
@@ -139,7 +166,7 @@ function Bills() {
       doc.text(
         "Meghwal mathia Bazar, West Champaran, Bihar 845106",
         x + billWidth / 2,
-        y + 10,
+        y + 12,
         { align: "center", maxWidth: billWidth - 16 }
       );
 
@@ -147,7 +174,7 @@ function Bills() {
       doc.text(
         "Mob: 9006457330",
         x + billWidth / 2,
-        y + 14,
+        y + 16,
         { align: "center" }
       );
 
@@ -172,7 +199,9 @@ function Bills() {
         const row = Math.floor(i / 2);
         const isLeft = i % 2 === 0;
 
-        doc.setFont("helvetica", "bold"); // Set font to bold for backend data
+        // Use courier font to support Unicode/Devanagari characters
+        doc.setFont("courier", "bold");
+        doc.setFontSize(8);
         doc.text(
           `${label} ${value}`,
           isLeft ? col1X : col2X,
@@ -181,11 +210,10 @@ function Bills() {
       });
 
       // Add fee details table
-      doc.setFont("helvetica", "bold");
+      doc.setFont("courier", "bold");
       const items = (bill.items || []).map((item) => [
         item.fee_name,
-        item.amount || 0,
-        "00",
+        formatBillAmount(item.amount),
       ]);
 
       const total =
@@ -193,19 +221,25 @@ function Bills() {
 
       autoTable(doc, {
         startY: detailsStartY + 15, // Adjusted to shift the table upwards
-        head: [["Details", "Rs.", "P"]],
+        head: [["Details", "Rs."]],
         body: items,
         margin: { left: x + 5 },
-        tableWidth: billWidth - 10,
+        tableWidth: billWidth - 34,
+        columnStyles: {
+          0: { cellWidth: billWidth - 58 },
+          1: { cellWidth: 24, halign: "left" },
+        },
         styles: { 
           fontSize: 8, 
           cellPadding: 2, 
           fontStyle: "bold",
-          textColor: [0, 0, 0]
+          textColor: [0, 0, 0],
+          font: "courier"
         },
         headStyles: { 
           fillColor: [128, 128, 128], 
-          textColor: [0, 0, 0] 
+          textColor: [0, 0, 0],
+          font: "courier"
         },
         theme: "grid",
       });
@@ -215,26 +249,51 @@ function Bills() {
       // Add summary table (Total, Advance, Dues, Net Payable)
       autoTable(doc, {
         startY: tableEndY,
-        head: [["Description", "Rs.", "P"]],
+        head: [["Description", "Rs."]],
         body: [
-          ["Total", bill.summary?.total_amount || total, "00"],
-          ["Advance", bill.summary?.advance_used || 0, "00"],
-          ["Net Payable", bill.summary?.net_payable || total, "00"]
+          ["Total", formatBillAmount(bill.summary?.total_amount || total)],
+          ["Advance", formatBillAmount(bill.summary?.advance_used)],
+          ["Net Payable", formatBillAmount(bill.summary?.net_payable || total)]
         ],
         margin: { left: x + 5 },
-        tableWidth: billWidth - 10,
+        tableWidth: billWidth - 34,
+        columnStyles: {
+          0: { cellWidth: billWidth - 58 },
+          1: { cellWidth: 24, halign: "left" },
+        },
         styles: { 
           fontSize: 8, 
           cellPadding: 2, 
           fontStyle: "bold",
-          textColor: [0, 0, 0]
+          textColor: [0, 0, 0],
+          font: "courier"
         },
         headStyles: { 
           fillColor: [128, 128, 128], 
-          textColor: [0, 0, 0] 
+          textColor: [0, 0, 0],
+          font: "courier"
         },
         theme: "grid",
       });
+
+      const qrSize = 24;
+      const qrX = x + billWidth - qrSize - 2;
+      const qrY = detailsStartY + 18;
+      doc.addImage(paymentQr, "PNG", qrX, qrY, qrSize, qrSize);
+      
+      // Render Devanagari text as image for proper display
+      const hindiTextImage = renderTextAsImage("पेमेंट के लिए", 12, "Arial, sans-serif");
+      doc.addImage(hindiTextImage, "PNG", qrX - 14, qrY + qrSize + 1, 52, 11);
+      const hindiTextImage2 = renderTextAsImage("QR कोड स्कैन करें", 10, "Arial, sans-serif");  
+      // Add English text below with overlap for natural text spacing
+      doc.setFont("courier", "bold");
+      doc.setFontSize(6);
+      doc.addImage(hindiTextImage2, "PNG", qrX - 14, qrY + qrSize + 6, 52, 11);
+
+      // Add school stamp with same size as QR code
+      const stampSize = qrSize; // Use same size as QR code (24mm)
+      const stampY = qrY + qrSize + 30; // 60px spacing + 40px additional spacing below QR
+      doc.addImage(stampcert, "PNG", qrX + (qrSize - stampSize) / 2, stampY, stampSize, stampSize);
 
       // Add signature line
       doc.text(
