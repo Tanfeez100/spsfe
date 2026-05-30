@@ -5,8 +5,10 @@ import { Tabs, Tab } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import schoolLogo from '../../assets/logo.png';
-import paymentQr from '../../assets/high_quality_qr.png';
-import stampcert from '../../assets/stampcert.png';
+
+// Cloudinary URLs for optimized PDF generation
+const PAYMENT_QR_URL = 'https://res.cloudinary.com/dqi5rafqu/image/upload/q_auto/f_auto/v1780169234/high_quality_qr_b64hf7.png';
+const STAMP_CERT_URL = 'https://res.cloudinary.com/dqi5rafqu/image/upload/q_auto/f_auto/v1780169341/stampcert_bf73gb.png';
 
 // Ensure autoTable is properly registered
 jsPDF.API.autoTable = autoTable;
@@ -279,7 +281,7 @@ function Bills() {
       const qrSize = 24;
       const qrX = x + billWidth - qrSize - 2;
       const qrY = detailsStartY + 18;
-      doc.addImage(paymentQr, "PNG", qrX, qrY, qrSize, qrSize);
+      doc.addImage(PAYMENT_QR_URL, "PNG", qrX, qrY, qrSize, qrSize);
       
       // Render Devanagari text as image for proper display
       const hindiTextImage = renderTextAsImage("पेमेंट के लिए", 12, "Arial, sans-serif");
@@ -293,7 +295,7 @@ function Bills() {
       // Add school stamp with same size as QR code
       const stampSize = qrSize; // Use same size as QR code (24mm)
       const stampY = qrY + qrSize + 30; // 60px spacing + 40px additional spacing below QR
-      doc.addImage(stampcert, "PNG", qrX + (qrSize - stampSize) / 2, stampY, stampSize, stampSize);
+      doc.addImage(STAMP_CERT_URL, "PNG", qrX + (qrSize - stampSize) / 2, stampY, stampSize, stampSize);
 
       // Add signature line
       doc.text(
