@@ -1,7 +1,17 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://starpublicschool.onrender.com'
-// https://starpublicschool.onrender.com
+const getDefaultApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:5000'
+    }
+  }
+  return 'https://starpublicschool.onrender.com'
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl()
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 20000,
@@ -14,6 +24,20 @@ export const publicApi = axios.create({
 
 let isRefreshing = false
 let failedQueue = []
+
+const AUTH_KEYS = ['access_token', 'refresh_token', 'user', 'session', 'loginType']
+
+const getAuthStorage = () => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  return window.sessionStorage
+}
+
+const clearLegacySharedSession = () => {
+  if (typeof window === 'undefined') return
+  AUTH_KEYS.forEach((key) => window.localStorage.removeItem(key))
+}
  
 const processQueue = (error, token = null) => {
   failedQueue.forEach((request) => {
@@ -35,8 +59,53 @@ export const emitToast = (type = 'info', message = '', title = '') => {
 }
 
 export const normalizeApiError = (error, fallbackMessage = 'Request failed') => {
+  const humanizeMessage = (message, status = 0) => {
+    const raw = String(message || '').trim()
+    const text = raw.toLowerCase()
+
+    if (!raw) return ''
+
+    if (text.includes('row-level security') || text.includes('violates row-level security')) {
+      return 'Permission issue hai. Is action ke liye database policy allow nahi kar rahi. Admin se RLS/service key setup check karwayein.'
+    }
+
+    if (text.includes('schema cache') || text.includes('could not find the table') || text.includes('pgrst205')) {
+      return 'Database table app ko abhi visible nahi hai. Supabase SQL setup run karke schema reload karein.'
+    }
+
+    if (text.includes('duplicate key') || text.includes('23505') || text.includes('already exists')) {
+      return 'Ye record pehle se exist karta hai. Duplicate entry save nahi ho sakti.'
+    }
+
+    if (text.includes('invalid input syntax') || text.includes('invalid uuid')) {
+      return 'Submitted data format valid nahi hai. Please selected value check karein.'
+    }
+
+    if (text.includes('foreign key') || text.includes('23503')) {
+      return 'Selected record kisi existing data se linked nahi hai. Please correct student/teacher/class select karein.'
+    }
+
+    if (text.includes('jwt') || text.includes('token') || status === 401) {
+      return 'Session expire ho gaya hai. Please dobara login karein.'
+    }
+
+    if (text.includes('network error') || text.includes('failed to fetch')) {
+      return 'Server se connection nahi ho pa raha. Backend/server status check karein.'
+    }
+
+    if (status >= 500 && /table|policy|column|constraint|supabase|postgres|database|relation/.test(text)) {
+      return 'Database setup me issue hai. Admin se schema/policy setup check karwayein.'
+    }
+
+    return raw
+  }
+
   if (error?.status && error?.message && !error?.response) {
-    return error
+    return {
+      ...error,
+      message: humanizeMessage(error.message, error.status),
+      rawMessage: error.message,
+    }
   }
 
   const status = error?.response?.status || error?.status || 0
@@ -53,7 +122,8 @@ export const normalizeApiError = (error, fallbackMessage = 'Request failed') => 
 
   return {
     status,
-    message: serverMessage || statusMessages[status] || fallbackMessage,
+    message: humanizeMessage(serverMessage, status) || statusMessages[status] || fallbackMessage,
+    rawMessage: serverMessage || '',
     data,
   }
 }
@@ -78,11 +148,11 @@ export const buildQueryParams = (filters = {}) => {
 }
 
 export const getLoginType = () => {
-  return localStorage.getItem('loginType') || 'all'
+  return getAuthStorage()?.getItem('loginType') || 'all'
 }
 
 export const getUser = () => {
-  const userStr = localStorage.getItem('user')
+  const userStr = getAuthStorage()?.getItem('user')
   if (!userStr) {
     return null
   }
@@ -95,11 +165,11 @@ export const getUser = () => {
 }
 
 export const getAccessToken = () => {
-  return localStorage.getItem('access_token')
+  return getAuthStorage()?.getItem('access_token')
 }
 
 export const getRefreshToken = () => {
-  return localStorage.getItem('refresh_token')
+  return getAuthStorage()?.getItem('refresh_token')
 }
 
 export const setSession = (sessionData, loginType = 'all') => {
@@ -111,28 +181,31 @@ export const setSession = (sessionData, loginType = 'all') => {
     return
   }
 
-  localStorage.setItem('access_token', accessToken)
+  const storage = getAuthStorage()
+  if (!storage) return
+
+  clearLegacySharedSession()
+
+  storage.setItem('access_token', accessToken)
   if (refreshToken) {
-    localStorage.setItem('refresh_token', refreshToken)
+    storage.setItem('refresh_token', refreshToken)
   }
 
-  localStorage.setItem(
+  storage.setItem(
     'session',
     JSON.stringify({
       access_token: accessToken,
       refresh_token: refreshToken || '',
     })
   )
-  localStorage.setItem('user', JSON.stringify(user))
-  localStorage.setItem('loginType', loginType)
+  storage.setItem('user', JSON.stringify(user))
+  storage.setItem('loginType', loginType)
 }
 
 export const clearSession = () => {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user')
-  localStorage.removeItem('session')
-  localStorage.removeItem('loginType')
+  const storage = getAuthStorage()
+  AUTH_KEYS.forEach((key) => storage?.removeItem(key))
+  clearLegacySharedSession()
 }
 
 export const refreshAccessToken = async () => {
@@ -150,9 +223,10 @@ export const refreshAccessToken = async () => {
       throw new Error('Refresh response does not include access token')
     }
 
-    localStorage.setItem('access_token', newAccessToken)
+    const storage = getAuthStorage()
+    storage?.setItem('access_token', newAccessToken)
     if (newRefreshToken) {
-      localStorage.setItem('refresh_token', newRefreshToken)
+      storage?.setItem('refresh_token', newRefreshToken)
     }
 
     return newAccessToken
@@ -207,6 +281,24 @@ export const removeTeacher = async (teacherId) => {
     return response.data
   } catch (error) {
     throw normalizeApiError(error, 'Remove teacher failed')
+  }
+}
+
+export const assignTeacherToClass = async (teacherId, payload) => {
+  try {
+    const response = await api.patch(`/api/auth/teachers/${teacherId}/assignment`, payload)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Assign teacher failed')
+  }
+}
+
+export const removeTeacherAssignment = async (teacherId) => {
+  try {
+    const response = await api.delete(`/api/auth/teachers/${teacherId}/assignment`)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Remove teacher assignment failed')
   }
 }
 

@@ -229,7 +229,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                 
                 {/* Dashboard Cards */}
                 {dashboardData.loading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="gps-kpi-card p-4 sm:p-5">
                         <div className="flex items-center justify-center py-8">
@@ -272,6 +272,20 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
                       <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalSubjects}</p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate('/teachers')}
+                      className="gps-kpi-card border border-cyan-200 bg-[linear-gradient(135deg,#ffffff_0%,#cffafe_65%,#ecfeff_100%)] p-4 text-left shadow-[0_16px_34px_rgba(103,232,249,0.14)] transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-300 hover:shadow-[0_22px_42px_rgba(6,182,212,0.18)] sm:p-5"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs sm:text-sm font-medium text-slate-500">Assign Teacher</span>
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
+                          <span className="material-symbols-outlined text-cyan-700 text-base sm:text-lg">assignment_ind</span>
+                        </div>
+                      </div>
+                      <p className="text-sm font-black text-slate-900">Class / section mapping</p>
+                    </button>
                   </div>
                 )}
 

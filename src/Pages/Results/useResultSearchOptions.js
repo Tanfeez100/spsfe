@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-const HARD_CODED_RESULT_CLASSES = ['Mother Care', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
+const HARD_CODED_RESULT_CLASSES = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 const HARD_CODED_RESULT_SECTIONS = ['A', 'B', 'C']
 
 export function useResultSearchOptions(selectedClass = '') {

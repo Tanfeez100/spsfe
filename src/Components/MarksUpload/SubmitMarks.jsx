@@ -3,8 +3,13 @@ import { getAllSubjects, getSubjectsForClass } from '../../Api/subjects'
 import { getAllClasses } from '../../Api/classes'
 import { submitMarks } from '../../Api/marks'
 import { getAllStudents } from '../../Api/students'
+import { getUser } from '../../Api/auth'
 
 function SubmitMarks() {
+  const user = getUser()
+  const isTeacher = user?.role === 'teacher'
+  const assignedClass = user?.assignedClass || ''
+  const assignedSection = user?.assignedSection || ''
   const [formData, setFormData] = useState({
     class: '',
     section: '',
@@ -142,6 +147,17 @@ function SubmitMarks() {
   }, [])
 
   useEffect(() => {
+    if (!isTeacher || !assignedClass || !assignedSection) return
+    setFormData((prev) => ({
+      ...prev,
+      class: assignedClass,
+      section: assignedSection,
+    }))
+    setAvailableClasses([{ class: assignedClass }])
+    setAvailableSections([assignedSection])
+  }, [isTeacher, assignedClass, assignedSection])
+
+  useEffect(() => {
     if (formData.class) {
       loadSectionsForClass()
     } else {
@@ -183,7 +199,9 @@ function SubmitMarks() {
         setSubjectsData(subjectsResponse)
       }
       
-      if (classesResponse && classesResponse.length > 0) {
+      if (isTeacher && assignedClass) {
+        setAvailableClasses([{ class: assignedClass }])
+      } else if (classesResponse && classesResponse.length > 0) {
         // Sort by class property (numeric sort)
         const sorted = classesResponse.sort((a, b) => {
           const classA = typeof a === 'string' ? a : a.class;
@@ -201,6 +219,15 @@ function SubmitMarks() {
 
   const loadSectionsForClass = async () => {
     if (!formData.class) return
+
+    if (isTeacher && assignedSection) {
+      setAvailableSections([assignedSection])
+      setFormData((prev) => ({
+        ...prev,
+        section: prev.section || assignedSection,
+      }))
+      return
+    }
 
     setLoadingSections(true)
     try {
@@ -601,9 +628,10 @@ function SubmitMarks() {
                   value={formData.class}
                   onChange={handleChange}
                   className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
+                  disabled={isTeacher}
                   required
                 >
-                  <option value="">Select Class</option>
+                  <option value="">{isTeacher ? 'Assigned class only' : 'Select Class'}</option>
                   {availableClasses.map((cls) => (
                     <option key={cls.class || cls} value={cls.class || cls}>
                       Class {cls.class || cls}
@@ -632,10 +660,10 @@ function SubmitMarks() {
                 onChange={handleChange}
                 className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-2.5 pl-2 pr-9 text-sm text-slate-900 dark:text-white"
                 required
-                disabled={!formData.class || loadingSections}
+                disabled={isTeacher || !formData.class || loadingSections}
               >
                 <option value="">
-                  {loadingSections ? 'Loading sections...' : 'Select Section'}
+                  {isTeacher ? 'Assigned section only' : loadingSections ? 'Loading sections...' : 'Select Section'}
                 </option>
                 {availableSections.map((section) => (
                   <option key={section} value={section}>

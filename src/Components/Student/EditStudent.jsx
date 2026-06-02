@@ -18,6 +18,7 @@ const normalizeSectionValue = (value) => value.toUpperCase().replace(/[^A-Z]/g, 
 const normalizeMobileValue = (value) => value.replace(/\D/g, '').slice(0, 10)
 const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
 const normalizePenValue = (value) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 32)
+const normalizeAdmissionNumberValue = (value) => value.toUpperCase().replace(/[^A-Z0-9/-]/g, '').slice(0, 32)
 const normalizeAddressValue = (value) => value.slice(0, 50)
 
 function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false }) {
@@ -32,6 +33,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
     mobile: '',
     aadhaar_card: '',
     pen_number: '',
+    admission_number: '',
+    admission_date: '',
     photo_url: '',
     photoFile: null,
     address: '',
@@ -83,6 +86,16 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
       return ''
     }
 
+    if (fieldName === 'admission_number') {
+      if (!value) return ''
+      if (!/^[A-Z0-9/-]+$/.test(value)) return 'Admission number can contain letters, numbers, / and - only.'
+      return ''
+    }
+
+    if (fieldName === 'admission_date') {
+      return ''
+    }
+
     if (fieldName === 'photo_url') {
       return ''
     }
@@ -110,6 +123,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         mobile: normalizeMobileValue((studentData.Mobile || studentData.mobile || '').toString()),
         aadhaar_card: normalizeAadhaarValue((studentData.Aadhaar || studentData.aadhaar_card || '').toString()),
         pen_number: normalizePenValue((studentData.PenNumber || studentData.pen_number || studentData.PEN || studentData.pen || '').toString()),
+        admission_number: normalizeAdmissionNumberValue((studentData.AdmissionNumber || studentData.admission_number || '').toString()),
+        admission_date: studentData.AdmissionDate || studentData.admission_date || '',
         photo_url: studentData.PhotoUrl || studentData.photo_url || studentData.photo || '',
         photoFile: null,
         address: normalizeAddressValue(studentData.Address || studentData.address || ''),
@@ -168,6 +183,10 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         nextValue = normalizePenValue(value)
       }
 
+      if (name === 'admission_number') {
+        nextValue = normalizeAdmissionNumberValue(value)
+      }
+
       if (name === 'address') {
         nextValue = normalizeAddressValue(value)
       }
@@ -199,7 +218,9 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
       name === 'mobile' ||
       name === 'section' ||
       name === 'aadhaar_card' ||
-      name === 'pen_number'
+      name === 'pen_number' ||
+      name === 'admission_number' ||
+      name === 'admission_date'
     ) {
       const trimmedValue = value.trim()
       setFormData(prev => ({
@@ -236,6 +257,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         mobile: normalizeMobileValue(formData.mobile).trim(),
         aadhaar_card: normalizeAadhaarValue(formData.aadhaar_card).trim(),
         pen_number: normalizePenValue(formData.pen_number).trim(),
+        admission_number: normalizeAdmissionNumberValue(formData.admission_number).trim(),
+        admission_date: formData.admission_date || '',
         photo_url: formData.photo_url?.trim() || '',
         address: normalizeAddressValue(formData.address).trim(),
       }
@@ -249,6 +272,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         mobile: validateField('mobile', normalizedFormData.mobile),
         aadhaar_card: validateField('aadhaar_card', normalizedFormData.aadhaar_card),
         pen_number: validateField('pen_number', normalizedFormData.pen_number),
+        admission_number: validateField('admission_number', normalizedFormData.admission_number),
+        admission_date: validateField('admission_date', normalizedFormData.admission_date),
         address: validateField('address', normalizedFormData.address),
       }
 
@@ -628,6 +653,45 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
               {fieldErrors.pen_number ? (
                 <p className="mt-1 text-xs text-red-500">{fieldErrors.pen_number}</p>
               ) : null}
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Admission Number <span className="text-slate-500">(Optional)</span>
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>confirmation_number</span>
+                <input
+                  type="text"
+                  name="admission_number"
+                  value={formData.admission_number}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  maxLength={32}
+                  className={inputClass}
+                  placeholder="Admission no."
+                />
+              </div>
+              {fieldErrors.admission_number ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.admission_number}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Admission Date <span className="text-slate-500">(Optional)</span>
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>event</span>
+                <input
+                  type="date"
+                  name="admission_date"
+                  value={formData.admission_date}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={inputClass}
+                />
+              </div>
             </div>
 
             <div className={`${fullRowClass} grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2`}>

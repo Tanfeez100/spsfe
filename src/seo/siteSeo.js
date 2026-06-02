@@ -212,7 +212,7 @@ export const parseClassSlug = (slug = '') => {
 
   if (decoded === 'lkg') return 'LKG'
   if (decoded === 'ukg') return 'UKG'
-  if (decoded === 'mother-care') return 'Mother Care'
+  if (decoded === 'mother-care' || decoded === 'nursery') return 'Nursery'
 
   if (/^\d+$/.test(decoded)) return decoded
   if (/^\d+[a-z]{0,2}$/.test(decoded)) return decoded.toUpperCase()
