@@ -924,32 +924,37 @@ function HolidayCalendar({ user }) {
           <p className="py-8 text-center text-sm text-slate-500">No holidays found.</p>
         ) : (
           <div className="grid gap-2">
-            {holidays.map((holiday) => (
-              <div key={holiday.id} className="flex flex-col gap-3 rounded-lg border border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="break-words font-black text-slate-900">{holiday.title}</div>
-                  <div className="text-sm font-semibold text-slate-500">{holiday.holiday_date}</div>
-                  {holiday.description ? <div className="text-xs text-slate-500">{holiday.description}</div> : null}
+            {holidays.map((holiday) => {
+              const startDate = holiday.start_date || holiday.holiday_date
+              const endDate = holiday.end_date || holiday.holiday_date
+              const dateText = startDate === endDate ? startDate : `${startDate} to ${endDate}`
+              return (
+                <div key={holiday.id} className="flex flex-col gap-3 rounded-lg border border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="break-words font-black text-slate-900">{holiday.title}</div>
+                    <div className="text-sm font-semibold text-slate-500">{dateText}</div>
+                    {holiday.description ? <div className="text-xs text-slate-500">{holiday.description}</div> : null}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 sm:justify-end">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                      holiday.type === 'weekly' ? 'bg-slate-100 text-slate-600' : 'bg-cyan-50 text-cyan-700'
+                    }`}>
+                      {holiday.type === 'weekly' ? 'Friday' : 'Admin'}
+                    </span>
+                    {user.role === 'admin' && holiday.type === 'manual' ? (
+                      <button
+                        type="button"
+                        onClick={() => removeHoliday(holiday)}
+                        disabled={saving}
+                        className="min-h-9 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between gap-2 sm:justify-end">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                    holiday.type === 'weekly' ? 'bg-slate-100 text-slate-600' : 'bg-cyan-50 text-cyan-700'
-                  }`}>
-                    {holiday.type === 'weekly' ? 'Friday' : 'Admin'}
-                  </span>
-                  {user.role === 'admin' && holiday.type === 'manual' ? (
-                    <button
-                      type="button"
-                      onClick={() => removeHoliday(holiday)}
-                      disabled={saving}
-                      className="min-h-9 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

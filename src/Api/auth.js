@@ -286,7 +286,7 @@ export const removeTeacher = async (teacherId) => {
 
 export const assignTeacherToClass = async (teacherId, payload) => {
   try {
-    const response = await api.patch(`/api/auth/teachers/${teacherId}/assignment`, payload)
+    const response = await api.post(`/api/auth/teachers/${teacherId}/assignment`, payload)
     return response.data
   } catch (error) {
     throw normalizeApiError(error, 'Assign teacher failed')
@@ -432,4 +432,3 @@ api.interceptors.response.use(
 )
 
 export default api
-
