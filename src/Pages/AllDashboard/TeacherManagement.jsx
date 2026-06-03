@@ -9,6 +9,7 @@ import {
   removeTeacherAssignment,
 } from '../../Api/auth'
 import { getClassesWithSections } from '../../Api/classes'
+import { getAllSubjects } from '../../Api/subjects'
 
 const resolveTeachersList = (response) => {
   if (Array.isArray(response)) return response
@@ -34,6 +35,7 @@ const toTeacherRow = (teacher) => ({
   assignedClass: teacher?.assignedClass || teacher?.assignment?.class || '',
   assignedSection: teacher?.assignedSection || teacher?.assignment?.section || '',
   academicYear: teacher?.academicYear || teacher?.assignment?.academic_year || '',
+  assignedSubjects: teacher?.assignedSubjects || teacher?.assignment?.subjects || [],
 })
 
 const getDefaultAcademicYear = () => {
@@ -49,6 +51,7 @@ function TeacherManagement() {
   const [deletingId, setDeletingId] = useState('')
   const [assigningId, setAssigningId] = useState('')
   const [classOptions, setClassOptions] = useState([])
+  const [subjectOptions, setSubjectOptions] = useState([])
   const [assignmentDrafts, setAssignmentDrafts] = useState({})
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -72,6 +75,32 @@ function TeacherManagement() {
     }, {})
   }, [classOptions])
 
+  const subjectOptionsByClassSection = useMemo(() => {
+    return subjectOptions.reduce((map, item) => {
+      const className = item.class
+      const sections = Array.isArray(item.sections) ? item.sections : []
+      sections.forEach((sectionItem) => {
+        const sectionName = sectionItem.section || ''
+        const key = `${className}__${sectionName}`
+        map[key] = Array.isArray(sectionItem.subjects) ? sectionItem.subjects : []
+      })
+      return map
+    }, {})
+  }, [subjectOptions])
+
+  const allSubjectNames = useMemo(() => {
+    const names = new Set()
+    subjectOptions.forEach((item) => {
+      ;(item.sections || []).forEach((sectionItem) => {
+        ;(sectionItem.subjects || []).forEach((subject) => {
+          const name = subject.subject_name || subject.name
+          if (name) names.add(name)
+        })
+      })
+    })
+    return Array.from(names).sort()
+  }, [subjectOptions])
+
   const fetchTeachers = useCallback(async () => {
     if (!isAdmin) return
     setLoading(true)
@@ -89,6 +118,7 @@ function TeacherManagement() {
             class: row.assignedClass || '',
             section: row.assignedSection || '',
             academic_year: row.academicYear || getDefaultAcademicYear(),
+            subjects: Array.isArray(row.assignedSubjects) ? row.assignedSubjects.slice(0, 2) : [],
           }
           return drafts
         }, {})
@@ -111,6 +141,16 @@ function TeacherManagement() {
     }
   }, [isAdmin])
 
+  const fetchSubjectOptions = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const response = await getAllSubjects()
+      setSubjectOptions(Array.isArray(response?.classes) ? response.classes : [])
+    } catch {
+      setSubjectOptions([])
+    }
+  }, [isAdmin])
+
   useEffect(() => {
     fetchTeachers()
   }, [fetchTeachers])
@@ -118,6 +158,10 @@ function TeacherManagement() {
   useEffect(() => {
     fetchClassOptions()
   }, [fetchClassOptions])
+
+  useEffect(() => {
+    fetchSubjectOptions()
+  }, [fetchSubjectOptions])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -182,13 +226,29 @@ function TeacherManagement() {
 
   const updateAssignmentDraft = (teacherId, field, value) => {
     setAssignmentDrafts((prev) => {
-      const current = prev[teacherId] || { class: '', section: '', academic_year: getDefaultAcademicYear() }
+      const current = prev[teacherId] || { class: '', section: '', academic_year: getDefaultAcademicYear(), subjects: [] }
       const next = { ...current, [field]: value }
       if (field === 'class') {
         const sections = sectionOptionsByClass[value] || fallbackSections
         next.section = sections.includes(current.section) ? current.section : sections[0] || ''
+        next.subjects = []
+      }
+      if (field === 'section') {
+        next.subjects = []
       }
       return { ...prev, [teacherId]: next }
+    })
+    setError('')
+    setSuccess('')
+  }
+
+  const updateSubjectDraft = (teacherId, index, value) => {
+    setAssignmentDrafts((prev) => {
+      const current = prev[teacherId] || { class: '', section: '', academic_year: getDefaultAcademicYear(), subjects: [] }
+      const subjects = Array.isArray(current.subjects) ? [...current.subjects] : []
+      subjects[index] = value
+      const uniqueSubjects = subjects.filter(Boolean).filter((subject, subjectIndex, list) => list.indexOf(subject) === subjectIndex).slice(0, 2)
+      return { ...prev, [teacherId]: { ...current, subjects: uniqueSubjects } }
     })
     setError('')
     setSuccess('')
@@ -209,6 +269,7 @@ function TeacherManagement() {
         class: draft.class,
         section: draft.section,
         academic_year: draft.academic_year || getDefaultAcademicYear(),
+        subjects: Array.isArray(draft.subjects) ? draft.subjects.filter(Boolean).slice(0, 2) : [],
       })
       setSuccess('Teacher assigned to class successfully.')
       await fetchTeachers()
@@ -330,12 +391,14 @@ function TeacherManagement() {
             <p className="text-sm text-slate-500 dark:text-slate-400 py-8 text-center">No teachers found.</p>
           ) : (
             <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
-              <table className="w-full min-w-[920px] text-sm">
+              <table className="w-full min-w-[1160px] text-sm">
                 <thead>
                   <tr className="border-b border-[#1e293b] bg-[#0f172a]">
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Email</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Class</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Section</th>
+                    <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Subject 1</th>
+                    <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Subject 2</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Academic Year</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Current</th>
                     <th className="px-3 py-2.5 text-center font-semibold text-[#ffffff]">Action</th>
@@ -347,8 +410,19 @@ function TeacherManagement() {
                       class: teacher.assignedClass || '',
                       section: teacher.assignedSection || '',
                       academic_year: teacher.academicYear || getDefaultAcademicYear(),
+                      subjects: Array.isArray(teacher.assignedSubjects) ? teacher.assignedSubjects.slice(0, 2) : [],
                     }
                     const sectionOptions = sectionOptionsByClass[draft.class] || fallbackSections
+                    const sectionSubjects =
+                      subjectOptionsByClassSection[`${draft.class}__${draft.section}`] ||
+                      subjectOptionsByClassSection[`${draft.class}__All`] ||
+                      []
+                    const subjectNames = sectionSubjects.length > 0
+                      ? sectionSubjects
+                          .map((subject) => subject.subject_name || subject.name)
+                          .filter(Boolean)
+                      : allSubjectNames
+                    const selectedSubjects = Array.isArray(draft.subjects) ? draft.subjects : []
                     const isAssigning = assigningId === String(teacher.id)
 
                     return (
@@ -396,6 +470,26 @@ function TeacherManagement() {
                             ))}
                           </select>
                         </td>
+                        {[0, 1].map((index) => (
+                          <td key={`subject-${index}`} className="px-3 py-2.5 min-w-[150px]">
+                            <select
+                              value={selectedSubjects[index] || ''}
+                              onChange={(event) => updateSubjectDraft(teacher.id, index, event.target.value)}
+                              className="w-full rounded-lg border border-[#cbd5e1] bg-white px-2 py-1.5 text-sm text-[#0f172a]"
+                            >
+                              <option value="">{index === 0 ? 'Subject 1' : 'Subject 2'}</option>
+                              {subjectNames.map((subjectName) => (
+                                <option
+                                  key={`${index}-${subjectName}`}
+                                  value={subjectName}
+                                  disabled={selectedSubjects.includes(subjectName) && selectedSubjects[index] !== subjectName}
+                                >
+                                  {subjectName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        ))}
                         <td className="px-3 py-2.5 min-w-[130px]">
                           <input
                             value={draft.academic_year}
@@ -406,9 +500,16 @@ function TeacherManagement() {
                         </td>
                         <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 min-w-[140px]">
                           {teacher.assignedClass && teacher.assignedSection ? (
-                            <span className="inline-flex items-center rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
-                              {teacher.assignedClass} - {teacher.assignedSection}
-                            </span>
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                                {teacher.assignedClass} - {teacher.assignedSection}
+                              </span>
+                              {teacher.assignedSubjects?.length ? (
+                                <div className="text-xs font-semibold text-slate-500">
+                                  {teacher.assignedSubjects.join(', ')}
+                                </div>
+                              ) : null}
+                            </div>
                           ) : (
                             <span className="text-xs text-slate-400">Not assigned</span>
                           )}
