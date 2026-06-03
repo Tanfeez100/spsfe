@@ -52,6 +52,7 @@ function TeacherManagement() {
   const [assignmentDrafts, setAssignmentDrafts] = useState({})
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [activeTab, setActiveTab] = useState('list')
 
   const [formData, setFormData] = useState({
     email: '',
@@ -258,6 +259,33 @@ function TeacherManagement() {
         </span>
       </div>
 
+      <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('list')}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            activeTab === 'list'
+              ? 'bg-[#0f172a] text-white'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">format_list_bulleted</span>
+          Teachers list
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('add')}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            activeTab === 'add'
+              ? 'bg-[#0f172a] text-white'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">person_add</span>
+          Add teacher
+        </button>
+      </div>
+
       {error ? (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
           <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
@@ -270,8 +298,8 @@ function TeacherManagement() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      {activeTab === 'add' && (
+        <div className="mx-auto max-w-lg bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Add Teacher</h3>
           <form onSubmit={handleAddTeacher} className="space-y-3">
             <div>
@@ -317,8 +345,10 @@ function TeacherManagement() {
             </button>
           </form>
         </div>
+      )}
 
-        <div className="lg:col-span-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      {activeTab === 'list' && (
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Teachers List</h3>
 
           {loading ? (
@@ -459,7 +489,7 @@ function TeacherManagement() {
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

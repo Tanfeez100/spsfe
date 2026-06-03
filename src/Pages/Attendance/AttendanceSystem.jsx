@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteHoliday,
   getAttendanceBootstrap,
@@ -110,14 +110,14 @@ function Alert({ type = 'info', children }) {
 function StatCard({ label, value, tone = 'slate' }) {
   const tones = {
     slate: 'border-slate-200 bg-white text-slate-900',
-    green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    red: 'border-red-200 bg-red-50 text-red-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    green: 'border-emerald-50 text-emerald-700 border-emerald-200',
+    red: 'border-red-50 text-red-700 border-red-200',
+    amber: 'border-amber-50 text-amber-700 border-amber-200',
   }
   return (
-    <div className={`rounded-xl border p-3 sm:p-4 ${tones[tone] || tones.slate}`}>
-      <div className="text-xl font-black sm:text-2xl">{value}</div>
-      <div className="mt-1 text-xs font-bold uppercase tracking-wide opacity-70">{label}</div>
+    <div className={`rounded-[28px] border p-4 shadow-sm ${tones[tone] || tones.slate}`}>
+      <div className="text-2xl font-black sm:text-3xl">{value}</div>
+      <div className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{label}</div>
     </div>
   )
 }
@@ -145,20 +145,13 @@ function TopNav({ user, activeTab, setActiveTab }) {
   }
   const tabs = tabsByRole[user.role] || tabsByRole.student
   const activeTitle = tabs.find(([key]) => key === activeTab)?.[2] || 'Attendance'
-  const userName = user.name || user.email || 'User'
+  const profileName = user.role === 'admin' ? 'Namaskar, Admin Ji' : user.name || 'Namaskar, User'
+  const profileEmail = user.role === 'admin' ? 'abdullah@gmail.com' : user.email || ''
+  const profileRole = user.role === 'admin' ? 'Admin' : user.role
 
   const logout = () => {
     clearSession()
     window.location.href = user.role === 'student' ? '/student-login' : '/login'
-  }
-
-  const goBack = () => {
-    if (window.history.length > 1) {
-      window.history.back()
-      return
-    }
-
-    window.location.href = user.role === 'student' ? '/student-login' : '/dashboard'
   }
 
   const pickTab = (key) => {
@@ -168,50 +161,53 @@ function TopNav({ user, activeTab, setActiveTab }) {
 
   return (
     <>
-      <div className="sticky top-0 z-30 bg-[#1e3a5f] text-white shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-3 sm:px-6">
-          <button
-            type="button"
-            onClick={goBack}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white hover:bg-white/10"
-            aria-label="Go back"
-            title="Back"
-          >
-            <span className="material-symbols-outlined text-[24px]">arrow_back</span>
-          </button>
+      <div className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/95 backdrop-blur-sm shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 sm:px-6">
           <button
             type="button"
             onClick={() => setDrawerOpen((open) => !open)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white hover:bg-white/10"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300 hover:bg-slate-100"
             aria-label="Open attendance menu"
           >
             <span className="material-symbols-outlined text-[24px]">{drawerOpen ? 'close' : 'menu'}</span>
           </button>
+
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-black sm:text-lg">{activeTitle}</h1>
-            <p className="truncate text-xs font-semibold text-white/65">{userName} - {user.role}</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-800">Attendance dashboard</p>
+            <h1 className="truncate text-xl font-black text-slate-900 sm:text-2xl">{activeTitle}</h1>
           </div>
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-            style={{ backgroundColor: getAvatarColor(userName) }}
-          >
-            {getInitials(userName)}
+
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="rounded-[28px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <p className="text-sm font-black text-slate-900">{profileName}</p>
+              <a href={`mailto:${profileEmail}`} className="mt-1 block text-xs font-medium text-slate-500 hover:text-slate-700">
+                {profileEmail}
+              </a>
+              <span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-slate-700">
+                {profileRole}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="mx-auto hidden max-w-7xl gap-2 overflow-x-auto px-6 pb-3 md:flex">
-          {tabs.map(([key, icon, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => pickTab(key)}
-              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-black ${
-                activeTab === key ? 'bg-white text-[#1e3a5f]' : 'bg-white/10 text-white hover:bg-white/15'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">{icon}</span>
-              {label}
-            </button>
-          ))}
+
+        <div className="mx-auto max-w-7xl border-t border-slate-200 bg-slate-50/95 px-4 py-3 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2 overflow-x-auto">
+            {tabs.map(([key, icon, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => pickTab(key)}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === key
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -229,26 +225,28 @@ function TopNav({ user, activeTab, setActiveTab }) {
           drawerOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-3 bg-[#1e3a5f] px-4 py-5">
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-950 px-4 py-5 text-white">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black text-white"
-            style={{ backgroundColor: getAvatarColor(userName) }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black"
+            style={{ backgroundColor: getAvatarColor(profileName) }}
           >
-            {getInitials(userName)}
+            {getInitials(profileName)}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-black text-white">{userName}</div>
-            <div className="text-xs font-semibold capitalize text-white/60">{user.role}</div>
+            <div className="truncate text-sm font-black">{profileName}</div>
+            <div className="text-xs font-semibold uppercase text-slate-300">{profileRole}</div>
           </div>
         </div>
-        <div className="flex-1 space-y-1 overflow-y-auto p-2">
+        <div className="flex-1 space-y-1 overflow-y-auto p-3">
           {tabs.map(([key, icon, label]) => (
             <button
               key={key}
               type="button"
               onClick={() => pickTab(key)}
-              className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold ${
-                activeTab === key ? 'bg-[#e8f0fe] text-[#1e3a5f]' : 'text-slate-700 hover:bg-slate-50'
+              className={`flex min-h-11 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
+                activeTab === key
+                  ? 'bg-slate-100 text-slate-950 shadow-sm'
+                  : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">{icon}</span>
@@ -256,11 +254,11 @@ function TopNav({ user, activeTab, setActiveTab }) {
             </button>
           ))}
         </div>
-        <div className="border-t border-slate-100 p-3">
+        <div className="border-t border-slate-200 p-3">
           <button
             type="button"
             onClick={logout}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 text-sm font-black text-red-600"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 text-sm font-bold text-red-700 hover:bg-red-100"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Logout
@@ -277,13 +275,13 @@ function TopNav({ user, activeTab, setActiveTab }) {
               onClick={() => pickTab(key)}
               className="flex min-h-[62px] flex-1 flex-col items-center justify-center gap-0.5 px-1"
             >
-              <span className={`material-symbols-outlined text-[22px] ${activeTab === key ? 'text-[#1e3a5f]' : 'text-slate-400'}`}>
+              <span className={`material-symbols-outlined text-[22px] ${activeTab === key ? 'text-slate-900' : 'text-slate-400'}`}>
                 {icon}
               </span>
-              <span className={`text-[10px] font-black ${activeTab === key ? 'text-[#1e3a5f]' : 'text-slate-400'}`}>
+              <span className={`text-[10px] font-black ${activeTab === key ? 'text-slate-900' : 'text-slate-400'}`}>
                 {shortLabel}
               </span>
-              {activeTab === key ? <span className="mt-0.5 h-0.5 w-5 rounded-full bg-[#1e3a5f]" /> : <span className="mt-0.5 h-0.5 w-5" />}
+              {activeTab === key ? <span className="mt-0.5 h-0.5 w-5 rounded-full bg-slate-900" /> : <span className="mt-0.5 h-0.5 w-5" />}
             </button>
           ))}
         </div>
@@ -292,12 +290,54 @@ function TopNav({ user, activeTab, setActiveTab }) {
   )
 }
 
+function FloatingBackButton({ onBack }) {
+  const [visible, setVisible] = useState(false)
+  const timeoutRef = useRef(null)
+
+  useEffect(() => {
+    const showButton = () => {
+      setVisible(true)
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = window.setTimeout(() => {
+        setVisible(false)
+      }, 2600)
+    }
+
+    window.addEventListener('pointermove', showButton, { passive: true })
+    window.addEventListener('touchstart', showButton, { passive: true })
+
+    return () => {
+      window.removeEventListener('pointermove', showButton)
+      window.removeEventListener('touchstart', showButton)
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
+
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      aria-label="Back"
+      className={`group fixed left-1/2 z-50 -translate-x-1/2 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-3 text-slate-900 shadow-[0_20px_45px_rgba(15,23,42,0.12)] backdrop-blur-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
+      } sm:bottom-6 bottom-20`}
+    >
+      <span className="material-symbols-outlined text-base leading-none">arrow_back</span>
+      <span className="text-sm font-semibold text-slate-900">Back</span>
+    </button>
+  )
+}
+
 function Filters({ user, bootstrap, selected, setSelected, hideMonth = true }) {
   const isTeacher = user.role === 'teacher'
   const classes = bootstrap.classes || []
   const sections = bootstrap.sections || []
   return (
-    <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-5">
+    <div className="grid gap-3 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:p-5 lg:grid-cols-5">
       <label className="block">
         <span className="mb-1 block text-xs font-bold text-slate-500">Class</span>
         <select
@@ -367,11 +407,11 @@ function Overview({ students, records }) {
   const todayPercentage = totalToday > 0 ? Math.round(((summary.present + summary.late) / totalToday) * 100) : 0
   return (
     <div className="space-y-4">
-      <div>
-        <div className="text-xs font-bold text-slate-400">
+          <div className="space-y-2">
+        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
           Aaj ka din - {new Date().toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
         </div>
-        <div className="mt-1 text-lg font-black text-[#1e3a5f]">Namaskar, Admin ji</div>
+        <div className="text-lg font-black text-slate-900">Attendance snapshot</div>
       </div>
       <div className="rounded-2xl bg-[#1e3a5f] p-4 text-white shadow-sm">
         <div className="text-xs font-bold text-white/65">Aaj ki attendance</div>
@@ -983,6 +1023,15 @@ function AttendanceSystem() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back()
+      return
+    }
+
+    window.location.href = user.role === 'student' ? '/student-login' : '/dashboard'
+  }
+
   useEffect(() => {
     if (!user) return
     const load = async () => {
@@ -1053,6 +1102,7 @@ function AttendanceSystem() {
         {error ? <div className="mb-4"><Alert type="error">{error}</Alert></div> : null}
         {render()}
       </main>
+      <FloatingBackButton onBack={goBack} />
     </div>
   )
 }
