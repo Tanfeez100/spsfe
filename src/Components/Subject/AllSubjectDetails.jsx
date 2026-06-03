@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { getAllSubjects, updateSubjectSequence, removeSubjectFromClass } from '../../Api/subjects'
 import { getAllClasses } from '../../Api/classes'
 import AddSubject from './AddSubject'
@@ -53,6 +53,94 @@ const getScopedClassSubjects = (classData) => {
   })
 }
 
+// Graduation cap SVG icon component
+const GraduationCapIcon = ({ className = "w-5 h-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M11.7 2.805a.75.75 0 0 1 .6 0A60.65 60.65 0 0 1 22.83 8.72a.75.75 0 0 1-.231 1.337 49.948 49.948 0 0 0-9.902 3.912l-.003.002c-.114.06-.227.119-.34.18a.75.75 0 0 1-.707 0A50.88 50.88 0 0 0 7.5 12.173v-.224c0-.131.067-.248.172-.311a54.615 54.615 0 0 1 4.653-2.52.75.75 0 0 0-.65-1.352 56.123 56.123 0 0 0-4.78 2.589 1.858 1.858 0 0 0-.859 1.228 49.803 49.803 0 0 0-4.634-1.527.75.75 0 0 1-.231-1.337A60.653 60.653 0 0 1 11.7 2.805Z" />
+    <path d="M13.06 15.473a48.45 48.45 0 0 1 7.666-3.282c.134 1.414.22 2.843.255 4.284a.75.75 0 0 1-.46.71 47.87 47.87 0 0 1-8.105 2.374.75.75 0 0 1-.832-.498 48.597 48.597 0 0 1-1.467-4.23l2.943.804ZM12 15.848l-2.663-.727a49.14 49.14 0 0 1-.938-3.868 49.136 49.136 0 0 1 7.015 2.502l-3.414.093Z" />
+  </svg>
+)
+
+// Chevron down SVG
+const ChevronDown = ({ className = "w-4 h-4" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+  </svg>
+)
+
+// Custom dropdown — uses fixed positioning to always render above other elements
+function ClassDropdown({ value, onChange, classes }) {
+  const [open, setOpen] = useState(false)
+  const [dropdownStyle, setDropdownStyle] = useState({})
+  const triggerRef = useRef(null)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(e.target))
+      ) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleToggle = () => {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      })
+    }
+    setOpen(o => !o)
+  }
+
+  const options = [{ value: '', label: 'All Classes' }, ...(classes || []).map(cls => ({ value: cls.class, label: `Class ${cls.class}` }))]
+  const selected = options.find(o => o.value === value) || options[0]
+
+  return (
+    <div className="relative w-full">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={handleToggle}
+        className="w-full flex items-center gap-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all px-3 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-cyan-400 flex-shrink-0">
+          <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.25a.75.75 0 0 0 1 .707A8.237 8.237 0 0 1 6 18.75c1.995 0 3.823.707 5.25 1.886V4.533ZM12.75 20.636A8.214 8.214 0 0 1 18 18.75c.966 0 1.89.166 2.75.47a.75.75 0 0 0 1-.707V4.262a.75.75 0 0 0-.5-.707A9.735 9.735 0 0 0 18 3a9.707 9.707 0 0 0-5.25 1.533v16.103Z" />
+        </svg>
+        <span className="flex-1 text-left">{selected.label}</span>
+        <ChevronDown className={`w-4 h-4 text-cyan-400 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Rendered via fixed position — never clipped by parent overflow or stacking context */}
+      {open && (
+        <div ref={dropdownRef} style={dropdownStyle} className="rounded-lg border border-slate-200 bg-white shadow-2xl overflow-hidden">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm transition-colors ${
+                opt.value === value
+                  ? 'bg-cyan-100 text-cyan-800 font-semibold'
+                  : 'text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AllSubjectDetails() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -75,7 +163,6 @@ function AllSubjectDetails() {
   const fetchSubjects = async () => {
     setLoading(true)
     setError('')
-
     try {
       const [subjectsResponse, classesResponse] = await Promise.all([
         getAllSubjects(),
@@ -87,16 +174,13 @@ function AllSubjectDetails() {
       if (classesResponse && classesResponse.length > 0) {
         if (!finalData.classes || finalData.classes.length === 0) {
           finalData.classes = classesResponse.map((cls) => {
-            if (typeof cls === 'string') {
-              return { class: cls, sections: [], subjects: [] }
-            }
+            if (typeof cls === 'string') return { class: cls, sections: [], subjects: [] }
             return { class: cls.class, sections: cls.sections || [], subjects: cls.subjects || [] }
           })
         }
       }
 
       setData(finalData)
-
       if (finalData.classes && finalData.classes.length > 0) {
         setExpandedClasses(new Set([finalData.classes[0].class]))
       }
@@ -147,8 +231,7 @@ function AllSubjectDetails() {
         if (!subject?.id || subject.id === editingSubject.id) return false
         const sameClass = normalizeText(subject.classValue || subject.class || '') === classScope
         const sameSection = normalizeText(subject.section || '') === sectionScope
-        const sameScope = sameClass && sameSection
-        return sameScope && Number(subject.sequence) === nextSequence
+        return sameClass && sameSection && Number(subject.sequence) === nextSequence
       })
 
     if (duplicate) {
@@ -168,11 +251,7 @@ function AllSubjectDetails() {
         setEditError(response?.message || 'Failed to update subject sequence')
       }
     } catch (err) {
-      const message =
-        err?.message ||
-        err?.error ||
-        'Failed to update subject sequence'
-      setEditError(message)
+      setEditError(err?.message || err?.error || 'Failed to update subject sequence')
     } finally {
       setSavingEdit(false)
     }
@@ -180,11 +259,8 @@ function AllSubjectDetails() {
 
   const handleRemoveFromClass = async (subject) => {
     if (!subject?.id) return
-
     const subjectLabel = `${subject.subject_name || 'Subject'}${subject.section ? ` (${subject.section})` : ''}`
-    if (!window.confirm(`Remove "${subjectLabel}" from Class ${subject.classValue || ''}? This will delete related marks and invalidate published results.`)) {
-      return
-    }
+    if (!window.confirm(`Remove "${subjectLabel}" from Class ${subject.classValue || ''}? This will delete related marks and invalidate published results.`)) return
 
     setRemovingSubjectId(subject.id)
     try {
@@ -202,10 +278,7 @@ function AllSubjectDetails() {
   }
 
   const filteredClasses =
-    data?.classes?.filter((cls) => {
-      if (selectedClass && cls.class !== selectedClass) return false
-      return true
-    }) || []
+    data?.classes?.filter((cls) => !selectedClass || cls.class === selectedClass) || []
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -289,25 +362,12 @@ function AllSubjectDetails() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-2">Filter by Class</label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 sm:pl-3 text-cyan-200 text-base">class</span>
-                <select
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full bg-transparent border-none focus:ring-0 py-2 sm:py-2.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white dropdown-cyan"
-                >
-                  <option value="">All Classes</option>
-                  {data?.classes && data.classes.length > 0 ? (
-                    data.classes.map((cls) => (
-                      <option key={cls.class} value={cls.class}>
-                        Class {cls.class}
-                      </option>
-                    ))
-                  ) : (
-                    <option disabled>No classes available</option>
-                  )}
-                </select>
-              </div>
+              {/* Custom dropdown — fully controlled width and styling */}
+              <ClassDropdown
+                value={selectedClass}
+                onChange={setSelectedClass}
+                classes={data?.classes || []}
+              />
             </div>
           </div>
         </div>
@@ -328,10 +388,9 @@ function AllSubjectDetails() {
                   className="w-full flex items-center justify-between p-3 sm:p-5 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all"
                 >
                   <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-cyan-500 text-white flex items-center justify-center font-bold flex-shrink-0">
-                      <span className="material-symbols-outlined text-base sm:text-lg">
-                        {expandedClasses.has(classData.class) ? 'expand_less' : 'expand_more'}
-                      </span>
+                    {/* FIX 2: Graduation cap SVG — no material-symbols, no black box */}
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0 text-slate-600">
+                      <GraduationCapIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <div className="text-left min-w-0">
                       <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">Class {classData.class}</h3>
@@ -377,7 +436,7 @@ function AllSubjectDetails() {
                                   </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                  <span className="flex-shrink-0 text-xs bg-cyan-300/15 text-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-200 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
+                                  <span className="flex-shrink-0 text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
                                     #{subject.sequence}
                                   </span>
                                   {subject.id ? (
@@ -426,25 +485,17 @@ function AllSubjectDetails() {
       <CreateSubject
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          fetchSubjects()
-        }}
+        onSuccess={fetchSubjects}
       />
-
       <AddSubject
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => {
-          fetchSubjects()
-        }}
+        onSuccess={fetchSubjects}
       />
-
       <DeleteSubject
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onSuccess={() => {
-          fetchSubjects()
-        }}
+        onSuccess={fetchSubjects}
       />
 
       {editingSubject && (
@@ -468,12 +519,11 @@ function AllSubjectDetails() {
             </div>
 
             <div className="mt-4 space-y-3">
-              {editError ? (
+              {editError && (
                 <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-100">
                   {editError}
                 </div>
-              ) : null}
-
+              )}
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
                   New Sequence
