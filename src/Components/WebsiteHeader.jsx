@@ -87,7 +87,7 @@ function WebsiteHeader() {
                 Admission
               </Link>
               <Link to="/login" className="gps-site-button !rounded-md !px-4 !py-2 !text-sm" onClick={handleSiteNavigation}>
-                Admin
+                Login
               </Link>
             </div>
 
@@ -161,7 +161,7 @@ function WebsiteHeader() {
               Admission Enquiry
             </Link>
             <Link to="/login" onClick={handleSiteNavigation} className="gps-site-button justify-center !rounded-md !py-2 !text-sm">
-              Admin Login
+              Login
             </Link>
           </div>
           <div className="mt-4 space-y-2 text-xs font-semibold text-[#526252]">

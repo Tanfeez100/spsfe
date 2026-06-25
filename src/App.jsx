@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { getAccessToken, getUser } from './Api/auth'
+import { getAccessToken, getLoginType, getUser } from './Api/auth'
 import SEO from './Components/SEO/SEO'
 import { scrollToPageTop } from './utils/scrollToPageTop'
 
 const Layout = lazy(() => import('./Components/Layout'))
 const AllLogin = lazy(() => import('./Pages/Auth/AllLogin'))
+const StudentLogin = lazy(() => import('./Pages/StudentAuth/StudentLogin'))
 const Dashboard = lazy(() => import('./Pages/AllDashboard/AllDashboard'))
 const AddStudentPage = lazy(() => import('./Pages/AllDashboard/AddStudentPage'))
 const Results = lazy(() => import('./Pages/Results/Results'))
@@ -16,6 +17,7 @@ const Contact = lazy(() => import('./Pages/Website/Contact'))
 const Galary = lazy(() => import('./Pages/Website/Galary'))
 const Admission = lazy(() => import('./Pages/Website/Admission'))
 const PublicFeePayment = lazy(() => import('./Pages/Website/PublicFeePayment'))
+const AttendanceSystem = lazy(() => import('./Pages/Attendance/AttendanceSystem'))
 
 function Unauthorized() {
   return (
@@ -36,7 +38,7 @@ function Unauthorized() {
 function ProtectedRoute({ children, allowedRoles = [] }) {
   const token = getAccessToken()
   const user = getUser()
-  const loginType = localStorage.getItem('loginType')
+  const loginType = getLoginType()
   const role = loginType === 'student' ? 'student' : user?.role
 
   if (!token || !user) {
@@ -154,6 +156,8 @@ function App() {
           <Route path="/gallery" element={<Galary />} />
           <Route path="/pay-fees" element={<PublicFeePayment />} />
           <Route path="/login" element={<AllLogin />} />
+          <Route path="/student-login" element={<StudentLogin />} />
+          <Route path="/attendance" element={<AttendanceSystem />} />
           <Route path="/results-portal" element={<ResultsPortal />} />
           <Route path="/result" element={<Results />} />
           <Route path="/results/:classSlug/roll-:rollNumber" element={<Results />} />

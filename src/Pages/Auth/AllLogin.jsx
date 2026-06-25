@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { emitToast, login, setSession } from '../../Api/auth'
 import SEO from '../../Components/SEO/SEO'
@@ -8,8 +8,26 @@ import { aboutPhotos } from '../../assets/websiteImages'
 
 function AllLogin() {
   const navigate = useNavigate()
+  const loginRoles = [
+    {
+      id: 'admin',
+      title: 'Admin',
+      icon: 'admin_panel_settings',
+      tag: 'Full control',
+      description: 'Manage students, fees, subjects, teachers and reports.',
+    },
+    {
+      id: 'teacher',
+      title: 'Teacher',
+      icon: 'co_present',
+      tag: 'Class work',
+      description: 'Open teacher tools for marks, attendance and records.',
+    },
+  ]
+  const [selectedRole, setSelectedRole] = useState('admin')
   const [formData, setFormData] = useState({
     email: '',
+    rollNumber: '',
     password: '',
   })
   const [error, setError] = useState('')
@@ -31,11 +49,14 @@ function AllLogin() {
 
     try {
       const response = await login(formData.email, formData.password)
-      setSession(response, 'all')
-      emitToast('success', 'Login successful', 'Welcome')
+      const userRole = response?.user?.role
+      const loginType = userRole === 'student' ? 'student' : 'all'
+
+      setSession(response, loginType)
+      emitToast('success', `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} login successful`, 'Welcome')
       navigate('/dashboard')
     } catch (err) {
-      const message = err?.message || 'Login failed. Please check your credentials.'
+      const message = err?.message || `${selectedRole} login failed. Please check your credentials.`
       setError(message)
       emitToast('error', message, 'Login Failed')
     } finally {
@@ -46,8 +67,8 @@ function AllLogin() {
   return (
     <div className="gps-auth-page min-h-screen text-slate-900">
       <SEO
-        title="Admin Login"
-        description="Secure staff login for Star Public School."
+        title="Login"
+        description="Secure admin and teacher login for Star Public School."
         canonicalPath="/login"
       />
       <WebsiteHeader />
@@ -55,35 +76,54 @@ function AllLogin() {
         <div className="gps-shell">
           <div className="gps-grid lg:grid-cols-[1.02fr_0.98fr]">
             <article className="gps-auth-card p-6 sm:p-8">
-              <span className="gps-auth-tag">Admin & Teacher Login</span>
+              <span className="gps-auth-tag">School Portal Login</span>
               <h1 className="mt-4 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
-                Welcome back to your digital campus workspace
+                Choose your portal and continue securely
               </h1>
               <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
-                Access dashboard, student lifecycle, class management, fees, marks and reports from one secure login.
+                Admin and teacher access starts here. Students use the dedicated student portal.
               </p>
 
               <div className="mt-6 overflow-hidden rounded-2xl border border-sky-100">
                 <img src={aboutPhotos.secondary} alt="Students in class" loading="eager" fetchPriority="high" decoding="async" className="h-64 w-full object-cover sm:h-72" />
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-3">
-                {[
-                  { label: 'Admin', value: 'Control' },
-                  { label: 'Teacher', value: 'Upload' },
-                  { label: 'Records', value: 'Realtime' },
-                ].map((item) => (
-                  <div key={item.label} className="gps-auth-card-soft p-3">
-                    <p className="text-sm font-bold text-sky-700">{item.value}</p>
-                    <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{item.label}</p>
-                  </div>
-                ))}
-              </div>
             </article>
 
             <article className="gps-auth-card p-6 sm:p-8">
-              <h2 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">Login</h2>
-              <p className="mt-2 text-sm text-slate-600">Enter your credentials to continue.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {loginRoles.map((role) => (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedRole(role.id)
+                      setError('')
+                    }}
+                    className={`gps-auth-card-soft min-h-28 p-4 text-left transition-all ${
+                      selectedRole === role.id ? 'ring-2 ring-sky-500 bg-sky-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-2xl text-sky-700">{role.icon}</span>
+                    <p className="mt-3 text-base font-bold text-sky-700">{role.title}</p>
+                    <p className="text-xs uppercase tracking-[0.15em] text-slate-500">{role.tag}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-8 flex items-start gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                  <span className="material-symbols-outlined">{loginRoles.find((role) => role.id === selectedRole)?.icon}</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">
+                    {loginRoles.find((role) => role.id === selectedRole)?.title} Login
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {loginRoles.find((role) => role.id === selectedRole)?.description}
+                  </p>
+                </div>
+              </div>
 
               {error ? (
                 <div className="mt-4 rounded-xl border border-red-300/40 bg-red-50 p-3">
@@ -93,7 +133,9 @@ function AllLogin() {
 
               <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Email</span>
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
+                    Email
+                  </span>
                   <div className="relative">
                     <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                       mail
@@ -146,11 +188,18 @@ function AllLogin() {
                     </>
                   ) : (
                     <>
-                      Log In
+                      {loginRoles.find((role) => role.id === selectedRole)?.title} Log In
                       <span className="material-symbols-outlined text-base">arrow_forward</span>
                     </>
                   )}
                 </button>
+                <p className="pt-2 text-center text-sm text-slate-600">
+                  Student login ke liye{' '}
+                  <Link to="/student-login" className="font-bold text-sky-700 hover:text-sky-600">
+                    student portal open karein
+                  </Link>
+                  .
+                </p>
               </form>
 
               {/* <p className="mt-4 text-center text-sm text-slate-300">

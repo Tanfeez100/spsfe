@@ -131,7 +131,7 @@ function UploadPhoto() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={refresh}
-            className="inline-flex items-center gap-2 text-xs font-black px-3 py-2 rounded-xl border border-cyan-200/30 dark:border-cyan-700/50 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 text-cyan-200"
+            className="inline-flex items-center gap-2 text-xs font-black px-3 py-2 rounded-xl border border-[#cbd5e1] hover:bg-[#f8fafc] text-[#0f172a]"
           >
             <span className="material-symbols-outlined text-base">refresh</span>
             Refresh
@@ -142,7 +142,7 @@ function UploadPhoto() {
       {/* Toggles */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 text-xs font-black px-3 py-1 rounded-full bg-cyan-300/15 text-cyan-200 border border-cyan-400/30">
+          <span className="inline-flex items-center gap-1 text-xs font-black px-3 py-1 rounded-full bg-[#f8fafc] text-[#0f172a] border border-[#cbd5e1]">
             <span className="material-symbols-outlined text-sm">public</span>
             Public Only
           </span>
@@ -179,7 +179,7 @@ function UploadPhoto() {
               type="file"
               accept="image/*"
               onChange={(e) => setSingleFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-cyan-300/15 file:text-cyan-200 file:font-black hover:file:bg-cyan-300/20 file:border file:border-cyan-400/30"
+              className="block w-full rounded-xl bg-[#f8fafc] px-3 py-2 text-sm text-[#0f172a] file:mr-3 file:rounded-lg file:border file:border-[#cbd5e1] file:bg-[#e0f2fe] file:px-3 file:py-2 file:font-black file:text-[#075985] hover:file:bg-[#bae6fd]"
             />
             {singleFile ? (
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -191,7 +191,7 @@ function UploadPhoto() {
           <button
             onClick={onUploadSingle}
             disabled={uploadingSingle}
-            className="mt-4 w-full inline-flex items-center justify-center gap-2 font-black px-4 py-3 rounded-xl bg-cyan-500 text-white hover:bg-cyan-500/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 font-black px-4 py-3 rounded-xl bg-[#0f172a] text-[#ffffff] hover:bg-[#1e293b] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-500/20"
           >
             {uploadingSingle ? (
               <>
@@ -219,7 +219,7 @@ function UploadPhoto() {
               multiple
               accept="image/*"
               onChange={(e) => setBulkFiles(Array.from(e.target.files || []))}
-              className="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-cyan-300/15 file:text-cyan-200 file:font-black hover:file:bg-cyan-300/20 file:border file:border-cyan-400/30"
+              className="block w-full rounded-xl bg-[#f8fafc] px-3 py-2 text-sm text-[#0f172a] file:mr-3 file:rounded-lg file:border file:border-[#cbd5e1] file:bg-[#e0f2fe] file:px-3 file:py-2 file:font-black file:text-[#075985] hover:file:bg-[#bae6fd]"
             />
             {bulkFiles?.length ? (
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -231,7 +231,7 @@ function UploadPhoto() {
           <button
             onClick={onUploadBulk}
             disabled={uploadingBulk}
-            className="mt-4 w-full inline-flex items-center justify-center gap-2 font-black px-4 py-3 rounded-xl bg-cyan-500 text-white hover:bg-cyan-500/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 font-black px-4 py-3 rounded-xl bg-[#0f172a] text-[#ffffff] hover:bg-[#1e293b] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-500/20"
           >
             {uploadingBulk ? (
               <>
@@ -258,7 +258,7 @@ function UploadPhoto() {
         </div>
 
         {loading ? (
-          <div className="p-6 flex items-center gap-2 text-cyan-200">
+          <div className="p-6 flex items-center gap-2 text-[#0f172a]">
             <span className="material-symbols-outlined animate-spin">sync</span>
             <span className="text-sm font-bold">Loading...</span>
           </div>
@@ -267,21 +267,21 @@ function UploadPhoto() {
         ) : (
           <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
             <table className="w-full">
-              <thead className="bg-cyan-500 dark:bg-cyan-500">
+              <thead className="bg-[#0f172a]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#ffffff]">
                     Name
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#ffffff]">
                     Size
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#ffffff]">
                     NodeId
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#ffffff]">
                     Link
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-white">
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[#ffffff]">
                     Actions
                   </th>
                 </tr>
@@ -293,7 +293,7 @@ function UploadPhoto() {
                   const nodeId = img?.nodeId || img?.node_id || '--'
                   const url = img?.url || img?.link || ''
                   return (
-                    <tr key={nodeId} className="hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 border-b border-cyan-200/30 dark:border-cyan-700/50">
+                    <tr key={nodeId} className="hover:bg-[#f8fafc] border-b border-[#e2e8f0]">
                       <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
                         {name}
                       </td>
@@ -307,7 +307,7 @@ function UploadPhoto() {
                         {url ? (
                           <button
                             onClick={() => onCopy(url)}
-                            className="inline-flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-full bg-cyan-300/15 text-cyan-200 hover:bg-cyan-300/20 border border-cyan-400/30"
+                            className="inline-flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-full bg-[#f8fafc] text-[#0f172a] hover:bg-[#e2e8f0] border border-[#cbd5e1]"
                             title="Copy link"
                           >
                             <span className="material-symbols-outlined text-sm">content_copy</span>

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { getUser } from '../../Api/auth'
 import { promoteClass } from '../../Api/promotions'
 
-const CLASS_OPTIONS = ['Mother Care', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
+const CLASS_OPTIONS = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 
 const getDefaultPromotedBy = () => {
   const user = getUser()

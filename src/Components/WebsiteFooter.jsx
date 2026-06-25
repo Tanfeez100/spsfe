@@ -52,7 +52,7 @@ function WebsiteFooter() {
           <div className="p-2 sm:p-3">
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#1d7ff2]">Explore</p>
             <div className="mt-4 flex flex-col gap-2.5">
-              {siteNavLinks.concat([{ to: '/login', label: 'Admin Login' }]).map((link) => (
+              {siteNavLinks.concat([{ to: '/login', label: 'Login' }]).map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
