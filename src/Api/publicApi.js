@@ -13,7 +13,15 @@ const getDefaultApiBaseUrl = () => {
   return 'https://starpublicschool.onrender.com'
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl()
+const normalizeApiBaseUrl = (url) => {
+  const value = String(url || '').replace(/\/+$/, '')
+  if (value === 'http://localhost:8000' || value === 'http://127.0.0.1:8000') {
+    return 'http://localhost:5000'
+  }
+  return value || getDefaultApiBaseUrl()
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
 const publicApi = axios.create({
   baseURL: API_BASE_URL,

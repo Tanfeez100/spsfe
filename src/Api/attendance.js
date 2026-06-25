@@ -58,6 +58,15 @@ export const saveHoliday = async (payload) => {
   }
 }
 
+export const updateHoliday = async (holidayId, payload) => {
+  try {
+    const response = await api.put(`/api/attendance/holidays/${holidayId}`, payload)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Update holiday failed')
+  }
+}
+
 export const deleteHoliday = async (holidayId) => {
   try {
     const response = await api.delete(`/api/attendance/holidays/${holidayId}`)
@@ -74,5 +83,6 @@ export default {
   getStudentAttendance,
   getHolidayCalendar,
   saveHoliday,
+  updateHoliday,
   deleteHoliday,
 }

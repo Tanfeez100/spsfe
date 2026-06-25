@@ -4,14 +4,22 @@ const getDefaultApiBaseUrl = () => {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") {
-      return "https://starpublicschool.onrender.com";
+      return "http://localhost:5000";
     }
+    //https://starpublicschool.onrender.com
   }
   return "https://starpublicschool.onrender.com";
 };
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl();
+const normalizeApiBaseUrl = (url) => {
+  const value = String(url || "").replace(/\/+$/, "");
+  if (value === "http://localhost:8000" || value === "http://127.0.0.1:8000") {
+    return "http://localhost:5000";
+  }
+  return value || getDefaultApiBaseUrl();
+};
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -338,10 +346,11 @@ export const assignTeacherToClass = async (teacherId, payload) => {
   }
 };
 
-export const removeTeacherAssignment = async (teacherId) => {
+export const removeTeacherAssignment = async (teacherId, filters = {}) => {
   try {
     const response = await api.delete(
       `/api/auth/teachers/${teacherId}/assignment`,
+      { params: buildQueryParams(filters) },
     );
     return response.data;
   } catch (error) {
