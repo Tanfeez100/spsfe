@@ -10,6 +10,7 @@ import ClassPromotion from './ClassPromotion'
 import UploadPhoto from '../../Components/UploadPhoto/UploadPhoto'
 import FeeManager from '../Fees/FeeManager'
 import TeacherManagement from './TeacherManagement'
+import AttendanceSystem from '../Attendance/AttendanceSystem'
 import { getUser, getLoginType } from '../../Api/auth'
 import { getAllStudents } from '../../Api/students'
 import { getAllSubjects } from '../../Api/subjects'
@@ -65,6 +66,7 @@ function Dashboard({ initialView = 'dashboard' }) {
     '/subjects': 'subject',
     '/teachers': 'teachers',
     '/fees': 'fees',
+    '/attendance': 'attendance',
     '/marks-upload': 'uploadMarks',
     '/upload-photo': 'uploadPhoto',
     '/result-view': 'result',
@@ -160,23 +162,25 @@ function Dashboard({ initialView = 'dashboard' }) {
     const mappedView = routeViewMap[pathname]
 
     if (loginType === 'student') {
-      if (pathname !== '/result-view') {
-        navigate('/result-view', { replace: true })
+      if (!['/attendance', '/result-view'].includes(pathname)) {
+        navigate('/attendance', { replace: true })
         return
       }
-      if (activeView !== 'result') {
-        setActiveView('result')
+      const nextView = pathname === '/attendance' ? 'attendance' : 'result'
+      if (activeView !== nextView) {
+        setActiveView(nextView)
       }
       return
     }
 
     if (isTeacher) {
-      if (pathname !== '/marks-upload') {
-        navigate('/marks-upload', { replace: true })
+      if (!['/attendance', '/marks-upload'].includes(pathname)) {
+        navigate('/attendance', { replace: true })
         return
       }
-      if (activeView !== 'uploadMarks') {
-        setActiveView('uploadMarks')
+      const nextView = pathname === '/attendance' ? 'attendance' : 'uploadMarks'
+      if (activeView !== nextView) {
+        setActiveView(nextView)
       }
       return
     }
@@ -477,6 +481,8 @@ function Dashboard({ initialView = 'dashboard' }) {
             {!isTeacher && activeView === 'uploadPhoto' && <UploadPhoto />}
 
             {!isTeacher && activeView === 'fees' && <FeeManager />}
+
+            {activeView === 'attendance' && <AttendanceSystem embedded />}
 
             {!isTeacher && activeView === 'teachers' && <TeacherManagement />}
 
