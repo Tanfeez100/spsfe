@@ -17,7 +17,6 @@ const Contact = lazy(() => import('./Pages/Website/Contact'))
 const Galary = lazy(() => import('./Pages/Website/Galary'))
 const Admission = lazy(() => import('./Pages/Website/Admission'))
 const PublicFeePayment = lazy(() => import('./Pages/Website/PublicFeePayment'))
-const AttendanceSystem = lazy(() => import('./Pages/Attendance/AttendanceSystem'))
 
 function Unauthorized() {
   return (
@@ -157,7 +156,6 @@ function App() {
           <Route path="/pay-fees" element={<PublicFeePayment />} />
           <Route path="/login" element={<AllLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
-          <Route path="/attendance" element={<AttendanceSystem />} />
           <Route path="/results-portal" element={<ResultsPortal />} />
           <Route path="/result" element={<Results />} />
           <Route path="/results/:classSlug/roll-:rollNumber" element={<Results />} />
@@ -184,6 +182,7 @@ function App() {
             <Route path="/subjects" element={<Dashboard />} />
             <Route path="/teachers" element={<Dashboard />} />
             <Route path="/fees" element={<Dashboard />} />
+            <Route path="/attendance" element={<Dashboard />} />
             <Route path="/marks-upload" element={<Dashboard />} />
             <Route path="/upload-photo" element={<Dashboard />} />
             <Route path="/result-view" element={<Dashboard />} />

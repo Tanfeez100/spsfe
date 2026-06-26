@@ -108,23 +108,79 @@ function Alert({ type = 'info', children }) {
   return <div className={`rounded-xl border px-4 py-3 text-sm font-semibold leading-5 ${styles[type]}`}>{children}</div>
 }
 
-function StatCard({ label, value, tone = 'slate' }) {
+function StatCard({ label, value, tone = 'slate', icon = 'analytics', hint = '' }) {
   const tones = {
-    slate: 'border-slate-200 bg-white text-slate-900',
-    green: 'border-emerald-50 text-emerald-700 border-emerald-200',
-    red: 'border-red-50 text-red-700 border-red-200',
-    amber: 'border-amber-50 text-amber-700 border-amber-200',
+    slate: {
+      card: 'border-slate-200 bg-white',
+      icon: 'bg-slate-100 text-slate-700',
+      value: 'text-slate-950',
+      label: 'text-slate-500',
+      labelImportant: '!text-slate-600',
+      valueColor: '#020617',
+      labelColor: '#64748b',
+    },
+    green: {
+      card: 'border-emerald-200 bg-emerald-50',
+      icon: 'bg-emerald-100 text-emerald-700',
+      value: 'text-emerald-900',
+      label: 'text-emerald-700',
+      labelImportant: '!text-emerald-800',
+      valueColor: '#064e3b',
+      labelColor: '#047857',
+    },
+    red: {
+      card: 'border-rose-200 bg-rose-50',
+      icon: 'bg-rose-100 text-rose-700',
+      value: 'text-rose-900',
+      label: 'text-rose-700',
+      labelImportant: '!text-rose-800',
+      valueColor: '#881337',
+      labelColor: '#be123c',
+    },
+    amber: {
+      card: 'border-amber-200 bg-amber-50',
+      icon: 'bg-amber-100 text-amber-700',
+      value: 'text-amber-950',
+      label: 'text-amber-800',
+      labelImportant: '!text-amber-900',
+      valueColor: '#451a03',
+      labelColor: '#78350f',
+    },
+    cyan: {
+      card: 'border-cyan-200 bg-cyan-50',
+      icon: 'bg-cyan-100 text-cyan-700',
+      value: 'text-cyan-950',
+      label: 'text-cyan-700',
+      labelImportant: '!text-cyan-800',
+      valueColor: '#083344',
+      labelColor: '#0e7490',
+    },
   }
+  const style = tones[tone] || tones.slate
   return (
-    <div className={`rounded-[28px] border p-4 shadow-sm ${tones[tone] || tones.slate}`}>
-      <div className="text-2xl font-black sm:text-3xl">{value}</div>
-      <div className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{label}</div>
+    <div className={`rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${style.card}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className={`text-2xl font-black leading-none sm:text-3xl ${style.value}`} style={{ color: style.valueColor }}>
+            {value}
+          </div>
+          <div
+            className={`mt-2 text-xs font-black uppercase tracking-[0.18em] ${style.label} ${style.labelImportant}`}
+            style={{ color: style.labelColor, WebkitTextFillColor: style.labelColor }}
+          >
+            {label}
+          </div>
+          {hint ? <div className="mt-1 text-xs font-semibold text-slate-500">{hint}</div> : null}
+        </div>
+        <span className={`material-symbols-outlined flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[20px] ${style.icon}`}>
+          {icon}
+        </span>
+      </div>
     </div>
   )
 }
 
-function TopNav({ user, activeTab, setActiveTab }) {
-  const [drawerOpen, setDrawerOpen] = useState(false)
+const getTabsForRole = (role) => {
   const tabsByRole = {
     admin: [
       ['overview', 'dashboard', 'Overview', 'Home'],
@@ -144,7 +200,12 @@ function TopNav({ user, activeTab, setActiveTab }) {
       ['holidays', 'event', 'Holidays', 'Holidays'],
     ],
   }
-  const tabs = tabsByRole[user.role] || tabsByRole.student
+  return tabsByRole[role] || tabsByRole.student
+}
+
+function TopNav({ user, activeTab, setActiveTab }) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const tabs = getTabsForRole(user.role)
   const activeTitle = tabs.find(([key]) => key === activeTab)?.[2] || 'Attendance'
   const profileName = user.role === 'admin' ? 'Namaskar, Admin Ji' : user.name || 'Namaskar, User'
   const profileEmail = user.role === 'admin' ? 'abdullah@gmail.com' : user.email || ''
@@ -429,10 +490,10 @@ function Overview({ students, records }) {
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Students" value={students.length} />
-        <StatCard label="Present Today" value={summary.present} tone="green" />
-        <StatCard label="Absent Today" value={summary.absent} tone="red" />
-        <StatCard label="Late Today" value={summary.late} tone="amber" />
+        <StatCard label="Students" value={students.length} icon="groups" />
+        <StatCard label="Present Today" value={summary.present} tone="green" icon="check_circle" />
+        <StatCard label="Absent Today" value={summary.absent} tone="red" icon="cancel" />
+        <StatCard label="Late Today" value={summary.late} tone="amber" icon="schedule" />
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
         <h2 className="mb-3 text-base font-black text-slate-900">Today Records</h2>
@@ -718,10 +779,10 @@ function Reports({ user, bootstrap, selected, setSelected }) {
       <Filters user={user} bootstrap={bootstrap} selected={selected} setSelected={setSelected} hideMonth={false} />
       {error ? <Alert type="error">{error}</Alert> : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Present" value={summary.present} tone="green" />
-        <StatCard label="Absent" value={summary.absent} tone="red" />
-        <StatCard label="Late" value={summary.late} tone="amber" />
-        <StatCard label="Attendance %" value={`${summary.percentage}%`} />
+        <StatCard label="Present" value={summary.present} tone="green" icon="check_circle" />
+        <StatCard label="Absent" value={summary.absent} tone="red" icon="cancel" />
+        <StatCard label="Late" value={summary.late} tone="amber" icon="schedule" />
+        <StatCard label="Attendance %" value={`${summary.percentage}%`} tone="cyan" icon="analytics" />
       </div>
       <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
         <AttendanceTable records={records} students={students} />
@@ -797,10 +858,10 @@ function StudentHistory({ user, selected }) {
       {detail ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Present" value={summary.present} tone="green" />
-            <StatCard label="Absent" value={summary.absent} tone="red" />
-            <StatCard label="Late" value={summary.late} tone="amber" />
-            <StatCard label="Attendance %" value={`${summary.percentage}%`} />
+            <StatCard label="Present" value={summary.present} tone="green" icon="check_circle" />
+            <StatCard label="Absent" value={summary.absent} tone="red" icon="cancel" />
+            <StatCard label="Late" value={summary.late} tone="amber" icon="schedule" />
+            <StatCard label="Attendance %" value={`${summary.percentage}%`} tone="cyan" icon="analytics" />
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
             <h2 className="mb-3 text-base font-black text-slate-900">{detail.student?.name || 'Student'} Attendance</h2>
@@ -1145,7 +1206,7 @@ function HolidayCalendar({ user }) {
   )
 }
 
-function AttendanceSystem() {
+function AttendanceSystem({ embedded = false }) {
   const [user] = useState(resolveUser)
   const [bootstrap, setBootstrap] = useState({ classes: [], sections: [], assignment: null, assignments: [] })
   const [activeTab, setActiveTab] = useState(() => {
@@ -1225,14 +1286,18 @@ function AttendanceSystem() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-center">
+      <div className={`flex items-center justify-center px-4 text-center ${embedded ? 'min-h-[320px]' : 'min-h-screen bg-slate-50'}`}>
         <Alert type="warning">Attendance open karne ke liye pehle main login page se login karein.</Alert>
       </div>
     )
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-bold text-slate-600">Loading attendance...</div>
+    return (
+      <div className={`flex items-center justify-center text-sm font-bold text-slate-600 ${embedded ? 'min-h-[320px]' : 'min-h-screen bg-slate-50'}`}>
+        Loading attendance...
+      </div>
+    )
   }
 
   const render = () => {
@@ -1245,13 +1310,34 @@ function AttendanceSystem() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="mx-auto max-w-[480px] px-3 py-4 pb-24 sm:px-6 sm:py-6 md:max-w-7xl md:pb-6">
+    <div className={embedded ? 'space-y-4' : 'min-h-screen bg-slate-50'}>
+      {embedded ? null : <TopNav user={user} activeTab={activeTab} setActiveTab={setActiveTab} />}
+      {embedded ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+          <div className="flex flex-wrap gap-1.5">
+            {getTabsForRole(user.role).map(([key, icon, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                  activeTab === key
+                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20'
+                    : 'border border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <main className={embedded ? 'space-y-4' : 'mx-auto max-w-[480px] px-3 py-4 pb-24 sm:px-6 sm:py-6 md:max-w-7xl md:pb-6'}>
         {error ? <div className="mb-4"><Alert type="error">{error}</Alert></div> : null}
         {render()}
       </main>
-      <FloatingBackButton onBack={goBack} />
+      {embedded ? null : <FloatingBackButton onBack={goBack} />}
     </div>
   )
 }
