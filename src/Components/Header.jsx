@@ -1,5 +1,6 @@
 import React from 'react'
 import { getUser } from '../Api/auth'
+import schoolLogo from '../assets/logo.png'
 
 function Header({ sidebarOpen, setSidebarOpen }) {
   const user = getUser()
@@ -20,8 +21,8 @@ function Header({ sidebarOpen, setSidebarOpen }) {
               <span className="material-symbols-outlined text-lg">menu</span>
             </button>
 
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white text-black">
-              <span className="material-symbols-outlined">school</span>
+            <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+              <img src={schoolLogo} alt={`${schoolName} logo`} className="h-full w-full object-contain" />
             </div>
 
             <div className="min-w-0">

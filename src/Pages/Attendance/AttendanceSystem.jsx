@@ -11,6 +11,7 @@ import {
 } from '../../Api/attendance'
 import { clearSession, getLoginType, getUser } from '../../Api/auth'
 import { getStudents } from '../../Api/students'
+import schoolLogo from '../../assets/logo.png'
 
 const STATUSES = [
   ['present', 'Present'],
@@ -85,15 +86,54 @@ const getSummary = (records = []) => {
 }
 
 function StatusBadge({ status }) {
-  const styles = {
-    present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    absent: 'bg-red-50 text-red-700 border-red-200',
-    late: 'bg-amber-50 text-amber-700 border-amber-200',
-    holiday: 'bg-slate-100 text-slate-600 border-slate-200',
+  const normalized = String(status || '').trim().toLowerCase()
+  const fallbackLabel = normalized
+    ? normalized.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : 'Not marked'
+  const variants = {
+    present: {
+      label: 'Present',
+      backgroundColor: '#ecfdf5',
+      borderColor: '#a7f3d0',
+      color: '#047857',
+    },
+    absent: {
+      label: 'Absent',
+      backgroundColor: '#fff1f2',
+      borderColor: '#fecdd3',
+      color: '#be123c',
+    },
+    late: {
+      label: 'Late',
+      backgroundColor: '#fffbeb',
+      borderColor: '#fde68a',
+      color: '#92400e',
+    },
+    holiday: {
+      label: 'Holiday',
+      backgroundColor: '#f1f5f9',
+      borderColor: '#e2e8f0',
+      color: '#475569',
+    },
   }
+  const variant = variants[normalized] || {
+    label: fallbackLabel,
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+    color: '#334155',
+  }
+
   return (
-    <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${styles[status] || styles.holiday}`}>
-      {status || 'not marked'}
+    <span
+      className="inline-flex min-w-[70px] shrink-0 justify-center rounded-full border px-2.5 py-1 text-xs font-black"
+      style={{
+        backgroundColor: variant.backgroundColor,
+        borderColor: variant.borderColor,
+        color: variant.color,
+        WebkitTextFillColor: variant.color,
+      }}
+    >
+      {variant.label}
     </span>
   )
 }
@@ -234,8 +274,12 @@ function TopNav({ user, activeTab, setActiveTab }) {
             <span className="material-symbols-outlined text-[24px]">{drawerOpen ? 'close' : 'menu'}</span>
           </button>
 
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+            <img src={schoolLogo} alt="Star Public School logo" className="h-full w-full object-contain" />
+          </div>
+
           <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-800">Attendance dashboard</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-800">Star Public School</p>
             <h1 className="truncate text-xl font-black text-slate-900 sm:text-2xl">{activeTitle}</h1>
           </div>
 
@@ -288,15 +332,12 @@ function TopNav({ user, activeTab, setActiveTab }) {
         }`}
       >
         <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-950 px-4 py-5 text-white">
-          <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black"
-            style={{ backgroundColor: getAvatarColor(profileName) }}
-          >
-            {getInitials(profileName)}
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5">
+            <img src={schoolLogo} alt="Star Public School logo" className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-black">{profileName}</div>
-            <div className="text-xs font-semibold uppercase text-slate-300">{profileRole}</div>
+            <div className="truncate text-sm font-black">Star Public School</div>
+            <div className="text-xs font-semibold uppercase text-slate-300">{profileRole} Attendance</div>
           </div>
         </div>
         <div className="flex-1 space-y-1 overflow-y-auto p-3">
@@ -469,35 +510,185 @@ function Overview({ students, records }) {
   const summary = getSummary(todayRecords)
   const totalToday = todayRecords.length || students.length
   const todayPercentage = totalToday > 0 ? Math.round(((summary.present + summary.late) / totalToday) * 100) : 0
+  const attendedToday = summary.present + summary.late
+  const pendingToday = Math.max(students.length - todayRecords.length, 0)
+  const progressWidth = Math.min(Math.max(todayPercentage, 0), 100)
+  const recordCoverage = students.length > 0 ? Math.round((todayRecords.length / students.length) * 100) : 0
+  const statusSegments = [
+    { key: 'present', label: 'Present', value: summary.present, color: 'bg-emerald-500' },
+    { key: 'absent', label: 'Absent', value: summary.absent, color: 'bg-rose-500' },
+    { key: 'late', label: 'Late', value: summary.late, color: 'bg-amber-400' },
+  ]
+  const overviewCards = [
+    {
+      label: 'Total Students',
+      value: students.length,
+      icon: 'groups',
+      accent: 'from-slate-900 to-slate-700',
+      border: 'border-slate-200',
+      text: 'text-slate-900',
+      sub: `${recordCoverage}% marked`,
+    },
+    {
+      label: 'Present Today',
+      value: summary.present,
+      icon: 'check_circle',
+      accent: 'from-emerald-600 to-teal-500',
+      border: 'border-emerald-200',
+      text: 'text-emerald-800',
+      sub: `${attendedToday} attended`,
+    },
+    {
+      label: 'Absent Today',
+      value: summary.absent,
+      icon: 'cancel',
+      accent: 'from-rose-600 to-red-500',
+      border: 'border-rose-200',
+      text: 'text-rose-800',
+      sub: pendingToday ? `${pendingToday} pending` : 'All checked',
+    },
+    {
+      label: 'Late Today',
+      value: summary.late,
+      icon: 'schedule',
+      accent: 'from-amber-500 to-orange-500',
+      border: 'border-amber-200',
+      text: 'text-amber-900',
+      sub: 'Late arrivals',
+    },
+  ]
+
   return (
-    <div className="space-y-4">
-          <div className="space-y-2">
-        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-          Aaj ka din - {new Date().toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[1.18fr_0.82fr]">
+          <div className="p-5 sm:p-6 lg:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+                  Aaj ka din - {new Date().toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                  Attendance Overview
+                </h2>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Marked</div>
+                <div className="mt-1 text-xl font-black text-slate-950">{todayRecords.length}/{students.length}</div>
+              </div>
+            </div>
+
+            <div className="mt-7 rounded-[24px] bg-slate-950 p-5 text-white sm:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-white/60">Aaj ki attendance</p>
+                  <div className="mt-2 flex items-end gap-3">
+                    <span className="text-6xl font-black leading-none tracking-tight sm:text-7xl">{todayPercentage}%</span>
+                    <span className="pb-2 text-sm font-bold text-emerald-200">{attendedToday} attended</span>
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">Pending</div>
+                  <div className="mt-1 text-2xl font-black">{pendingToday}</div>
+                </div>
+              </div>
+
+              <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                  style={{ width: `${progressWidth}%` }}
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-sm font-black text-white/70">
+                {statusSegments.map((item) => (
+                  <div key={item.key} className="rounded-2xl bg-white/10 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+                      <span>{item.value}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/45">{item.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 bg-slate-50/80 p-5 sm:p-6 lg:border-l lg:border-t-0 lg:p-7">
+            <div className="rounded-[24px] border border-white bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Class Health</p>
+                  <h3 className="mt-1 text-lg font-black text-slate-950">Daily status mix</h3>
+                </div>
+                <span className="material-symbols-outlined rounded-2xl bg-cyan-50 p-3 text-cyan-700">monitoring</span>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {statusSegments.map((item) => {
+                  const width = totalToday > 0 ? Math.round((item.value / totalToday) * 100) : 0
+                  return (
+                    <div key={item.key}>
+                      <div className="mb-1.5 flex items-center justify-between text-sm font-bold">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className="text-slate-950">{item.value}</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                        <div className={`h-full rounded-full ${item.color}`} style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Coverage</div>
+                  <div className="mt-1 text-2xl font-black text-slate-950">{recordCoverage}%</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Records</div>
+                  <div className="mt-1 text-2xl font-black text-slate-950">{todayRecords.length}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="text-lg font-black text-slate-900">Attendance snapshot</div>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {overviewCards.map((card) => (
+          <div key={card.label} className={`overflow-hidden rounded-[24px] border bg-white shadow-sm ${card.border}`}>
+            <div className={`h-1.5 bg-gradient-to-r ${card.accent}`} />
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className={`text-4xl font-black leading-none tracking-tight ${card.text}`}>{card.value}</div>
+                  <div className="mt-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">{card.label}</div>
+                  <div className="mt-2 text-sm font-bold text-slate-500">{card.sub}</div>
+                </div>
+                <span className={`material-symbols-outlined rounded-2xl bg-gradient-to-br p-3 text-[22px] text-white ${card.accent}`}>
+                  {card.icon}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-      <div className="rounded-2xl bg-[#1e3a5f] p-4 text-white shadow-sm">
-        <div className="text-xs font-bold text-white/65">Aaj ki attendance</div>
-        <div className="mt-1 text-4xl font-black">{todayPercentage}%</div>
-        <div className="mt-3 h-2 rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-emerald-400" style={{ width: `${todayPercentage}%` }} />
+
+      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Live Register</p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">Today Records</h2>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-600">
+            <span className="material-symbols-outlined text-base">fact_check</span>
+            {todayRecords.length} entries
+          </div>
         </div>
-        <div className="mt-2 flex justify-between text-[11px] font-bold text-white/65">
-          <span>{summary.present} present</span>
-          <span>{summary.absent} absent</span>
-          <span>{summary.late} late</span>
+        <div className="p-3 sm:p-5">
+          <AttendanceTable records={todayRecords} students={students} />
         </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Students" value={students.length} icon="groups" />
-        <StatCard label="Present Today" value={summary.present} tone="green" icon="check_circle" />
-        <StatCard label="Absent Today" value={summary.absent} tone="red" icon="cancel" />
-        <StatCard label="Late Today" value={summary.late} tone="amber" icon="schedule" />
-      </div>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-        <h2 className="mb-3 text-base font-black text-slate-900">Today Records</h2>
-        <AttendanceTable records={todayRecords} students={students} />
       </div>
     </div>
   )
@@ -571,6 +762,7 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
   const [statuses, setStatuses] = useState({})
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [selectedDateIsHoliday, setSelectedDateIsHoliday] = useState(false)
@@ -582,6 +774,8 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
     if (!canLoad) return
     setLoading(true)
     setError('')
+    setMessage('')
+    setSaved(false)
     try {
       const [studentResponse, recordResponse] = await Promise.all([
         getStudents({
@@ -629,6 +823,8 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
 
   const setAll = (status) => {
     setStatuses(students.reduce((map, student) => ({ ...map, [student.id]: status }), {}))
+    setSaved(false)
+    setMessage('')
   }
 
   const save = async () => {
@@ -638,6 +834,7 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
     }
 
     setSaving(true)
+    setSaved(false)
     setError('')
     setMessage('')
     try {
@@ -648,9 +845,11 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
         academic_year: selected.academic_year,
         statuses,
       })
-      setMessage('Attendance saved successfully.')
       await loadClassAttendance()
+      setMessage('Attendance saved successfully.')
+      setSaved(true)
     } catch (err) {
+      setSaved(false)
       setError(err?.message || 'Failed to save attendance')
     } finally {
       setSaving(false)
@@ -712,7 +911,11 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
                       <button
                         key={key}
                         type="button"
-                        onClick={() => setStatuses((prev) => ({ ...prev, [student.id]: key }))}
+                        onClick={() => {
+                          setStatuses((prev) => ({ ...prev, [student.id]: key }))
+                          setSaved(false)
+                          setMessage('')
+                        }}
                         className={`min-h-8 flex-1 rounded-lg px-2 py-1 text-[11px] font-black transition-colors sm:text-xs ${
                           statuses[student.id] === key ? 'bg-cyan-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
                         }`}
@@ -729,10 +932,10 @@ function MarkAttendance({ user, bootstrap, selected, setSelected }) {
         <button
           type="button"
           onClick={save}
-          disabled={saving || students.length === 0 || selectedDateIsHoliday}
+          disabled={saving || saved || students.length === 0 || selectedDateIsHoliday}
           className="mt-4 min-h-11 w-full rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-black text-white hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
-          {saving ? 'Saving...' : selectedDateIsHoliday ? 'Holiday - No Attendance' : 'Save Attendance'}
+          {saving ? 'Saving...' : selectedDateIsHoliday ? 'Holiday - No Attendance' : saved ? 'Attendance Saved' : 'Save Attendance'}
         </button>
       </div>
     </div>
@@ -1314,7 +1517,15 @@ function AttendanceSystem({ embedded = false }) {
       {embedded ? null : <TopNav user={user} activeTab={activeTab} setActiveTab={setActiveTab} />}
       {embedded ? (
         <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="mr-1 flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white p-1 shadow-sm">
+                <img src={schoolLogo} alt="Star Public School logo" className="h-full w-full object-contain" />
+              </span>
+              <span className="hidden text-xs font-black uppercase tracking-[0.16em] text-slate-700 sm:inline">
+                Star Public School
+              </span>
+            </div>
             {getTabsForRole(user.role).map(([key, icon, label]) => (
               <button
                 key={key}
