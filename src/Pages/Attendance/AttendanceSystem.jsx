@@ -76,6 +76,11 @@ const normalizeStudents = (response) => {
   }))
 }
 
+const uniqueSortedValues = (rows = [], getValue = (row) => row) =>
+  [...new Set(rows.map((row) => String(getValue(row) || '').trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }),
+  )
+
 const getSummary = (records = []) => {
   const summary = records.reduce(
     (acc, record) => {
@@ -235,14 +240,14 @@ const getTabsForRole = (role) => {
       ['report', 'calendar_month', 'Reports', 'Reports'],
       ['history', 'list_alt', 'Student History', 'History'],
       ['holidays', 'event', 'Holidays', 'Holidays'],
-      ['teacherGpsAttendance', 'location_on', 'Teacher GPS', 'GPS'],
+      ['teacherGpsAttendance', 'location_on', 'Teacher Attendance', 'Attendance'],
     ],
     teacher: [
       ['mark', 'check_circle', 'Mark Attendance', 'Mark'],
       ['report', 'calendar_month', 'Reports', 'Reports'],
       ['history', 'list_alt', 'Student History', 'History'],
       ['holidays', 'event', 'Holidays', 'Holidays'],
-      ['teacherGpsAttendance', 'location_on', 'Teacher GPS', 'GPS'],
+      ['teacherGpsAttendance', 'location_on', 'Teacher Attendance', 'Attendance'],
     ],
     student: [
       ['mine', 'list_alt', 'My Attendance', 'Attendance'],
@@ -1006,7 +1011,9 @@ function Reports({ user, bootstrap, selected, setSelected }) {
 function StudentHistory({ user, selected }) {
   const [students, setStudents] = useState([])
   const [studentId, setStudentId] = useState('')
-  const [studentOpen, setStudentOpen] = useState(false)
+  const [selectedClass, setSelectedClass] = useState('')
+  const [selectedSection, setSelectedSection] = useState('')
+  const [selectedRollNo, setSelectedRollNo] = useState('')
   const [monthOpen, setMonthOpen] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState('all')
   const [detail, setDetail] = useState(null)
@@ -1021,20 +1028,30 @@ function StudentHistory({ user, selected }) {
 
       try {
         const response = await getStudents({
-          class: selected.class,
-          section: selected.section,
-          academic_year: selected.academic_year,
+          academic_year: selected.academic_year || getDefaultAcademicYear(),
         })
         const rows = normalizeStudents(response)
         setStudents(rows)
-        setStudentId((current) => current || rows[0]?.id || '')
+
+        const nextClass = rows.find((row) => row.class === selected.class)?.class || rows[0]?.class || ''
+        const classRows = rows.filter((row) => row.class === nextClass)
+        const nextSection = classRows.find((row) => row.section === selected.section)?.section || classRows[0]?.section || ''
+        const sectionRows = classRows.filter((row) => row.section === nextSection)
+        const nextRollNo = String(
+          sectionRows.find((row) => String(row.roll_no) === String(selected.roll_no))?.roll_no || sectionRows[0]?.roll_no || '',
+        )
+
+        setSelectedClass(nextClass)
+        setSelectedSection(nextSection)
+        setSelectedRollNo(nextRollNo)
+        setStudentId(sectionRows.find((row) => String(row.roll_no) === nextRollNo)?.id || rows[0]?.id || '')
       } catch (err) {
         setStudents([])
         setError(err?.message || 'Failed to load students')
       }
     }
     loadStudents()
-  }, [selected.class, selected.section, selected.academic_year, user])
+  }, [selected.academic_year, selected.class, selected.roll_no, selected.section, user])
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -1050,11 +1067,40 @@ function StudentHistory({ user, selected }) {
     loadDetail()
   }, [studentId])
 
+  const classOptions = useMemo(() => uniqueSortedValues(students, (student) => student.class), [students])
+  const sectionOptions = useMemo(
+    () => uniqueSortedValues(students.filter((student) => student.class === selectedClass), (student) => student.section),
+    [selectedClass, students],
+  )
+  const rollOptions = useMemo(
+    () =>
+      uniqueSortedValues(
+        students.filter((student) => student.class === selectedClass && student.section === selectedSection),
+        (student) => student.roll_no,
+      ),
+    [selectedClass, selectedSection, students],
+  )
+
+  useEffect(() => {
+    if (user.role === 'student') return
+
+    if (!selectedClass || !selectedSection || !selectedRollNo) {
+      setStudentId('')
+      return
+    }
+
+    const match = students.find(
+      (student) =>
+        student.class === selectedClass &&
+        student.section === selectedSection &&
+        String(student.roll_no) === String(selectedRollNo),
+    )
+
+    setStudentId(match?.id || '')
+  }, [selectedClass, selectedRollNo, selectedSection, students, user.role])
+
   const records = detail?.records || []
   const selectedStudent = students.find((student) => student.id === studentId) || detail?.student || null
-  const studentLabel = selectedStudent
-    ? `${selectedStudent.name || 'Student'} - ${selectedStudent.class || '-'} ${selectedStudent.section || ''} Roll ${selectedStudent.roll_no || '-'}`
-    : 'Select student'
   const monthOptions = useMemo(() => {
     const months = Array.from(
       new Set(
@@ -1104,45 +1150,84 @@ function StudentHistory({ user, selected }) {
     <div className="space-y-4">
       {user.role !== 'student' ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="max-w-2xl space-y-3">
-            <div className="relative">
-              <span className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Student</span>
-              <button
-                type="button"
-                onClick={() => setStudentOpen((prev) => !prev)}
-                className="flex min-h-14 w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-slate-300"
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-black text-slate-900">{studentLabel}</div>
-                  <div className="mt-0.5 text-xs font-semibold text-slate-500">Tap to choose a student</div>
-                </div>
-                <span className="ml-3 shrink-0 text-sm font-black text-slate-500">{studentOpen ? '▲' : '▼'}</span>
-              </button>
-              {studentOpen ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                  {students.map((student) => {
-                    const active = student.id === studentId
-                    return (
-                      <button
-                        key={student.id}
-                        type="button"
-                        onClick={() => {
-                          setStudentId(student.id)
-                          setStudentOpen(false)
-                          setSelectedMonth('all')
-                        }}
-                        className={`w-full rounded-xl px-3 py-3 text-left transition ${active ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}
-                      >
-                        <div className="truncate text-sm font-black text-slate-900">{student.name || 'Student'}</div>
-                        <div className="mt-0.5 text-xs font-semibold text-slate-500">
-                          Roll {student.roll_no || '-'} | Class {student.class || '-'} {student.section || ''}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : null}
+          <div className="max-w-4xl space-y-3">
+            <div>
+              <span className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Select Student</span>
+              <p className="text-sm font-semibold text-slate-500">Choose class, section, and roll number separately.</p>
             </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-slate-500">Class</span>
+                <select
+                  value={selectedClass}
+                  onChange={(event) => {
+                    setStudentId('')
+                    setSelectedClass(event.target.value)
+                    setSelectedSection('')
+                    setSelectedRollNo('')
+                    setSelectedMonth('all')
+                    setDetail(null)
+                  }}
+                  className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 transition focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="">Select class</option>
+                  {classOptions.map((classValue) => (
+                    <option key={classValue} value={classValue}>
+                      {classValue}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-slate-500">Section</span>
+                <select
+                  value={selectedSection}
+                  onChange={(event) => {
+                    setStudentId('')
+                    setSelectedSection(event.target.value)
+                    setSelectedRollNo('')
+                    setSelectedMonth('all')
+                    setDetail(null)
+                  }}
+                  disabled={!selectedClass}
+                  className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 transition focus:border-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">{selectedClass ? 'Select section' : 'Select class first'}</option>
+                  {sectionOptions.map((sectionValue) => (
+                    <option key={sectionValue} value={sectionValue}>
+                      {sectionValue}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-slate-500">Roll Number</span>
+                <select
+                  value={selectedRollNo}
+                  onChange={(event) => {
+                    setStudentId('')
+                    setSelectedRollNo(event.target.value)
+                    setSelectedMonth('all')
+                    setDetail(null)
+                  }}
+                  disabled={!selectedClass || !selectedSection}
+                  className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 transition focus:border-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">{selectedSection ? 'Select roll number' : 'Select section first'}</option>
+                  {rollOptions.map((rollValue) => (
+                    <option key={rollValue} value={rollValue}>
+                      {rollValue}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {selectedStudent ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+                Selected: <span className="font-black text-slate-900">{selectedStudent.name || 'Student'}</span>
+                {' '}| Class {selectedStudent.class || '-'} {selectedStudent.section || ''} | Roll {selectedStudent.roll_no || '-'}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -1151,7 +1236,7 @@ function StudentHistory({ user, selected }) {
         <>
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="relative max-w-md">
-              <span className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Month</span>
+              <span className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Month Filter</span>
               <button
                 type="button"
                 onClick={() => setMonthOpen((prev) => !prev)}
@@ -1159,9 +1244,9 @@ function StudentHistory({ user, selected }) {
               >
                 <div>
                   <div className="text-sm font-black text-slate-900">{selectedMonthLabel}</div>
-                  <div className="mt-0.5 text-xs font-semibold text-slate-500">Filter month-wise history</div>
+                  <div className="mt-0.5 text-xs font-semibold text-slate-500">Focus on one month at a time.</div>
                 </div>
-                <span className="ml-3 shrink-0 text-sm font-black text-slate-500">{monthOpen ? '▲' : '▼'}</span>
+                <span className="ml-3 shrink-0 text-sm font-black text-slate-500">{monthOpen ? '^' : 'v'}</span>
               </button>
               {monthOpen ? (
                 <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
@@ -1194,7 +1279,7 @@ function StudentHistory({ user, selected }) {
           {monthlySummary.length ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-base font-black text-slate-900">Month Wise</h2>
+                <h2 className="text-base font-black text-slate-900">Monthly Snapshot</h2>
                 <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500">{monthlySummary.length} months</span>
               </div>
               <div className="grid gap-2">
@@ -1210,7 +1295,7 @@ function StudentHistory({ user, selected }) {
                       <div>
                         <div className="text-sm font-black text-slate-900">{row.label}</div>
                         <div className="mt-0.5 text-xs font-semibold text-slate-500">
-                          Records {row.count} | Present {row.summary.present} | Absent {row.summary.absent} | Late {row.summary.late}
+                          Entries {row.count} | Present {row.summary.present} | Absent {row.summary.absent} | Late {row.summary.late}
                         </div>
                       </div>
                       <div className="text-sm font-black text-indigo-600">{row.summary.percentage}%</div>
@@ -1222,14 +1307,14 @@ function StudentHistory({ user, selected }) {
           ) : null}
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-black text-slate-900">{selectedStudent?.name || 'Student'} Attendance</h2>
-              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{selectedMonth === 'all' ? 'All Months' : selectedMonthLabel}</span>
+              <h2 className="text-base font-black text-slate-900">{selectedStudent?.name || 'Student'} History</h2>
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{selectedMonth === 'all' ? 'All History' : selectedMonthLabel}</span>
             </div>
             <AttendanceTable records={filteredRecords} students={[detail.student]} />
           </div>
         </>
       ) : (
-        <p className="py-8 text-center text-sm text-slate-500">Select a student to view history.</p>
+        <p className="py-8 text-center text-sm text-slate-500">Choose a student to see attendance history.</p>
       )}
     </div>
   )
