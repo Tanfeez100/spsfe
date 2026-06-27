@@ -37,6 +37,11 @@ const toTeacherRow = (teacher) => {
     teacher?.teacherId ||
       '',
     email: teacher?.email || teacher?.user?.email || teacher?.username || '',
+    fullName: teacher?.fullName || teacher?.profile?.full_name || '',
+    employeeId: teacher?.employeeId || teacher?.profile?.employee_id || '',
+    mobile: teacher?.mobile || teacher?.profile?.mobile || '',
+    username: teacher?.username || teacher?.profile?.username || '',
+    status: teacher?.status || teacher?.profile?.status || 'active',
     role: teacher?.role || teacher?.user?.role || 'teacher',
     createdAt: teacher?.created_at || teacher?.createdAt || teacher?.user?.created_at || teacher?.user?.createdAt || '',
     assignments,
@@ -66,8 +71,20 @@ function TeacherManagement() {
   const [activeTab, setActiveTab] = useState('list')
 
   const [formData, setFormData] = useState({
+    full_name: '',
+    employee_id: '',
+    mobile: '',
     email: '',
     password: '',
+    gender: '',
+    date_of_birth: '',
+    qualification: '',
+    designation: '',
+    department: '',
+    joining_date: '',
+    address: '',
+    emergency_contact: '',
+    status: 'active',
   })
 
   const loginType = getLoginType()
@@ -155,21 +172,43 @@ function TeacherManagement() {
     const email = String(formData.email || '').trim()
     const password = String(formData.password || '')
 
-    if (!email || !password) {
-      setError('Email and password are required.')
+    if (!email || !formData.full_name || !formData.employee_id) {
+      setError('Full name, employee ID and email are required.')
       return
     }
 
-    if (password.length < 6) {
+    if (password && password.length < 6) {
       setError('Password should be at least 6 characters.')
       return
     }
 
     setSubmitting(true)
     try {
-      await createTeacher({ email, password })
-      setSuccess('Teacher added successfully.')
-      setFormData({ email: '', password: '' })
+      const response = await createTeacher({
+        ...formData,
+        email,
+        password: password || undefined,
+      })
+      const credentials = response?.teacher?.username
+        ? ` Username: ${response.teacher.username}${response.teacher.temporaryPassword ? ` | Temporary Password: ${response.teacher.temporaryPassword}` : ''}`
+        : ''
+      setSuccess(`Teacher added successfully.${credentials}`)
+      setFormData({
+        full_name: '',
+        employee_id: '',
+        mobile: '',
+        email: '',
+        password: '',
+        gender: '',
+        date_of_birth: '',
+        qualification: '',
+        designation: '',
+        department: '',
+        joining_date: '',
+        address: '',
+        emergency_contact: '',
+        status: 'active',
+      })
       await fetchTeachers()
     } catch (err) {
       setError(err?.message || 'Failed to add teacher')
@@ -340,9 +379,26 @@ function TeacherManagement() {
       ) : null}
 
       {activeTab === 'add' && (
-        <div className="mx-auto max-w-lg bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <div className="mx-auto max-w-5xl bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Add Teacher</h3>
-          <form onSubmit={handleAddTeacher} className="space-y-3">
+          <form onSubmit={handleAddTeacher} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ['full_name', 'Full Name', 'text', true],
+              ['employee_id', 'Employee ID', 'text', true],
+              ['mobile', 'Mobile', 'tel', false],
+            ].map(([name, label, type, required]) => (
+              <div key={name}>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{label}</label>
+                <input
+                  type={type}
+                  name={name}
+                  value={formData[name]}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
+                  required={required}
+                />
+              </div>
+            ))}
             <div>
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Teacher Email</label>
               <input
@@ -362,15 +418,56 @@ function TeacherManagement() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Minimum 6 characters"
+                placeholder="Auto-generate if blank"
                 className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
-                required
+              />
+            </div>
+            {[
+              ['gender', 'Gender', 'text'],
+              ['date_of_birth', 'Date of Birth', 'date'],
+              ['qualification', 'Qualification', 'text'],
+              ['designation', 'Designation', 'text'],
+              ['department', 'Department', 'text'],
+              ['joining_date', 'Joining Date', 'date'],
+              ['emergency_contact', 'Emergency Contact', 'text'],
+            ].map(([name, label, type]) => (
+              <div key={name}>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{label}</label>
+                <input
+                  type={type}
+                  name={name}
+                  value={formData[name]}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
+                />
+              </div>
+            ))}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a]"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Address</label>
+              <textarea
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
               />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f172a] text-[#ffffff] font-semibold hover:bg-[#1e293b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-slate-500/20"
+              className="sm:col-span-2 lg:col-span-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f172a] text-[#ffffff] font-semibold hover:bg-[#1e293b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-slate-500/20"
             >
               {submitting ? (
                 <>
@@ -404,7 +501,8 @@ function TeacherManagement() {
               <table className="w-full min-w-[900px] text-sm">
                 <thead>
                   <tr className="border-b border-[#1e293b] bg-[#0f172a]">
-                    <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Email</th>
+                    <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Teacher</th>
+                    <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Login</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Class</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Section</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-[#ffffff]">Academic Year</th>
@@ -425,10 +523,19 @@ function TeacherManagement() {
                     return (
                       <tr key={`${teacher.id}-${teacher.email}`} className="border-b border-[#e2e8f0] hover:bg-[#f8fafc]">
                         <td className="px-3 py-2.5 text-slate-900 dark:text-white">
+                          <div className="font-semibold">{teacher.fullName || teacher.email || 'Teacher'}</div>
+                          <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            {teacher.employeeId || 'No employee ID'} {teacher.mobile ? `| ${teacher.mobile}` : ''}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-900 dark:text-white">
                           <div className="font-semibold">{teacher.email || 'Email unavailable'}</div>
                           <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            {teacher.createdAt ? new Date(teacher.createdAt).toLocaleDateString('en-IN') : 'teacher'}
+                            {teacher.username ? `Username: ${teacher.username}` : 'Username auto-generated after SQL setup'}
                           </div>
+                          <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${teacher.status === 'inactive' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                            {teacher.status}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 min-w-[150px]">
                           {classOptions.length > 0 ? (

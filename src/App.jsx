@@ -181,6 +181,7 @@ function App() {
             <Route path="/leave-rejoin" element={<Navigate to="/dashboard" replace />} />
             <Route path="/subjects" element={<Dashboard />} />
             <Route path="/teachers" element={<Dashboard />} />
+            <Route path="/teacher-attendance" element={<Dashboard />} />
             <Route path="/fees" element={<Dashboard />} />
             <Route path="/attendance" element={<Dashboard />} />
             <Route path="/marks-upload" element={<Dashboard />} />

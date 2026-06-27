@@ -26,10 +26,11 @@ function Header({ sidebarOpen, setSidebarOpen }) {
             </div>
 
             <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-[#0f172a] sm:text-base">{schoolName}</p>
               <p className="truncate text-[10px] font-bold uppercase tracking-[0.2em] text-black sm:text-xs">
                 Admin Workspace
               </p>
-              <p className="truncate text-sm font-bold text-[#0f172a] sm:text-base">{schoolName}</p>
+              
             </div>
           </div>
 

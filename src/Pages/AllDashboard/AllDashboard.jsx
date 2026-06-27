@@ -178,7 +178,7 @@ function Dashboard({ initialView = 'dashboard' }) {
         navigate('/attendance', { replace: true })
         return
       }
-      const nextView = pathname === '/attendance' ? 'attendance' : 'uploadMarks'
+      const nextView = pathname === '/marks-upload' ? 'uploadMarks' : 'attendance'
       if (activeView !== nextView) {
         setActiveView(nextView)
       }

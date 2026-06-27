@@ -32,7 +32,7 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView, sidebarCollapse
       { id: 'student', label: 'Student', icon: 'person_add' },
       { id: 'classPromotion', label: 'Class Promotion', icon: 'arrow_upward' },
       { id: 'subject', label: 'Subject', icon: 'book' },
-      { id: 'teachers', label: 'Assign Teacher', icon: 'assignment_ind' },
+      { id: 'teachers', label: 'Teacher', icon: 'assignment_ind' },
       { id: 'fees', label: 'Fees', icon: 'payments' },
       { id: 'attendance', label: 'Attendance', icon: 'fact_check' },
       { id: 'uploadMarks', label: 'Marks Upload', icon: 'upload' },
