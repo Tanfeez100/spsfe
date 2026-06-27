@@ -215,7 +215,7 @@ export const getRefreshToken = () => {
 
 export const setSession = (sessionData, loginType = "all") => {
   const accessToken =
-    sessionData?.session?.access_token || sessionData?.access_token;
+    sessionData?.access_token || sessionData?.session?.access_token;
   const refreshToken =
     sessionData?.session?.refresh_token || sessionData?.refresh_token;
   const user = sessionData?.user || null;
@@ -265,7 +265,7 @@ export const refreshAccessToken = async () => {
       refresh_token: refreshToken,
     });
     const newAccessToken =
-      response.data?.session?.access_token || response.data?.access_token;
+      response.data?.access_token || response.data?.session?.access_token;
     const newRefreshToken =
       response.data?.session?.refresh_token || response.data?.refresh_token;
 

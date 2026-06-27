@@ -11,6 +11,7 @@ import {
 } from '../../Api/attendance'
 import { clearSession, getLoginType, getUser } from '../../Api/auth'
 import { getStudents } from '../../Api/students'
+import TeacherGpsAttendance from '../AllDashboard/TeacherGpsAttendance'
 import schoolLogo from '../../assets/logo.png'
 
 const STATUSES = [
@@ -20,6 +21,12 @@ const STATUSES = [
 
 const today = () => new Date().toISOString().split('T')[0]
 const currentMonth = () => today().slice(0, 7)
+const formatMonthLabel = (monthKey) => {
+  if (!monthKey) return '-'
+  const parsed = new Date(`${monthKey}-01T00:00:00.000Z`)
+  if (Number.isNaN(parsed.getTime())) return monthKey
+  return new Intl.DateTimeFormat('en-IN', { month: 'short', year: 'numeric' }).format(parsed)
+}
 const isFriday = (date) => {
   if (!date) return false
   return new Date(`${date}T00:00:00.000Z`).getUTCDay() === 5
@@ -228,12 +235,14 @@ const getTabsForRole = (role) => {
       ['report', 'calendar_month', 'Reports', 'Reports'],
       ['history', 'list_alt', 'Student History', 'History'],
       ['holidays', 'event', 'Holidays', 'Holidays'],
+      ['teacherGpsAttendance', 'location_on', 'Teacher GPS', 'GPS'],
     ],
     teacher: [
       ['mark', 'check_circle', 'Mark Attendance', 'Mark'],
       ['report', 'calendar_month', 'Reports', 'Reports'],
       ['history', 'list_alt', 'Student History', 'History'],
       ['holidays', 'event', 'Holidays', 'Holidays'],
+      ['teacherGpsAttendance', 'location_on', 'Teacher GPS', 'GPS'],
     ],
     student: [
       ['mine', 'list_alt', 'My Attendance', 'Attendance'],
@@ -997,6 +1006,9 @@ function Reports({ user, bootstrap, selected, setSelected }) {
 function StudentHistory({ user, selected }) {
   const [students, setStudents] = useState([])
   const [studentId, setStudentId] = useState('')
+  const [studentOpen, setStudentOpen] = useState(false)
+  const [monthOpen, setMonthOpen] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState('all')
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState('')
 
@@ -1038,37 +1050,182 @@ function StudentHistory({ user, selected }) {
     loadDetail()
   }, [studentId])
 
-  const summary = detail?.summary || getSummary([])
+  const records = detail?.records || []
+  const selectedStudent = students.find((student) => student.id === studentId) || detail?.student || null
+  const studentLabel = selectedStudent
+    ? `${selectedStudent.name || 'Student'} - ${selectedStudent.class || '-'} ${selectedStudent.section || ''} Roll ${selectedStudent.roll_no || '-'}`
+    : 'Select student'
+  const monthOptions = useMemo(() => {
+    const months = Array.from(
+      new Set(
+        records
+          .map((record) => String(record.attendance_date || '').slice(0, 7))
+          .filter((month) => month && month.length === 7),
+      ),
+    ).sort((a, b) => b.localeCompare(a))
+
+    return [{ key: 'all', label: 'All Months' }, ...months.map((month) => ({ key: month, label: formatMonthLabel(month) }))]
+  }, [records])
+  const filteredRecords = useMemo(() => {
+    if (selectedMonth === 'all') return records
+    return records.filter((record) => String(record.attendance_date || '').slice(0, 7) === selectedMonth)
+  }, [records, selectedMonth])
+  const monthlySummary = useMemo(() => {
+    const grouped = new Map()
+    records.forEach((record) => {
+      const month = String(record.attendance_date || '').slice(0, 7)
+      if (!month || month.length !== 7) return
+      if (!grouped.has(month)) grouped.set(month, [])
+      grouped.get(month).push(record)
+    })
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([month, monthRecords]) => {
+        const summary = getSummary(monthRecords)
+        return {
+          key: month,
+          label: formatMonthLabel(month),
+          count: monthRecords.length,
+          summary,
+        }
+      })
+  }, [records])
+  const summary = getSummary(filteredRecords)
+  const selectedMonthLabel = monthOptions.find((option) => option.key === selectedMonth)?.label || 'All Months'
+
+  useEffect(() => {
+    if (!monthOptions.some((option) => option.key === selectedMonth)) {
+      setSelectedMonth('all')
+    }
+  }, [monthOptions, selectedMonth])
 
   return (
     <div className="space-y-4">
       {user.role !== 'student' ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-          <label className="block max-w-md">
-            <span className="mb-1 block text-xs font-bold text-slate-500">Student</span>
-            <select value={studentId} onChange={(event) => setStudentId(event.target.value)} className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-              <option value="">Select student</option>
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.name} - {student.class} {student.section} Roll {student.roll_no}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="max-w-2xl space-y-3">
+            <div className="relative">
+              <span className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Student</span>
+              <button
+                type="button"
+                onClick={() => setStudentOpen((prev) => !prev)}
+                className="flex min-h-14 w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-slate-300"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-black text-slate-900">{studentLabel}</div>
+                  <div className="mt-0.5 text-xs font-semibold text-slate-500">Tap to choose a student</div>
+                </div>
+                <span className="ml-3 shrink-0 text-sm font-black text-slate-500">{studentOpen ? '▲' : '▼'}</span>
+              </button>
+              {studentOpen ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                  {students.map((student) => {
+                    const active = student.id === studentId
+                    return (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => {
+                          setStudentId(student.id)
+                          setStudentOpen(false)
+                          setSelectedMonth('all')
+                        }}
+                        className={`w-full rounded-xl px-3 py-3 text-left transition ${active ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}
+                      >
+                        <div className="truncate text-sm font-black text-slate-900">{student.name || 'Student'}</div>
+                        <div className="mt-0.5 text-xs font-semibold text-slate-500">
+                          Roll {student.roll_no || '-'} | Class {student.class || '-'} {student.section || ''}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
       {error ? <Alert type="error">{error}</Alert> : null}
       {detail ? (
         <>
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="relative max-w-md">
+              <span className="mb-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Month</span>
+              <button
+                type="button"
+                onClick={() => setMonthOpen((prev) => !prev)}
+                className="flex min-h-12 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-slate-300"
+              >
+                <div>
+                  <div className="text-sm font-black text-slate-900">{selectedMonthLabel}</div>
+                  <div className="mt-0.5 text-xs font-semibold text-slate-500">Filter month-wise history</div>
+                </div>
+                <span className="ml-3 shrink-0 text-sm font-black text-slate-500">{monthOpen ? '▲' : '▼'}</span>
+              </button>
+              {monthOpen ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                  {monthOptions.map((option) => {
+                    const active = selectedMonth === option.key
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonth(option.key)
+                          setMonthOpen(false)
+                        }}
+                        className={`w-full rounded-xl px-3 py-3 text-left transition ${active ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}
+                      >
+                        <div className="text-sm font-black text-slate-900">{option.label}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Present" value={summary.present} tone="green" icon="check_circle" />
             <StatCard label="Absent" value={summary.absent} tone="red" icon="cancel" />
             <StatCard label="Late" value={summary.late} tone="amber" icon="schedule" />
             <StatCard label="Attendance %" value={`${summary.percentage}%`} tone="cyan" icon="analytics" />
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-            <h2 className="mb-3 text-base font-black text-slate-900">{detail.student?.name || 'Student'} Attendance</h2>
-            <AttendanceTable records={detail.records || []} students={[detail.student]} />
+          {monthlySummary.length ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-base font-black text-slate-900">Month Wise</h2>
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500">{monthlySummary.length} months</span>
+              </div>
+              <div className="grid gap-2">
+                {monthlySummary.map((row) => {
+                  const active = selectedMonth === row.key
+                  return (
+                    <button
+                      key={row.key}
+                      type="button"
+                      onClick={() => setSelectedMonth(row.key)}
+                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${active ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                    >
+                      <div>
+                        <div className="text-sm font-black text-slate-900">{row.label}</div>
+                        <div className="mt-0.5 text-xs font-semibold text-slate-500">
+                          Records {row.count} | Present {row.summary.present} | Absent {row.summary.absent} | Late {row.summary.late}
+                        </div>
+                      </div>
+                      <div className="text-sm font-black text-indigo-600">{row.summary.percentage}%</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-black text-slate-900">{selectedStudent?.name || 'Student'} Attendance</h2>
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{selectedMonth === 'all' ? 'All Months' : selectedMonthLabel}</span>
+            </div>
+            <AttendanceTable records={filteredRecords} students={[detail.student]} />
           </div>
         </>
       ) : (
@@ -1509,6 +1666,7 @@ function AttendanceSystem({ embedded = false }) {
     if (activeTab === 'report') return <Reports user={user} bootstrap={bootstrap} selected={selected} setSelected={setSelected} />
     if (activeTab === 'history') return <StudentHistory user={user} selected={selected} />
     if (activeTab === 'holidays') return <HolidayCalendar user={user} />
+    if (activeTab === 'teacherGpsAttendance') return <TeacherGpsAttendance />
     return <StudentHistory user={user} selected={selected} />
   }
 
@@ -1517,21 +1675,13 @@ function AttendanceSystem({ embedded = false }) {
       {embedded ? null : <TopNav user={user} activeTab={activeTab} setActiveTab={setActiveTab} />}
       {embedded ? (
         <div className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="mr-1 flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white p-1 shadow-sm">
-                <img src={schoolLogo} alt="Star Public School logo" className="h-full w-full object-contain" />
-              </span>
-              <span className="hidden text-xs font-black uppercase tracking-[0.16em] text-slate-700 sm:inline">
-                Star Public School
-              </span>
-            </div>
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
             {getTabsForRole(user.role).map(([key, icon, label]) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setActiveTab(key)}
-                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
                   activeTab === key
                     ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20'
                     : 'border border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950'
