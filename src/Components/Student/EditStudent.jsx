@@ -18,8 +18,13 @@ const normalizeSectionValue = (value) => value.toUpperCase().replace(/[^A-Z]/g, 
 const normalizeMobileValue = (value) => value.replace(/\D/g, '').slice(0, 10)
 const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
 const normalizePenValue = (value) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 32)
-const normalizeAdmissionNumberValue = (value) => value.toUpperCase().replace(/[^A-Z0-9/-]/g, '').slice(0, 32)
 const normalizeAddressValue = (value) => value.slice(0, 50)
+const buildStudentUsernamePreview = (name, mobile) => {
+  const namePart = normalizeAlphaSpaceUpper(name).replace(/\s+/g, '').slice(0, 4)
+  const mobilePart = normalizeMobileValue(mobile).slice(-4)
+  if (!namePart || !mobilePart) return ''
+  return `${namePart}${mobilePart}`.toUpperCase()
+}
 const CLASS_OPTIONS = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 
 function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false }) {
@@ -36,6 +41,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
     pen_number: '',
     admission_number: '',
     admission_date: '',
+    date_of_birth: '',
+    username: '',
     photo_url: '',
     photoFile: null,
     address: '',
@@ -89,11 +96,19 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
 
     if (fieldName === 'admission_number') {
       if (!value) return ''
-      if (!/^[A-Z0-9/-]+$/.test(value)) return 'Admission number can contain letters, numbers, / and - only.'
+      if (value.length > 50) return 'Admission number cannot exceed 50 characters.'
       return ''
     }
 
     if (fieldName === 'admission_date') {
+      if (!value) return ''
+      if (Number.isNaN(new Date(value).getTime())) return 'Enter a valid admission date.'
+      return ''
+    }
+
+    if (fieldName === 'date_of_birth') {
+      if (!value) return 'Date of birth is required.'
+      if (Number.isNaN(new Date(value).getTime())) return 'Enter a valid date of birth.'
       return ''
     }
 
@@ -124,8 +139,10 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         mobile: normalizeMobileValue((studentData.Mobile || studentData.mobile || '').toString()),
         aadhaar_card: normalizeAadhaarValue((studentData.Aadhaar || studentData.aadhaar_card || '').toString()),
         pen_number: normalizePenValue((studentData.PenNumber || studentData.pen_number || studentData.PEN || studentData.pen || '').toString()),
-        admission_number: normalizeAdmissionNumberValue((studentData.AdmissionNumber || studentData.admission_number || '').toString()),
+        admission_number: (studentData.AdmissionNumber || studentData.admission_number || '').toString(),
         admission_date: studentData.AdmissionDate || studentData.admission_date || '',
+        date_of_birth: studentData.DateOfBirth || studentData.date_of_birth || '',
+        username: studentData.Username || studentData.username || '',
         photo_url: studentData.PhotoUrl || studentData.photo_url || studentData.photo || '',
         photoFile: null,
         address: normalizeAddressValue(studentData.Address || studentData.address || ''),
@@ -184,10 +201,6 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         nextValue = normalizePenValue(value)
       }
 
-      if (name === 'admission_number') {
-        nextValue = normalizeAdmissionNumberValue(value)
-      }
-
       if (name === 'address') {
         nextValue = normalizeAddressValue(value)
       }
@@ -221,7 +234,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
       name === 'aadhaar_card' ||
       name === 'pen_number' ||
       name === 'admission_number' ||
-      name === 'admission_date'
+      name === 'admission_date' ||
+      name === 'date_of_birth'
     ) {
       const trimmedValue = value.trim()
       setFormData(prev => ({
@@ -258,8 +272,9 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         mobile: normalizeMobileValue(formData.mobile).trim(),
         aadhaar_card: normalizeAadhaarValue(formData.aadhaar_card).trim(),
         pen_number: normalizePenValue(formData.pen_number).trim(),
-        admission_number: normalizeAdmissionNumberValue(formData.admission_number).trim(),
+        admission_number: (formData.admission_number || '').trim(),
         admission_date: formData.admission_date || '',
+        date_of_birth: formData.date_of_birth || '',
         photo_url: formData.photo_url?.trim() || '',
         address: normalizeAddressValue(formData.address).trim(),
       }
@@ -275,6 +290,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
         pen_number: validateField('pen_number', normalizedFormData.pen_number),
         admission_number: validateField('admission_number', normalizedFormData.admission_number),
         admission_date: validateField('admission_date', normalizedFormData.admission_date),
+        date_of_birth: validateField('date_of_birth', normalizedFormData.date_of_birth),
         address: validateField('address', normalizedFormData.address),
       }
 
@@ -342,6 +358,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
   const fieldIconClass = 'material-symbols-outlined shrink-0 pl-3 pr-2 text-black text-[22px]'
   const inputClass = 'w-full min-w-0 bg-transparent border-none focus:ring-0 py-2 px-2 text-sm font-medium text-slate-900 placeholder:text-slate-500'
   const siteInputClass = 'w-full min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-500 focus:ring-1 focus:ring-slate-400'
+  const displayUsername = formData.username || buildStudentUsernamePreview(formData.name, formData.mobile)
 
   return (
     <div
@@ -675,9 +692,8 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
                   value={formData.admission_number}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  maxLength={32}
                   className={inputClass}
-                  placeholder="Admission no."
+                  placeholder="Enter admission number"
                 />
               </div>
               {fieldErrors.admission_number ? (
@@ -690,7 +706,7 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
                 Admission Date <span className="text-slate-500">(Optional)</span>
               </label>
               <div className={fieldShellClass}>
-                <span className={fieldIconClass}>event</span>
+                <span className={fieldIconClass}>event_available</span>
                 <input
                   type="date"
                   name="admission_date"
@@ -700,6 +716,49 @@ function EditStudent({ isOpen, onClose, onSuccess, studentData, fullPage = false
                   className={inputClass}
                 />
               </div>
+              {fieldErrors.admission_date ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.admission_date}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Username
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>badge</span>
+                <input
+                  type="text"
+                  value={displayUsername}
+                  className={inputClass}
+                  placeholder="Auto-generated username"
+                  readOnly
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Username auto-generated hai aur edit screen par readonly rahega.
+              </p>
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Date of Birth <span className="text-red-500">*</span>
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>event</span>
+                <input
+                  type="date"
+                  name="date_of_birth"
+                  value={formData.date_of_birth}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={inputClass}
+                  required
+                />
+              </div>
+              {fieldErrors.date_of_birth ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.date_of_birth}</p>
+              ) : null}
             </div>
 
             <div className={`${fullRowClass} grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2`}>
