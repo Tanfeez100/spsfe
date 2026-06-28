@@ -607,8 +607,8 @@ function AllStudentDetails() {
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden sm:table-cell">Class</th>
                    <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white">Roll</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Section</th>
-                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden xl:table-cell">Admission No.</th>
-                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden xl:table-cell">Admission Date</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden xl:table-cell">Username</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden xl:table-cell">DOB</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Mobile</th>
                   <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden 2xl:table-cell">Address</th>
                   {/* <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-left font-bold text-white hidden lg:table-cell">Transport</th> */}
@@ -618,7 +618,7 @@ function AllStudentDetails() {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {paginatedStudents.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="px-2 sm:px-4 py-6 sm:py-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    <td colSpan="11" className="px-2 sm:px-4 py-6 sm:py-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                       No students found
                     </td>
                   </tr>
@@ -649,10 +649,10 @@ function AllStudentDetails() {
                         {getStudentSection(student) || '-'}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden xl:table-cell">
-                        {student.AdmissionNumber || student.admission_number || '-'}
+                        {student.Username || student.username || '-'}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden xl:table-cell">
-                        {student.AdmissionDate || student.admission_date || '-'}
+                        {student.DateOfBirth || student.date_of_birth || '-'}
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white hidden lg:table-cell">
                         {student.Mobile || '-'}

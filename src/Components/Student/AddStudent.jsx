@@ -18,8 +18,13 @@ const normalizeSectionValue = (value) => value.toUpperCase().replace(/[^A-Z]/g, 
 const normalizeMobileValue = (value) => value.replace(/\D/g, '').slice(0, 10)
 const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
 const normalizePenValue = (value) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 32)
-const normalizeAdmissionNumberValue = (value) => value.toUpperCase().replace(/[^A-Z0-9/-]/g, '').slice(0, 32)
 const normalizeAddressValue = (value) => value.slice(0, 50)
+const buildStudentUsernamePreview = (name, mobile) => {
+  const namePart = normalizeAlphaSpaceUpper(name).replace(/\s+/g, '').slice(0, 4)
+  const mobilePart = normalizeMobileValue(mobile).slice(-4)
+  if (!namePart || !mobilePart) return ''
+  return `${namePart}${mobilePart}`.toUpperCase()
+}
 const CLASS_OPTIONS = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 
 function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
@@ -36,6 +41,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
     pen_number: '',
     admission_number: '',
     admission_date: '',
+    date_of_birth: '',
     photo_url: '',
     photoFile: null,
     address: '',
@@ -45,8 +51,10 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [createdUsername, setCreatedUsername] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [photoAdjustment, setPhotoAdjustment] = useState(DEFAULT_PHOTO_ADJUSTMENT)
+  const generatedUsername = buildStudentUsernamePreview(formData.name, formData.mobile)
 
   const validateField = (fieldName, fieldValue) => {
     const value = (fieldValue ?? '').toString().trim()
@@ -89,11 +97,19 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
 
     if (fieldName === 'admission_number') {
       if (!value) return ''
-      if (!/^[A-Z0-9/-]+$/.test(value)) return 'Admission number can contain letters, numbers, / and - only.'
+      if (value.length > 50) return 'Admission number cannot exceed 50 characters.'
       return ''
     }
 
     if (fieldName === 'admission_date') {
+      if (!value) return ''
+      if (Number.isNaN(new Date(value).getTime())) return 'Enter a valid admission date.'
+      return ''
+    }
+
+    if (fieldName === 'date_of_birth') {
+      if (!value) return 'Date of birth is required.'
+      if (Number.isNaN(new Date(value).getTime())) return 'Enter a valid date of birth.'
       return ''
     }
 
@@ -155,10 +171,6 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
         nextValue = normalizePenValue(value)
       }
 
-      if (name === 'admission_number') {
-        nextValue = normalizeAdmissionNumberValue(value)
-      }
-
       if (name === 'address') {
         nextValue = normalizeAddressValue(value)
       }
@@ -181,22 +193,23 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
 
   const handleBlur = (e) => {
     const { name, value } = e.target
-    if (
-      name === 'name' ||
-      name === 'father_name' ||
-      name === 'mother_name' ||
-      name === 'class' ||
-      name === 'address' ||
-      name === 'mobile' ||
-      name === 'section' ||
-      name === 'aadhaar_card' ||
-      name === 'pen_number' ||
-      name === 'admission_number' ||
-      name === 'admission_date'
-    ) {
-      const trimmedValue = value.trim()
-      setFormData(prev => ({
-        ...prev,
+      if (
+        name === 'name' ||
+        name === 'father_name' ||
+        name === 'mother_name' ||
+        name === 'class' ||
+        name === 'address' ||
+        name === 'mobile' ||
+        name === 'section' ||
+        name === 'aadhaar_card' ||
+        name === 'pen_number' ||
+        name === 'admission_number' ||
+        name === 'admission_date' ||
+        name === 'date_of_birth'
+      ) {
+        const trimmedValue = value.trim()
+        setFormData(prev => ({
+          ...prev,
         [name]: trimmedValue
       }))
       setFieldErrors(prev => ({
@@ -229,8 +242,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
         mobile: normalizeMobileValue(formData.mobile).trim(),
         aadhaar_card: normalizeAadhaarValue(formData.aadhaar_card).trim(),
         pen_number: normalizePenValue(formData.pen_number).trim(),
-        admission_number: normalizeAdmissionNumberValue(formData.admission_number).trim(),
+        admission_number: (formData.admission_number || '').trim(),
         admission_date: formData.admission_date || '',
+        date_of_birth: formData.date_of_birth || '',
         photo_url: formData.photo_url?.trim() || '',
         address: normalizeAddressValue(formData.address).trim(),
       }
@@ -246,6 +260,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
         pen_number: validateField('pen_number', normalizedFormData.pen_number),
         admission_number: validateField('admission_number', normalizedFormData.admission_number),
         admission_date: validateField('admission_date', normalizedFormData.admission_date),
+        date_of_birth: validateField('date_of_birth', normalizedFormData.date_of_birth),
         address: validateField('address', normalizedFormData.address),
       }
 
@@ -275,6 +290,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
       
       if (response.success) {
         setSuccess(true)
+        setCreatedUsername(response.username || generatedUsername)
         setError('')
         setFieldErrors({})
         
@@ -292,6 +308,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
           pen_number: '',
           admission_number: '',
           admission_date: '',
+          date_of_birth: '',
           photo_url: '',
           photoFile: null,
           address: '',
@@ -301,11 +318,12 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
         setPhotoAdjustment(DEFAULT_PHOTO_ADJUSTMENT)
         
         // Show success message for 2 seconds then close
-        setTimeout(() => {
-          setSuccess(false)
-          onSuccess?.()
-          onClose()
-        }, 2000)
+      setTimeout(() => {
+        setSuccess(false)
+        setCreatedUsername('')
+        onSuccess?.()
+        onClose()
+      }, 2000)
       }
     } catch (err) {
       setError(err?.message || 'Failed to add student')
@@ -331,6 +349,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
             <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md flex items-center gap-2">
               <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-base">check_circle</span>
               <p className="text-xs text-green-600 dark:text-green-400 font-medium">Student added successfully!</p>
+              {createdUsername ? (
+                <p className="text-xs text-green-700 dark:text-green-300 font-semibold">Username: {createdUsername}</p>
+              ) : null}
             </div>
           )}
           
@@ -590,9 +611,8 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   value={formData.admission_number}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  maxLength={32}
                   className={inputClass}
-                  placeholder="Admission no."
+                  placeholder="Enter admission number"
                 />
               </div>
               {fieldErrors.admission_number ? (
@@ -605,7 +625,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                 Admission Date <span className="text-slate-500">(Optional)</span>
               </label>
               <div className={fieldShellClass}>
-                <span className={fieldIconClass}>event</span>
+                <span className={fieldIconClass}>event_available</span>
                 <input
                   type="date"
                   name="admission_date"
@@ -615,6 +635,49 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   className={inputClass}
                 />
               </div>
+              {fieldErrors.admission_date ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.admission_date}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Username <span className="text-slate-500">(Auto-generated)</span>
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>badge</span>
+                <input
+                  type="text"
+                  value={generatedUsername}
+                  className={inputClass}
+                  placeholder="Auto-generated from name and mobile"
+                  readOnly
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Name ke first 4 letters aur mobile ke last 4 digits se unique username banega.
+              </p>
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Date of Birth <span className="text-red-500">*</span>
+              </label>
+              <div className={fieldShellClass}>
+                <span className={fieldIconClass}>event</span>
+                <input
+                  type="date"
+                  name="date_of_birth"
+                  value={formData.date_of_birth}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={inputClass}
+                  required
+                />
+              </div>
+              {fieldErrors.date_of_birth ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.date_of_birth}</p>
+              ) : null}
             </div>
 
             <div className={`${fullRowClass} grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2`}>
