@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { createFeeStructure, getFeeStructures, updateFeeStructure, deleteFeeStructure } from '../../Api/fees'
+import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 
 const FEE_TYPES = [
   { name: 'Tuition Fee', defaultPeriod: 'monthly' },
@@ -100,7 +101,7 @@ function FeeStructure() {
             item.fees.forEach(fee => {
               if (fee.fee_amount && fee.fee_amount > 0) {
                 payload.push({
-                  class: item.class,
+                  class: normalizeSchoolClass(item.class),
                   fee_name: fee.fee_name,
                   fee_amount: parseFloat(fee.fee_amount),
                   period: fee.period,
@@ -130,7 +131,7 @@ function FeeStructure() {
       } else {
         // Single creation/update
         const payload = {
-          class: formData.class,
+          class: normalizeSchoolClass(formData.class),
           fee_name: formData.fee_name,
           fee_amount: parseFloat(formData.fee_amount),
           period: formData.period,
@@ -165,7 +166,7 @@ function FeeStructure() {
     setEditingId(fee.id)
     setMode('single')
     setFormData({
-      class: fee.class || '',
+      class: normalizeSchoolClass(fee.class) || '',
       fee_name: fee.fee_name || '',
       fee_amount: fee.fee_amount || '',
       period: fee.period || 'monthly',
@@ -263,7 +264,7 @@ function FeeStructure() {
   }
 
   const updateBulkClassForAll = (value) => {
-    setBulkData(bulkData.map(item => ({ ...item, class: value })))
+    setBulkData(prev => prev.map(item => ({ ...item, class: normalizeSchoolClass(value) })))
   }
 
   return (
@@ -303,13 +304,33 @@ function FeeStructure() {
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <div className="w-full sm:flex-1">
           <label className="block text-sm font-semibold text-slate-700 mb-2">Filter by Class</label>
-          <input
-            type="text"
+          <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            placeholder="Search classes..."
             className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
+          >
+            <option value="">All Classes</option>
+            {CLASS_OPTIONS.map((className) => (
+              <option key={className} value={className}>
+                {className}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full sm:flex-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Filter by Section</label>
+          <select
+            value={sectionFilter}
+            onChange={(e) => setSectionFilter(e.target.value)}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          >
+            <option value="">All Sections</option>
+            {SECTION_OPTIONS.map((section) => (
+              <option key={section} value={section}>
+                {section}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={() => {
@@ -424,7 +445,7 @@ function FeeStructure() {
       ) : (() => {
         // Group fees by class
         const groupedByClass = feeStructures.reduce((acc, fee) => {
-          const classKey = fee.class || 'Unknown'
+          const classKey = normalizeSchoolClass(fee.class) || 'Unknown'
           if (!acc[classKey]) {
             acc[classKey] = []
           }
@@ -693,14 +714,21 @@ function FeeStructure() {
                   {/* Bulk Mode */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">Class (for all) *</label>
-                    <input
-                      type="text"
+                    <select
                       required
                       value={bulkData[0]?.class || ''}
                       onChange={(e) => updateBulkClassForAll(e.target.value)}
-                      placeholder="e.g., LKG, 1, 2"
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-                    />
+                    >
+                      <option value="" disabled>
+                        Select class
+                      </option>
+                      {CLASS_OPTIONS.map((className) => (
+                        <option key={className} value={className}>
+                          {className}
+                        </option>
+                      ))}
+                    </select>
                     <p className="text-xs text-slate-500 mt-1">This class will be applied to all fee structures</p>
                   </div>
 
@@ -811,14 +839,21 @@ function FeeStructure() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">Class *</label>
-                      <input
-                        type="text"
+                      <select
                         required
                         value={formData.class}
                         onChange={(e) => setFormData({ ...formData, class: e.target.value })}
-                        placeholder="e.g., LKG, 1, 2"
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-                      />
+                      >
+                        <option value="" disabled>
+                          Select class
+                        </option>
+                        {CLASS_OPTIONS.map((className) => (
+                          <option key={className} value={className}>
+                            {className}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>

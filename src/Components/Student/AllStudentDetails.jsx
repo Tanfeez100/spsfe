@@ -34,6 +34,7 @@ function AllStudentDetails() {
   })
   const [statusActionLoading, setStatusActionLoading] = useState(false)
   const itemsPerPage = 10
+  const classOptions = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 
   const getStudentId = (student) => {
     return student.ID || student._id || student.id || student.Id || student.student_id || student.StudentId || null
@@ -56,7 +57,8 @@ function AllStudentDetails() {
       student?.current_class
 
     const baseClass = student?.Class ?? student?.class
-    return (promotedClass ?? baseClass ?? '').toString().trim()
+    const resolvedClass = (promotedClass ?? baseClass ?? '').toString().trim()
+    return normalizeField(resolvedClass) === 'mother care' ? 'Nursery' : resolvedClass
   }
 
   const getStudentSection = (student) => {
@@ -460,15 +462,26 @@ function AllStudentDetails() {
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Class
             </label>
-            <div className="flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
+            <div className="relative flex min-w-0 overflow-hidden items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
               <span className="material-symbols-outlined pl-1.5 sm:pl-2 text-cyan-200 text-base shrink-0">class</span>
-              <input
-                type="text"
+              <select
                 value={classFilter}
-                onChange={(e) => setClassFilter(e.target.value)}
-                placeholder="1, 4"
-                className="min-w-0 w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
-              />
+                onChange={(e) => {
+                  setClassFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="min-w-0 w-full appearance-none bg-transparent border-none focus:ring-0 py-1.5 pl-2 pr-9 text-xs sm:text-sm text-slate-900 dark:text-white dropdown-cyan"
+              >
+                <option value="" className="bg-cyan-50 dark:bg-slate-800">All</option>
+                {classOptions.map((className) => (
+                  <option key={className} value={className} className="bg-cyan-50 dark:bg-slate-800">
+                    {className}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2 text-slate-700 dark:text-slate-300 material-symbols-outlined text-base">
+                expand_more
+              </span>
             </div>
           </div>
 
