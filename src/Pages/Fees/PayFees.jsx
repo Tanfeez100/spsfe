@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { recordFeePayment, getStudentFeeDetails } from '../../Api/fees'
 import { emitToast } from '../../Api/auth'
+import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass, normalizeSchoolSection } from '../../constants/schoolOptions'
 
 const normalizeClassInput = (value) => (value ?? '').toString().trim()
 const normalizeSectionInput = (value) => (value ?? '').toString().trim().toUpperCase()
@@ -37,8 +38,8 @@ function PayFees({ initialData, onPaymentComplete }) {
     if (initialData) {
       setFormData(prev => ({
         ...prev,
-        class: normalizeClassInput(initialData.class || ''),
-        section: normalizeSectionInput(initialData.section || ''),
+        class: normalizeSchoolClass(initialData.class || ''),
+        section: normalizeSchoolSection(initialData.section || ''),
         roll_number: normalizeRollInput(initialData.roll_number || ''),
         month: (initialData.month || '').toString().trim(),
         amount_paid: initialData.net_payable ?? ''
@@ -85,8 +86,8 @@ function PayFees({ initialData, onPaymentComplete }) {
 
     try {
       const payload = {
-        class: normalizeClassInput(formData.class),
-        section: normalizeSectionInput(formData.section),
+        class: normalizeSchoolClass(formData.class),
+        section: normalizeSchoolSection(formData.section),
         roll_number: parseInt(formData.roll_number, 10),
         roll_no: parseInt(formData.roll_number, 10),
         amount_paid: parseFloat(formData.amount_paid),
@@ -154,14 +155,21 @@ function PayFees({ initialData, onPaymentComplete }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Class *</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.class}
-                    onChange={(e) => setFormData({ ...formData, class: normalizeClassInput(e.target.value) })}
-                    placeholder="e.g., 1, 2, 3"
+                    onChange={(e) => setFormData({ ...formData, class: normalizeSchoolClass(e.target.value), section: '' })}
                     className="w-full px-3 py-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-                  />
+                  >
+                    <option value="" disabled>
+                      Select class
+                    </option>
+                    {CLASS_OPTIONS.map((className) => (
+                      <option key={className} value={className}>
+                        {className}
+                      </option>
+                    ))}
+                  </select>
               </div>
 
               <div>
@@ -179,14 +187,21 @@ function PayFees({ initialData, onPaymentComplete }) {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Section *</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: normalizeSectionInput(e.target.value) })}
-                    placeholder="e.g., A, B, C"
+                    onChange={(e) => setFormData({ ...formData, section: normalizeSchoolSection(e.target.value) })}
                     className="w-full px-3 py-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-                  />
+                  >
+                    <option value="" disabled>
+                      Select section
+                    </option>
+                    {SECTION_OPTIONS.map((section) => (
+                      <option key={section} value={section}>
+                        {section}
+                      </option>
+                    ))}
+                  </select>
               </div>
 
               <div>

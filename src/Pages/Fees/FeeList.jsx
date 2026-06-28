@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { getFeeList } from '../../Api/fees'
 import * as XLSX from 'xlsx'
+import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 
 function FeeList({ onViewInvoice, onPayFee }) {
   const [feeList, setFeeList] = useState([])
@@ -55,7 +56,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
 
       // Fetch fee list data
       const feeListResponse = await getFeeList({
-        class: classFilter,
+        class: normalizeSchoolClass(classFilter),
         section: sectionFilter,
         month: monthFilter,
       });
@@ -133,7 +134,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
         return [
           fee.student_name || '--',
           fee.roll_no ?? '--',
-          fee.class || '--',
+          normalizeSchoolClass(fee.class) || '--',
           fee.section || '--',
           fee.month || '--',
           parseFloat(fee.tuition_fee) || 0,
@@ -234,23 +235,33 @@ function FeeList({ onViewInvoice, onPayFee }) {
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <div>
           <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Class</label>
-          <input
-            type="text"
+          <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            placeholder="Class"
             className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-          />
+          >
+            <option value="">All Classes</option>
+            {CLASS_OPTIONS.map((className) => (
+              <option key={className} value={className}>
+                {className}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Section</label>
-          <input
-            type="text"
+          <select
             value={sectionFilter}
             onChange={(e) => setSectionFilter(e.target.value)}
-            placeholder="Section"
             className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-          />
+          >
+            <option value="">All Sections</option>
+            {SECTION_OPTIONS.map((section) => (
+              <option key={section} value={section}>
+                {section}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Month</label>

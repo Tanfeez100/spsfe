@@ -10,6 +10,7 @@ import {
   verifyPublicFeePayment,
 } from '../../Api/publicFees'
 import { schoolProfile } from './siteContent'
+import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass, normalizeSchoolSection } from '../../constants/schoolOptions'
 
 const initialForm = {
   class: '',
@@ -24,8 +25,6 @@ const formatAmount = (value) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-
-const normalizeSection = (value) => value.toString().trim().toUpperCase()
 
 const loadCashfreeScript = () =>
   new Promise((resolve) => {
@@ -62,7 +61,13 @@ function PublicFeePayment() {
   const handleChange = (field, value) => {
     setForm((prev) => ({
       ...prev,
-      [field]: field === 'section' ? normalizeSection(value) : value,
+      [field]:
+        field === 'class'
+          ? normalizeSchoolClass(value)
+          : field === 'section'
+            ? normalizeSchoolSection(value)
+            : value,
+      ...(field === 'class' ? { section: '' } : {}),
     }))
   }
 
@@ -77,8 +82,8 @@ function PublicFeePayment() {
     try {
       const response = await lookupPublicFees({
         ...form,
-        class: form.class.trim(),
-        section: form.section.trim(),
+        class: normalizeSchoolClass(form.class),
+        section: normalizeSchoolSection(form.section),
         roll_number: form.roll_number.trim(),
         month: form.month.trim(),
         mobile: form.mobile.trim(),
@@ -125,8 +130,8 @@ function PublicFeePayment() {
       const refreshFeeStatus = async () => {
         const refreshed = await lookupPublicFees({
           ...form,
-          class: form.class.trim(),
-          section: form.section.trim(),
+          class: normalizeSchoolClass(form.class),
+          section: normalizeSchoolSection(form.section),
           roll_number: form.roll_number.trim(),
           month: form.month.trim(),
           mobile: form.mobile.trim(),
@@ -233,8 +238,8 @@ function PublicFeePayment() {
     setReceiptLoading(true)
     try {
       const response = await lookupPublicFees({
-        class: form.class.trim(),
-        section: form.section.trim(),
+        class: normalizeSchoolClass(form.class),
+        section: normalizeSchoolSection(form.section),
         roll_number: form.roll_number.trim(),
         month: form.month.trim(),
         mobile: form.mobile.trim(),
@@ -293,24 +298,40 @@ function PublicFeePayment() {
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">
                 Class
-                <input
+                <select
                   required
                   value={form.class}
                   onChange={(event) => handleChange('class', event.target.value)}
                   className="gps-site-input mt-1"
-                  placeholder="e.g. 5"
-                />
+                >
+                  <option value="" disabled>
+                    Select class
+                  </option>
+                  {CLASS_OPTIONS.map((className) => (
+                    <option key={className} value={className}>
+                      {className}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="text-sm font-semibold text-slate-700">
                 Section
-                <input
+                <select
                   required
                   value={form.section}
                   onChange={(event) => handleChange('section', event.target.value)}
                   className="gps-site-input mt-1"
-                  placeholder="A"
-                />
+                >
+                  <option value="" disabled>
+                    Select section
+                  </option>
+                  {SECTION_OPTIONS.map((section) => (
+                    <option key={section} value={section}>
+                      {section}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="text-sm font-semibold text-slate-700">

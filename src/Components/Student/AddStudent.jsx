@@ -20,6 +20,7 @@ const normalizeAadhaarValue = (value) => value.replace(/\D/g, '').slice(0, 12)
 const normalizePenValue = (value) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 32)
 const normalizeAdmissionNumberValue = (value) => value.toUpperCase().replace(/[^A-Z0-9/-]/g, '').slice(0, 32)
 const normalizeAddressValue = (value) => value.slice(0, 50)
+const CLASS_OPTIONS = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 
 function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
   const [formData, setFormData] = useState({
@@ -58,7 +59,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
 
     if (fieldName === 'class') {
       if (!value) return 'Class is required.'
-      if (!/^[a-zA-Z0-9]+$/.test(value)) return 'Class must contain only letters and numbers.'
+      if (!CLASS_OPTIONS.includes(value)) return 'Please select a valid class.'
       return ''
     }
 
@@ -431,25 +432,32 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
             </div>
 
             {/* Class */}
-            <div>
-              <label className={labelClass}>
-                Class <span className="text-red-500">*</span>
-              </label>
-              <div className={fieldShellClass}>
-                <span className={fieldIconClass}>class</span>
-                <input
-                  type="text"
-                  name="class"
-                  value={formData.class}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={inputClass}
-                  placeholder="Enter class"
-                  required
-                />
-              </div>
-              {fieldErrors.class ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.class}</p>
+              <div>
+                <label className={labelClass}>
+                  Class <span className="text-red-500">*</span>
+                </label>
+                <div className={fieldShellClass}>
+                  <span className={fieldIconClass}>class</span>
+                  <select
+                    name="class"
+                    value={formData.class}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={inputClass}
+                    required
+                  >
+                    <option value="" disabled>
+                      Select class
+                    </option>
+                    {CLASS_OPTIONS.map((classOption) => (
+                      <option key={classOption} value={classOption}>
+                        {classOption}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {fieldErrors.class ? (
+                  <p className="mt-1 text-xs text-red-500">{fieldErrors.class}</p>
               ) : null}
             </div>
 

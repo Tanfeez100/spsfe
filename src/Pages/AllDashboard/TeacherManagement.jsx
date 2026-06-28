@@ -93,13 +93,40 @@ function TeacherManagement() {
 
   const totalTeachers = useMemo(() => teachers.length, [teachers])
   const fallbackSections = ['A', 'B', 'C']
+  const normalizedClassOptions = useMemo(() => {
+    const classMap = new Map()
+
+    classOptions.forEach((item) => {
+      const rawClass = String(item.class || '').trim()
+      if (!rawClass) return
+
+      const normalizedClass = rawClass === 'Mother Care' ? 'Nursery' : rawClass
+      const sections = Array.isArray(item.sections) ? item.sections.filter(Boolean) : []
+
+      if (!classMap.has(normalizedClass)) {
+        classMap.set(normalizedClass, {
+          class: normalizedClass,
+          sections: new Set(sections.length > 0 ? sections : fallbackSections),
+        })
+        return
+      }
+
+      const existing = classMap.get(normalizedClass)
+      sections.forEach((section) => existing.sections.add(section))
+    })
+
+    return Array.from(classMap.values()).map((item) => ({
+      class: item.class,
+      sections: Array.from(item.sections),
+    }))
+  }, [classOptions])
 
   const sectionOptionsByClass = useMemo(() => {
-    return classOptions.reduce((map, item) => {
+    return normalizedClassOptions.reduce((map, item) => {
       map[item.class] = Array.isArray(item.sections) && item.sections.length > 0 ? item.sections : fallbackSections
       return map
     }, {})
-  }, [classOptions])
+  }, [normalizedClassOptions])
 
   const fetchTeachers = useCallback(async () => {
     if (!isAdmin) return
@@ -423,7 +450,7 @@ function TeacherManagement() {
               />
             </div>
             {[
-              ['gender', 'Gender', 'text'],
+              ['gender', 'Gender', 'select'],
               ['date_of_birth', 'Date of Birth', 'date'],
               ['qualification', 'Qualification', 'text'],
               ['designation', 'Designation', 'text'],
@@ -433,13 +460,27 @@ function TeacherManagement() {
             ].map(([name, label, type]) => (
               <div key={name}>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{label}</label>
-                <input
-                  type={type}
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
-                />
+                {type === 'select' ? (
+                  <select
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                ) : (
+                  <input
+                    type={type}
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#0f172a] focus:ring-2 focus:ring-[#94a3b8]/40 focus:border-[#64748b]"
+                  />
+                )}
               </div>
             ))}
             <div>
@@ -538,14 +579,14 @@ function TeacherManagement() {
                           </span>
                         </td>
                         <td className="px-3 py-2.5 min-w-[150px]">
-                          {classOptions.length > 0 ? (
+                          {normalizedClassOptions.length > 0 ? (
                             <select
                               value={draft.class}
                               onChange={(event) => updateAssignmentDraft(teacher.id, 'class', event.target.value)}
                               className="w-full rounded-lg border border-[#cbd5e1] bg-white px-2 py-1.5 text-sm text-[#0f172a]"
                             >
                               <option value="">Select class</option>
-                              {classOptions.map((item) => (
+                              {normalizedClassOptions.map((item) => (
                                 <option key={item.class} value={item.class}>
                                   {item.class}
                                 </option>
