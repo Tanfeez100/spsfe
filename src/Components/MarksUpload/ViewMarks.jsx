@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { getMarks, publishResults } from '../../Api/marks'
 import { getAllSubjects } from '../../Api/subjects'
 import { getAllClasses } from '../../Api/classes'
+import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart, Pie, Cell, AreaChart, Area, LineChart, Line, ScatterChart, Scatter
@@ -80,12 +81,11 @@ function ViewMarks() {
       }
       
       if (classesResponse && classesResponse.length > 0) {
-        // Sort by class property (numeric sort)
-        const sorted = classesResponse.sort((a, b) => {
-          const classA = typeof a === 'string' ? a : a.class;
-          const classB = typeof b === 'string' ? b : b.class;
-          return parseInt(classA) - parseInt(classB);
-        });
+        const sorted = sortSchoolClasses(classesResponse.map((item) => (
+          typeof item === 'string'
+            ? normalizeSchoolClass(item)
+            : { ...item, class: normalizeSchoolClass(item.class) }
+        )))
         setAvailableClasses(sorted)
       }
     } catch (err) {
@@ -98,7 +98,7 @@ function ViewMarks() {
   const loadSectionsForClass = () => {
     if (!subjectsData?.classes) return
 
-    const selectedClassData = subjectsData.classes.find(cls => cls.class === filters.class)
+    const selectedClassData = subjectsData.classes.find(cls => normalizeSchoolClass(cls.class) === filters.class)
     if (!selectedClassData) {
       setAvailableSections([])
       return

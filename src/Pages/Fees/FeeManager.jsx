@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import FeeDashboard from './FeeDashboard'
 import FeeStructure from './FeeStructure'
 import BulkBillGeneration from './BulkBillGeneration'
 import FeeList from './FeeList'
@@ -8,52 +9,47 @@ import Bills from './Bills'
 import OpeningBalanceMigration from './OpeningBalanceMigration'
 
 function FeeManager() {
-  const [activeTab, setActiveTab] = useState('structure')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [invoiceBillId, setInvoiceBillId] = useState('')
   const [paymentData, setPaymentData] = useState(null)
+  const activeTabClass = 'bg-[#7A2331] text-white shadow-md shadow-rose-900/20'
+  const inactiveTabClass = 'text-[#7A2331] hover:text-[#511621] hover:bg-[#F8EEF0] border border-transparent hover:border-[#E8CDD3]'
 
   const tabs = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: 'dashboard',
+    },
     {
       id: 'structure',
       label: 'Fee Structure',
       icon: 'settings',
-      activeClass: 'bg-[#6d28d9] text-white shadow-md shadow-violet-500/25',
-      inactiveClass: 'text-violet-700 hover:text-violet-900 hover:bg-violet-50 border border-transparent hover:border-violet-200',
     },
     {
       id: 'list',
       label: 'Fee List',
       icon: 'list',
-      activeClass: 'bg-[#0f766e] text-white shadow-md shadow-teal-500/25',
-      inactiveClass: 'text-teal-700 hover:text-teal-900 hover:bg-teal-50 border border-transparent hover:border-teal-200',
     },
     {
       id: 'pay',
       label: 'Pay Fees',
       icon: 'payments',
-      activeClass: 'bg-[#c2410c] text-white shadow-md shadow-orange-500/25',
-      inactiveClass: 'text-orange-700 hover:text-orange-900 hover:bg-orange-50 border border-transparent hover:border-orange-200',
     },
     {
       id: 'invoice',
       label: 'Invoice',
       icon: 'description',
-      activeClass: 'bg-[#be123c] text-white shadow-md shadow-rose-500/25',
-      inactiveClass: 'text-rose-700 hover:text-rose-900 hover:bg-rose-50 border border-transparent hover:border-rose-200',
     },
     {
       id: 'bills',
       label: 'Billing',
       icon: 'print',
-      activeClass: 'bg-[#0f766e] text-white shadow-md shadow-teal-500/25',
-      inactiveClass: 'text-teal-700 hover:text-teal-900 hover:bg-teal-50 border border-transparent hover:border-teal-200',
     },
     {
       id: 'migration',
       label: 'Migration Setup',
       icon: 'sync_saved_locally',
-      activeClass: 'bg-[#4338ca] text-white shadow-md shadow-indigo-500/25',
-      inactiveClass: 'text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50 border border-transparent hover:border-indigo-200',
     },
   ]
 
@@ -76,8 +72,8 @@ function FeeManager() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
               activeTab === tab.id
-                ? tab.activeClass
-                : tab.inactiveClass
+                ? activeTabClass
+                : inactiveTabClass
             }`}
           >
             <span className="material-symbols-outlined text-base">{tab.icon}</span>
@@ -88,6 +84,7 @@ function FeeManager() {
 
       {/* Content */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        {activeTab === 'dashboard' && <FeeDashboard />}
         {activeTab === 'structure' && <FeeStructure />}
         {activeTab === 'bulk' && <BulkBillGeneration />}
         {activeTab === 'list' && <FeeList onViewInvoice={(billId) => {
@@ -104,4 +101,3 @@ function FeeManager() {
 }
 
 export default FeeManager
-

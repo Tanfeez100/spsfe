@@ -14,38 +14,121 @@ import AttendanceSystem from '../Attendance/AttendanceSystem'
 import { getUser, getLoginType } from '../../Api/auth'
 import { getAllStudents } from '../../Api/students'
 import { getAllSubjects } from '../../Api/subjects'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
+import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 
-// Custom Tooltip for Pie Chart with white text
-const CustomPieTooltip = ({ active, payload }) => {
+const CLASS_CHART_COLORS = ['#2563eb', '#0f766e', '#f97316', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#475569']
+const SECTION_COLORS = ['#2563eb', '#16a34a', '#f97316', '#9333ea', '#0f766e', '#e11d48', '#64748b']
+
+const formatClassLabel = (className) => {
+  const normalized = normalizeSchoolClass(className)
+  if (!normalized || normalized === 'Unknown') return 'Unknown'
+  return ['Nursery', 'LKG', 'UKG'].includes(normalized) ? normalized : `Class ${normalized}`
+}
+
+const ChartTooltip = ({ active, label, payload }) => {
   if (active && payload && payload.length) {
     return (
       <div
         style={{
-          backgroundColor: 'rgba(7, 20, 36, 0.96)',
-          border: '1px solid rgba(148, 163, 184, 0.28)',
-          borderRadius: '12px',
-          padding: '8px 12px',
+          backgroundColor: '#ffffff',
+          border: '1px solid rgba(148, 163, 184, 0.35)',
+          borderRadius: '10px',
+          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
+          padding: '10px 12px',
           fontSize: '12px',
         }}
       >
-        <p style={{ color: '#ffffff', margin: 0, fontWeight: 'bold' }}>
-          {payload[0].name}
-        </p>
-        <p style={{ color: '#ffffff', margin: '4px 0 0 0' }}>
-          {payload[0].dataKey}: {payload[0].value}
-        </p>
+        <p style={{ color: '#0f172a', margin: 0, fontWeight: 800 }}>{label || payload[0].name}</p>
+        {payload.map((item) => (
+          <p key={item.dataKey} style={{ color: '#475569', margin: '5px 0 0 0', fontWeight: 600 }}>
+            {item.name || item.dataKey}: {item.value}
+          </p>
+        ))}
       </div>
     )
   }
   return null
 }
 
+function MetricLine({ icon, label, value, note, accent = 'from-slate-600 to-slate-900' }) {
+  return (
+    <div className="group relative flex min-h-[112px] items-center justify-between gap-4 overflow-hidden rounded-[22px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_16px_42px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(15,23,42,0.11)]">
+      <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${accent}`} />
+      <div className="absolute -right-10 -top-12 h-24 w-24 rounded-full bg-slate-100 opacity-70 transition duration-300 group-hover:scale-125" />
+      <div className="relative">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+        <p className="mt-2 text-3xl font-black leading-none text-slate-950">{value}</p>
+        {note ? <p className="mt-2 text-xs font-medium text-slate-500">{note}</p> : null}
+      </div>
+      <span className={`material-symbols-outlined relative rounded-2xl bg-gradient-to-br ${accent} p-3 text-3xl text-white shadow-lg shadow-slate-300/40 transition duration-300 group-hover:rotate-3 group-hover:scale-105`}>
+        {icon}
+      </span>
+    </div>
+  )
+}
+
+function FlatSection({ title, subtitle, children, className = '', accent = 'from-slate-600 to-slate-900' }) {
+  return (
+    <section className={`group relative overflow-hidden rounded-[26px] border border-slate-200/80 bg-white/95 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)] ${className}`}>
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+      <div className="absolute -right-16 -top-20 h-44 w-44 rounded-full bg-slate-100/80 transition duration-500 group-hover:scale-110" />
+      <div className="relative mb-4">
+        <h3 className="text-base font-black text-slate-950 sm:text-lg">{title}</h3>
+        {subtitle ? <p className="mt-1 text-sm font-medium text-slate-500">{subtitle}</p> : null}
+      </div>
+      <div className="relative">{children}</div>
+    </section>
+  )
+}
+
+function SectionDistribution({ rows = [], total = 0 }) {
+  if (!rows.length) {
+    return <p className="text-sm font-semibold text-slate-500">No section data available.</p>
+  }
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row, index) => {
+        const percent = total > 0 ? Math.round((row.value / total) * 100) : 0
+        const color = SECTION_COLORS[index % SECTION_COLORS.length]
+        return (
+          <div key={row.name}>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                Section {row.name}
+              </span>
+              <span className="text-sm font-black text-slate-950">{row.value}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full shadow-sm transition-all duration-700"
+                style={{ width: `${percent}%`, background: `linear-gradient(90deg, ${color}, ${color}99)` }}
+              />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function LoadingDashboard() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="h-28 animate-pulse rounded-[22px] border border-slate-200 bg-gradient-to-br from-white to-slate-100 shadow-sm" />
+      ))}
+    </div>
+  )
+}
+
 function Dashboard({ initialView = 'dashboard' }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { sidebarOpen, setSidebarOpen } = useOutletContext()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [activeView, setActiveView] = useState('dashboard')
   const [user, setUser] = useState(null)
   const [loginType, setLoginType] = useState('all')
@@ -85,20 +168,20 @@ function Dashboard({ initialView = 'dashboard' }) {
       const sectionDistribution = {}
       
       students.forEach(student => {
-        const className = student.Class || student.class || 'Unknown'
+        const className = normalizeSchoolClass(student.Class || student.class || 'Unknown') || 'Unknown'
         const section = student.Section || student.section || 'No Section'
         
         classDistribution[className] = (classDistribution[className] || 0) + 1
         sectionDistribution[section] = (sectionDistribution[section] || 0) + 1
       })
 
-      const studentsByClass = Object.entries(classDistribution)
-        .map(([name, value]) => ({ name: `Class ${name}`, value }))
-        .sort((a, b) => {
-          const numA = parseInt(a.name.replace('Class ', '')) || 999
-          const numB = parseInt(b.name.replace('Class ', '')) || 999
-          return numA - numB
-        })
+      const studentsByClass = sortSchoolClasses(
+        Object.entries(classDistribution).map(([className, value]) => ({
+          class: className,
+          name: formatClassLabel(className),
+          value,
+        }))
+      )
 
       const studentsBySection = Object.entries(sectionDistribution)
         .map(([name, value]) => ({ name, value }))
@@ -113,21 +196,26 @@ function Dashboard({ initialView = 'dashboard' }) {
       const subjectsPerClass = []
       if (subjectsResponse?.summary?.subjects_per_class) {
         subjectsResponse.summary.subjects_per_class.forEach(item => {
+          const className = normalizeSchoolClass(item.class) || 'Unknown'
           subjectsPerClass.push({
-            name: `Class ${item.class}`,
+            class: className,
+            name: formatClassLabel(className),
             subjects: item.subjects_count,
             sections: item.sections_count
           })
         })
       } else if (subjectsResponse?.classes) {
         subjectsResponse.classes.forEach(cls => {
+          const className = normalizeSchoolClass(cls.class) || 'Unknown'
           subjectsPerClass.push({
-            name: `Class ${cls.class}`,
+            class: className,
+            name: formatClassLabel(className),
             subjects: cls.total_subjects || 0,
             sections: cls.total_sections || 0
           })
         })
       }
+      const sortedSubjectsPerClass = sortSchoolClasses(subjectsPerClass)
 
       setDashboardData({
         totalStudents,
@@ -135,7 +223,7 @@ function Dashboard({ initialView = 'dashboard' }) {
         totalSubjects,
         studentsByClass,
         studentsBySection,
-        subjectsPerClass,
+        subjectsPerClass: sortedSubjectsPerClass,
         loading: false
       })
     } catch (error) {
@@ -220,252 +308,154 @@ function Dashboard({ initialView = 'dashboard' }) {
       
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden w-full" data-route-scroll-container="true">
-          <div className="p-3 sm:p-4 lg:p-6 w-full max-w-full">
+          <div className="w-full max-w-full p-3 sm:p-4 lg:p-6">
             {loginType !== 'student' && !isTeacher && activeView === 'dashboard' && (
-              <div className="space-y-4 sm:space-y-6">
-                <div className="gps-card border border-green-100  transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_rgba(96,165,250,0.18)] sm:p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Control Center</p>
-                  <h2 className="mt-2 text-2xl font-extrabold text-black sm:text-3xl">Dashboard Analytics</h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Real-time overview of students, class setup and subject distribution across the school.
-                  </p>
-                </div>
-                
-                {/* Dashboard Cards */}
+              <div className="mx-auto w-full max-w-7xl space-y-7">
+                <header className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-[radial-gradient(circle_at_12%_18%,rgba(37,99,235,0.16),transparent_30%),radial-gradient(circle_at_88%_12%,rgba(249,115,22,0.18),transparent_30%),linear-gradient(135deg,#ffffff_0%,#f8fafc_48%,#eef6ff_100%)] p-6 shadow-[0_22px_65px_rgba(15,23,42,0.08)] sm:p-7">
+                  <div className="absolute -right-14 -top-16 h-40 w-40 rounded-full border border-white/70 bg-white/35 blur-[1px]" />
+                  <div className="absolute -bottom-16 left-1/3 h-32 w-32 rounded-full bg-blue-200/25 blur-2xl" />
+                  <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">Control Center</p>
+                      <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Dashboard Analytics</h2>
+                      <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
+                        Clean overview of students, sections, classes, and subject coverage.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 text-left shadow-sm backdrop-blur sm:text-right">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Workspace</p>
+                      <p className="mt-1 text-sm font-black text-slate-800">Admin Overview</p>
+                    </div>
+                  </div>
+                </header>
+
                 {dashboardData.loading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="gps-kpi-card p-4 sm:p-5">
-                        <div className="flex items-center justify-center py-8">
-                          <span className="material-symbols-outlined animate-spin text-2xl sm:text-3xl text-cyan-200">sync</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <LoadingDashboard />
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {/* Total Students */}
-                    <div className="gps-kpi-card border border-sky-200 bg-[linear-gradient(135deg,#ffffff_0%,#e0f2fe_65%,#f0f9ff_100%)] p-4 shadow-[0_16px_34px_rgba(125,211,252,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:border-sky-300 hover:shadow-[0_22px_42px_rgba(56,189,248,0.18)] sm:p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-500">Total Students</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
-                          <span className="material-symbols-outlined text-sky-600 text-base sm:text-lg">people</span>
-                        </div>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalStudents}</p>
+                  <>
+                    <section className="grid gap-4 lg:grid-cols-3">
+                      <MetricLine
+                        icon="people"
+                        label="Total Students"
+                        value={dashboardData.totalStudents}
+                        note="Active student records"
+                        accent="from-blue-600 to-cyan-500"
+                      />
+                      <MetricLine
+                        icon="class"
+                        label="Total Classes"
+                        value={dashboardData.totalClasses}
+                        note="Configured class groups"
+                        accent="from-emerald-600 to-teal-500"
+                      />
+                      <MetricLine
+                        icon="book"
+                        label="Total Subjects"
+                        value={dashboardData.totalSubjects}
+                        note="Unique subjects"
+                        accent="from-orange-500 to-rose-500"
+                      />
+                    </section>
+
+                    <div className="grid gap-7 lg:grid-cols-[1.25fr_0.75fr]">
+                      <FlatSection title="Students by Class" subtitle="Class-wise student distribution" accent="from-blue-600 to-cyan-500">
+                        {dashboardData.studentsByClass.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={280}>
+                            <BarChart data={dashboardData.studentsByClass} margin={{ top: 8, right: 8, left: -18, bottom: 8 }}>
+                              <CartesianGrid stroke="rgba(148, 163, 184, 0.22)" vertical={false} />
+                              <XAxis
+                                dataKey="name"
+                                height={56}
+                                tick={{ fill: '#475569', fontSize: 11, fontWeight: 700, dy: 8 }}
+                                axisLine={{ stroke: 'rgba(148, 163, 184, 0.28)' }}
+                                tickLine={false}
+                              />
+                              <YAxis
+                                domain={[0, 'dataMax']}
+                                allowDecimals={false}
+                                tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }}
+                                axisLine={false}
+                                tickLine={false}
+                              />
+                              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }} />
+                              <Bar dataKey="value" name="Students" radius={[8, 8, 0, 0]}>
+                                {dashboardData.studentsByClass.map((entry, index) => (
+                                  <Cell key={`class-bar-${entry.class || entry.name}`} fill={CLASS_CHART_COLORS[index % CLASS_CHART_COLORS.length]} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <p className="text-sm font-semibold text-slate-500">No class data available.</p>
+                        )}
+                      </FlatSection>
+
+                      <FlatSection title="Students by Section" subtitle="Section split without extra chart clutter" accent="from-emerald-600 to-teal-500">
+                        <SectionDistribution rows={dashboardData.studentsBySection} total={dashboardData.totalStudents} />
+                      </FlatSection>
                     </div>
 
-                    {/* Total Classes */}
-                    <div className="gps-kpi-card border border-emerald-200 bg-[linear-gradient(135deg,#ffffff_0%,#dcfce7_65%,#f0fdf4_100%)] p-4 shadow-[0_16px_34px_rgba(134,239,172,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300 hover:shadow-[0_22px_42px_rgba(74,222,128,0.18)] sm:p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-500">Total Classes</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
-                          <span className="material-symbols-outlined text-emerald-600 text-base sm:text-lg">class</span>
-                        </div>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalClasses}</p>
-                    </div>
-
-                    {/* Total Subjects */}
-                    <div className="gps-kpi-card border border-violet-200 bg-[linear-gradient(135deg,#ffffff_0%,#ede9fe_65%,#f5f3ff_100%)] p-4 shadow-[0_16px_34px_rgba(196,181,253,0.14)] transition-all duration-300 hover:-translate-y-1.5 hover:border-violet-300 hover:shadow-[0_22px_42px_rgba(167,139,250,0.18)] sm:p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-500">Total Subjects</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-violet-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
-                          <span className="material-symbols-outlined text-violet-600 text-base sm:text-lg">book</span>
-                        </div>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{dashboardData.totalSubjects}</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigate('/teachers')}
-                      className="gps-kpi-card border border-cyan-200 bg-[linear-gradient(135deg,#ffffff_0%,#cffafe_65%,#ecfeff_100%)] p-4 text-left shadow-[0_16px_34px_rgba(103,232,249,0.14)] transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-300 hover:shadow-[0_22px_42px_rgba(6,182,212,0.18)] sm:p-5"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs sm:text-sm font-medium text-slate-500">Assign Teacher</span>
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-cyan-200/80 flex items-center justify-center flex-shrink-0 shadow-inner">
-                          <span className="material-symbols-outlined text-cyan-700 text-base sm:text-lg">assignment_ind</span>
-                        </div>
-                      </div>
-                      <p className="text-sm font-black text-slate-900">Class / section mapping</p>
-                    </button>
-                  </div>
-                )}
-
-                {/* Analytics Section */}
-                {!dashboardData.loading && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    {/* Students Distribution by Class */}
-                    {dashboardData.studentsByClass.length > 0 && (
-                      <div className="gps-card p-4 sm:p-6">
-                        <h3 className="text-base sm:text-lg font-bold text-white mb-4">Students Distribution by Class</h3>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <BarChart data={dashboardData.studentsByClass}>
-                            <CartesianGrid stroke="rgba(153, 178, 209, 0.2)" strokeDasharray="3 3" />
-                            <XAxis 
-                              dataKey="name" 
-                              angle={0} 
-                              textAnchor="middle" 
-                              height={60}
-                              tick={{ fill: '#000000', fontSize: 10, fontWeight: 700, dy: 8 }}
-                              axisLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
-                              tickLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
+                    <FlatSection title="Subjects & Sections per Class" subtitle="Academic setup coverage by class" accent="from-orange-500 to-rose-500">
+                      {dashboardData.subjectsPerClass.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={280}>
+                          <BarChart data={dashboardData.subjectsPerClass} margin={{ top: 8, right: 8, left: -18, bottom: 8 }}>
+                            <CartesianGrid stroke="rgba(148, 163, 184, 0.22)" vertical={false} />
+                            <XAxis
+                              dataKey="name"
+                              height={56}
+                              tick={{ fill: '#475569', fontSize: 11, fontWeight: 700, dy: 8 }}
+                              axisLine={{ stroke: 'rgba(148, 163, 184, 0.28)' }}
+                              tickLine={false}
                             />
                             <YAxis
                               domain={[0, 'dataMax']}
                               allowDecimals={false}
-                              tick={{ fill: '#000000', fontSize: 10 }}
-                              axisLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
-                              tickLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
+                              tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }}
+                              axisLine={false}
+                              tickLine={false}
                             />
-                            <Tooltip
-                              contentStyle={{
-                                fontSize: 12,
-                                borderRadius: 12,
-                                border: '1px solid rgba(148, 163, 184, 0.28)',
-                                background: 'rgba(7, 20, 36, 0.96)',
-                                color: '#e6f2ff',
-                              }}
-                              labelStyle={{ color: '#cfe5ff' }}
-                              wrapperStyle={{ background: 'transparent' }}
-                              cursor={{ fill: 'transparent' }}
-                            />
-                            <Bar dataKey="value" fill="#7dd3fc" name="Students" cursor="pointer" />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }} />
+                            <Legend wrapperStyle={{ fontSize: 12, color: '#475569', fontWeight: 700 }} />
+                            <Bar dataKey="subjects" fill="#2563eb" name="Subjects" radius={[8, 8, 0, 0]} />
+                            <Bar dataKey="sections" fill="#f97316" name="Sections" radius={[8, 8, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm font-semibold text-slate-500">No subject setup data available.</p>
+                      )}
+                    </FlatSection>
 
-                    {/* Students Distribution by Section */}
-                    {dashboardData.studentsBySection.length > 0 && (
-                      <div className="gps-card p-4 sm:p-6">
-                        <h3 className="text-base sm:text-lg font-bold text-white mb-4">Students Distribution by Section</h3>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <PieChart>
-                            <Pie
-                              data={dashboardData.studentsBySection}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                              labelStyle={{ fill: '#ffffff', fontSize: 12, fontWeight: 'bold' }}
-                              outerRadius={60}
-                              fill="#7dd3fc"
-                              dataKey="value"
-                            >
-                              {dashboardData.studentsBySection.map((entry, index) => {
-                                const colors = ['#7dd3fc', '#86efac', '#f9a8d4', '#c4b5fd', '#fdba74', '#93c5fd']
-                                return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                              })}
-                            </Pie>
-                            <Tooltip content={<CustomPieTooltip />} cursor={{ fill: 'transparent' }} />
-                            <Legend wrapperStyle={{ fontSize: 10, color: '#d3e7ff' }} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Subjects per Class */}
-                    {dashboardData.subjectsPerClass.length > 0 && (
-                      <div className="gps-card p-4 sm:p-6 lg:col-span-2">
-                        <h3 className="text-base sm:text-lg font-bold text-white mb-4">Subjects & Sections per Class</h3>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <BarChart data={dashboardData.subjectsPerClass}>
-                            <CartesianGrid stroke="rgba(153, 178, 209, 0.2)" strokeDasharray="3 3" />
-                            <XAxis 
-                              dataKey="name" 
-                              angle={0} 
-                              textAnchor="middle" 
-                              height={60}
-                              tick={{ fill: '#000000', fontSize: 10, fontWeight: 700, dy: 8 }}
-                              axisLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
-                              tickLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
-                            />
-                            <YAxis
-                              domain={[0, 'dataMax']}
-                              allowDecimals={false}
-                              tick={{ fill: '#000000', fontSize: 10 }}
-                              axisLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
-                              tickLine={{ stroke: 'rgba(153, 178, 209, 0.35)' }}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                fontSize: 12,
-                                borderRadius: 12,
-                                border: '1px solid rgba(148, 163, 184, 0.28)',
-                                background: 'rgba(7, 20, 36, 0.96)',
-                                color: '#e6f2ff',
-                              }}
-                              labelStyle={{ color: '#cfe5ff' }}
-                              wrapperStyle={{ background: 'transparent' }}
-                              cursor={{ fill: 'transparent' }}
-                            />
-                            <Legend wrapperStyle={{ fontSize: 10, color: '#d3e7ff' }} />
-                            <Bar dataKey="subjects" fill="#60a5fa" name="Subjects" cursor="pointer" />
-                            <Bar dataKey="sections" fill="#86efac" name="Sections" cursor="pointer" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Statistics Cards */}
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-span-2">
-                      <div className="gps-card-soft p-3 sm:p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-cyan-100 mb-1 truncate">Avg. Students/Class</p>
-                            <p className="text-xl sm:text-2xl font-black text-white">
-                              {dashboardData.totalClasses > 0 
-                                ? Math.round(dashboardData.totalStudents / dashboardData.totalClasses) 
-                                : 0}
-                            </p>
-                          </div>
-                          <span className="material-symbols-outlined text-cyan-200 text-2xl sm:text-3xl flex-shrink-0">trending_up</span>
-                        </div>
-                      </div>
-
-                      <div className="gps-card-soft p-3 sm:p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-cyan-100 mb-1 truncate">Avg. Subjects/Class</p>
-                            <p className="text-xl sm:text-2xl font-black text-white">
-                              {dashboardData.totalClasses > 0 
-                                ? Math.round(dashboardData.subjectsPerClass.reduce((sum, item) => sum + item.subjects, 0) / dashboardData.totalClasses) 
-                                : 0}
-                            </p>
-                          </div>
-                          <span className="material-symbols-outlined text-cyan-200 text-2xl sm:text-3xl flex-shrink-0">book</span>
-                        </div>
-                      </div>
-
-                      <div className="gps-card-soft p-3 sm:p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-cyan-100 mb-1 truncate">Total Sections</p>
-                            <p className="text-xl sm:text-2xl font-black text-white">
-                              {dashboardData.subjectsPerClass.reduce((sum, item) => sum + item.sections, 0)}
-                            </p>
-                          </div>
-                          <span className="material-symbols-outlined text-cyan-200 text-2xl sm:text-3xl flex-shrink-0">category</span>
-                        </div>
-                      </div>
-
-                      <div className="gps-card-soft p-3 sm:p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-cyan-100 mb-1 truncate">Subject Coverage</p>
-                            <p className="text-xl sm:text-2xl font-black text-white">
-                              {dashboardData.totalClasses > 0 
-                                ? `${Math.round((dashboardData.totalSubjects / dashboardData.totalClasses) * 10)}%`
-                                : '0%'}
-                            </p>
-                          </div>
-                          <span className="material-symbols-outlined text-cyan-200 text-2xl sm:text-3xl flex-shrink-0">analytics</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <MetricLine
+                        icon="trending_up"
+                        label="Avg. Students/Class"
+                        value={dashboardData.totalClasses > 0 ? Math.round(dashboardData.totalStudents / dashboardData.totalClasses) : 0}
+                        accent="from-violet-600 to-fuchsia-500"
+                      />
+                      <MetricLine
+                        icon="library_books"
+                        label="Avg. Subjects/Class"
+                        value={
+                          dashboardData.totalClasses > 0
+                            ? Math.round(dashboardData.subjectsPerClass.reduce((sum, item) => sum + item.subjects, 0) / dashboardData.totalClasses)
+                            : 0
+                        }
+                        accent="from-sky-600 to-blue-500"
+                      />
+                      <MetricLine
+                        icon="category"
+                        label="Total Sections"
+                        value={dashboardData.subjectsPerClass.reduce((sum, item) => sum + item.sections, 0)}
+                        accent="from-teal-600 to-emerald-500"
+                      />
+                      <MetricLine
+                        icon="analytics"
+                        label="Subject Coverage"
+                        value={dashboardData.totalClasses > 0 ? `${Math.round((dashboardData.totalSubjects / dashboardData.totalClasses) * 10)}%` : '0%'}
+                        accent="from-rose-600 to-orange-500"
+                      />
+                    </section>
+                  </>
                 )}
               </div>
             )}

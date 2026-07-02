@@ -9,6 +9,7 @@ import {
   removeTeacherAssignment,
 } from '../../Api/auth'
 import { getClassesWithSections } from '../../Api/classes'
+import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 
 const resolveTeachersList = (response) => {
   if (Array.isArray(response)) return response
@@ -25,7 +26,11 @@ const toTeacherRow = (teacher) => {
     : teacher?.assignment
       ? [teacher.assignment]
       : []
-  const primaryAssignment = assignments[0] || null
+  const normalizedAssignments = assignments.map((assignment) => ({
+    ...assignment,
+    class: normalizeSchoolClass(assignment?.class),
+  }))
+  const primaryAssignment = normalizedAssignments[0] || null
 
   return {
     id:
@@ -44,7 +49,7 @@ const toTeacherRow = (teacher) => {
     status: teacher?.status || teacher?.profile?.status || 'active',
     role: teacher?.role || teacher?.user?.role || 'teacher',
     createdAt: teacher?.created_at || teacher?.createdAt || teacher?.user?.created_at || teacher?.user?.createdAt || '',
-    assignments,
+    assignments: normalizedAssignments,
     assignedClass: teacher?.assignedClass || primaryAssignment?.class || '',
     assignedSection: teacher?.assignedSection || primaryAssignment?.section || '',
     academicYear: teacher?.academicYear || primaryAssignment?.academic_year || '',
@@ -65,7 +70,7 @@ function TeacherManagement() {
   const [assigningId, setAssigningId] = useState('')
   const [classOptions, setClassOptions] = useState([])
   const [assignmentDrafts, setAssignmentDrafts] = useState({})
-  const [removeAssignmentSelections, setRemoveAssignmentSelections] = useState({})
+  const [openActionMenuId, setOpenActionMenuId] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [activeTab, setActiveTab] = useState('list')
@@ -100,7 +105,7 @@ function TeacherManagement() {
       const rawClass = String(item.class || '').trim()
       if (!rawClass) return
 
-      const normalizedClass = rawClass === 'Mother Care' ? 'Nursery' : rawClass
+      const normalizedClass = normalizeSchoolClass(rawClass)
       const sections = Array.isArray(item.sections) ? item.sections.filter(Boolean) : []
 
       if (!classMap.has(normalizedClass)) {
@@ -115,7 +120,7 @@ function TeacherManagement() {
       sections.forEach((section) => existing.sections.add(section))
     })
 
-    return Array.from(classMap.values()).map((item) => ({
+    return sortSchoolClasses(Array.from(classMap.values())).map((item) => ({
       class: item.class,
       sections: Array.from(item.sections),
     }))
@@ -147,15 +152,6 @@ function TeacherManagement() {
             academic_year: row.academicYear || getDefaultAcademicYear(),
           }
           return drafts
-        }, {})
-      )
-      setRemoveAssignmentSelections(
-        rows.reduce((selections, row) => {
-          const assignment = row.assignments?.[0]
-          selections[row.id] = assignment
-            ? `${assignment.class}__${assignment.section}__${assignment.academic_year}`
-            : ''
-          return selections
         }, {})
       )
     } catch (err) {
@@ -250,6 +246,7 @@ function TeacherManagement() {
       return
     }
 
+    setOpenActionMenuId('')
     const confirmed = window.confirm(`Remove teacher "${teacher.email || teacher.id}"?`)
     if (!confirmed) return
 
@@ -267,6 +264,37 @@ function TeacherManagement() {
     }
   }
 
+  const handleRemoveAssignment = async (teacher) => {
+    const selectedAssignment = teacher.assignments?.[0]
+
+    if (!selectedAssignment) {
+      setError('No class assignment found for this teacher.')
+      setOpenActionMenuId('')
+      return
+    }
+
+    const label = `${selectedAssignment.class} - ${selectedAssignment.section} (${selectedAssignment.academic_year})`
+    setOpenActionMenuId('')
+    if (!window.confirm(`Remove "${label}" assignment for "${teacher.email || teacher.id}"?`)) return
+
+    setAssigningId(String(teacher.id))
+    setError('')
+    setSuccess('')
+    try {
+      await removeTeacherAssignment(teacher.id, {
+        class: selectedAssignment.class,
+        section: selectedAssignment.section,
+        academic_year: selectedAssignment.academic_year,
+      })
+      setSuccess('Teacher assignment removed.')
+      await fetchTeachers()
+    } catch (err) {
+      setError(err?.message || 'Failed to remove teacher assignment')
+    } finally {
+      setAssigningId('')
+    }
+  }
+
   const updateAssignmentDraft = (teacherId, field, value) => {
     setAssignmentDrafts((prev) => {
       const current = prev[teacherId] || { class: '', section: '', academic_year: getDefaultAcademicYear() }
@@ -277,12 +305,6 @@ function TeacherManagement() {
       }
       return { ...prev, [teacherId]: next }
     })
-    setError('')
-    setSuccess('')
-  }
-
-  const updateRemoveSelection = (teacherId, value) => {
-    setRemoveAssignmentSelections((prev) => ({ ...prev, [teacherId]: value }))
     setError('')
     setSuccess('')
   }
@@ -311,38 +333,6 @@ function TeacherManagement() {
           ? 'This class/section/year is already assigned to another teacher.'
           : err?.message || 'Failed to assign teacher'
       )
-    } finally {
-      setAssigningId('')
-    }
-  }
-
-  const handleRemoveAssignment = async (teacher) => {
-    const selectedKey = removeAssignmentSelections[teacher.id]
-    const selectedAssignment = (teacher.assignments || []).find(
-      (assignment) => `${assignment.class}__${assignment.section}__${assignment.academic_year}` === selectedKey
-    )
-
-    if (!selectedAssignment) {
-      setError('Please select class assignment to remove.')
-      return
-    }
-
-    const label = `${selectedAssignment.class} - ${selectedAssignment.section} (${selectedAssignment.academic_year})`
-    if (!window.confirm(`Remove "${label}" assignment for "${teacher.email || teacher.id}"?`)) return
-
-    setAssigningId(String(teacher.id))
-    setError('')
-    setSuccess('')
-    try {
-      await removeTeacherAssignment(teacher.id, {
-        class: selectedAssignment.class,
-        section: selectedAssignment.section,
-        academic_year: selectedAssignment.academic_year,
-      })
-      setSuccess('Teacher assignment removed.')
-      await fetchTeachers()
-    } catch (err) {
-      setError(err?.message || 'Failed to remove teacher assignment')
     } finally {
       setAssigningId('')
     }
@@ -377,7 +367,7 @@ function TeacherManagement() {
           }`}
         >
           <span className="material-symbols-outlined text-base">format_list_bulleted</span>
-          Teachers list
+          Teacher's List
         </button>
         <button
           type="button"
@@ -528,7 +518,7 @@ function TeacherManagement() {
 
       {activeTab === 'list' && (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Teachers List</h3>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Teacher's List</h3>
 
           {loading ? (
             <div className="py-10 flex items-center justify-center text-[#475569]">
@@ -572,7 +562,7 @@ function TeacherManagement() {
                         <td className="px-3 py-2.5 text-slate-900 dark:text-white">
                           <div className="font-semibold">{teacher.email || 'Email unavailable'}</div>
                           <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            {teacher.username ? `Username: ${teacher.username}` : 'Username auto-generated after SQL setup'}
+                            {teacher.username ? `Username: ${teacher.username}` : ''}
                           </div>
                           <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${teacher.status === 'inactive' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
                             {teacher.status}
@@ -628,10 +618,10 @@ function TeacherManagement() {
                             <div className="flex flex-wrap gap-1.5">
                               {teacher.assignments.map((assignment) => (
                                 <span
-                                  key={`${assignment.class}-${assignment.section}-${assignment.academic_year}`}
+                                  key={`${assignment.class}-${assignment.section}`}
                                   className="inline-flex items-center rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
                                 >
-                                  {assignment.class} - {assignment.section} ({assignment.academic_year})
+                                  {assignment.class} - {assignment.section} 
                                 </span>
                               ))}
                             </div>
@@ -639,13 +629,16 @@ function TeacherManagement() {
                             <span className="text-xs text-slate-400">Not assigned</span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 min-w-[360px]">
-                          <div className="grid w-full max-w-[420px] grid-cols-2 gap-2">
+                        <td className="relative px-3 py-2.5 min-w-[190px]">
+                          <div className="relative flex w-full max-w-[230px] items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => handleAssignTeacher(teacher)}
+                              onClick={() => {
+                                setOpenActionMenuId('')
+                                handleAssignTeacher(teacher)
+                              }}
                               disabled={isAssigning}
-                              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[#0f172a] px-3 text-sm font-bold text-[#ffffff] hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0f172a] px-3 text-sm font-bold text-[#ffffff] hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <span className={`material-symbols-outlined text-base leading-none ${isAssigning ? 'animate-spin' : ''}`}>
                                 {isAssigning ? 'sync' : 'check_circle'}
@@ -654,45 +647,40 @@ function TeacherManagement() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleRemoveTeacher(teacher)}
-                              disabled={deletingId === String(teacher.id)}
-                              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-sm font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                              onClick={() => {
+                                const nextId = openActionMenuId === String(teacher.id) ? '' : String(teacher.id)
+                                setOpenActionMenuId(nextId)
+                              }}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              aria-label="Teacher actions"
                             >
-                              {deletingId === String(teacher.id) ? (
-                                <span className="material-symbols-outlined animate-spin text-base leading-none">sync</span>
-                              ) : (
-                                <span className="material-symbols-outlined text-base leading-none">delete</span>
-                              )}
-                              <span>Remove Teacher</span>
+                              <span className="material-symbols-outlined text-xl leading-none">more_vert</span>
                             </button>
-                            {teacher.assignments?.length ? (
-                              <>
-                                <select
-                                  value={removeAssignmentSelections[teacher.id] || ''}
-                                  onChange={(event) => updateRemoveSelection(teacher.id, event.target.value)}
-                                  disabled={isAssigning}
-                                  className="h-10 min-w-0 rounded-lg border border-amber-200 bg-white px-2 text-sm font-semibold text-[#0f172a] disabled:cursor-not-allowed disabled:opacity-50"
+                            {openActionMenuId === String(teacher.id) ? (
+                              <div className="absolute right-3 top-[52px] z-[80] w-56 overflow-hidden rounded-xl border border-slate-200 !bg-[#ffffff] opacity-100 shadow-[0_18px_40px_rgba(15,23,42,0.22)] backdrop-blur-none">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTeacher(teacher)}
+                                  disabled={deletingId === String(teacher.id)}
+                                  className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-sm font-bold text-[#b91c1c] hover:bg-[#fef2f2] disabled:cursor-not-allowed disabled:text-[#fca5a5]"
                                 >
-                                  <option value="">Select class</option>
-                                  {teacher.assignments.map((assignment) => {
-                                    const key = `${assignment.class}__${assignment.section}__${assignment.academic_year}`
-                                    return (
-                                      <option key={key} value={key}>
-                                        {assignment.class} - {assignment.section} ({assignment.academic_year})
-                                      </option>
-                                    )
-                                  })}
-                                </select>
+                                  <span className={`material-symbols-outlined text-base ${deletingId === String(teacher.id) ? 'animate-spin' : ''}`}>
+                                    {deletingId === String(teacher.id) ? 'sync' : 'delete'}
+                                  </span>
+                                  Remove Teacher
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveAssignment(teacher)}
-                                  disabled={isAssigning}
-                                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 text-sm font-bold text-[#92400e] hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30"
+                                  disabled={isAssigning || !teacher.assignments?.length}
+                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold text-[#92400e] hover:bg-[#fffbeb] disabled:cursor-not-allowed disabled:bg-[#f8fafc] disabled:text-[#64748b]"
                                 >
-                                  <span className="material-symbols-outlined text-base leading-none">backspace</span>
-                                  <span>Remove Class</span>
+                                  <span className={`material-symbols-outlined text-base ${isAssigning ? 'animate-spin' : ''}`}>
+                                    {isAssigning ? 'sync' : 'backspace'}
+                                  </span>
+                                  Remove Class
                                 </button>
-                              </>
+                              </div>
                             ) : null}
                           </div>
                         </td>
