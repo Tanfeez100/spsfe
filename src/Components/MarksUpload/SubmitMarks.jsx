@@ -4,6 +4,7 @@ import { getAllClasses } from '../../Api/classes'
 import { submitMarks } from '../../Api/marks'
 import { getAllStudents } from '../../Api/students'
 import { getUser } from '../../Api/auth'
+import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 
 function SubmitMarks() {
   const user = getUser()
@@ -148,12 +149,13 @@ function SubmitMarks() {
 
   useEffect(() => {
     if (!isTeacher || !assignedClass || !assignedSection) return
+    const normalizedAssignedClass = normalizeSchoolClass(assignedClass)
     setFormData((prev) => ({
       ...prev,
-      class: assignedClass,
+      class: normalizedAssignedClass,
       section: assignedSection,
     }))
-    setAvailableClasses([{ class: assignedClass }])
+    setAvailableClasses([{ class: normalizedAssignedClass }])
     setAvailableSections([assignedSection])
   }, [isTeacher, assignedClass, assignedSection])
 
@@ -200,14 +202,13 @@ function SubmitMarks() {
       }
       
       if (isTeacher && assignedClass) {
-        setAvailableClasses([{ class: assignedClass }])
+        setAvailableClasses([{ class: normalizeSchoolClass(assignedClass) }])
       } else if (classesResponse && classesResponse.length > 0) {
-        // Sort by class property (numeric sort)
-        const sorted = classesResponse.sort((a, b) => {
-          const classA = typeof a === 'string' ? a : a.class;
-          const classB = typeof b === 'string' ? b : b.class;
-          return parseInt(classA) - parseInt(classB);
-        });
+        const sorted = sortSchoolClasses(classesResponse.map((item) => (
+          typeof item === 'string'
+            ? normalizeSchoolClass(item)
+            : { ...item, class: normalizeSchoolClass(item.class) }
+        )))
         setAvailableClasses(sorted)
       }
     } catch (err) {
@@ -234,7 +235,7 @@ function SubmitMarks() {
       const sections = []
 
       if (subjectsData?.classes) {
-        const selectedClassData = subjectsData.classes.find(cls => cls.class === formData.class)
+        const selectedClassData = subjectsData.classes.find(cls => normalizeSchoolClass(cls.class) === formData.class)
         if (selectedClassData?.sections && selectedClassData.sections.length > 0) {
           selectedClassData.sections.forEach(sec => {
             if (sec?.section) sections.push(sec.section)
@@ -302,7 +303,7 @@ function SubmitMarks() {
 
     // 3) Final fallback using cached subjectsData already loaded on page
     if ((!subjects || subjects.length === 0) && subjectsData?.classes) {
-      const selectedClassData = subjectsData.classes.find(cls => cls.class === formData.class)
+      const selectedClassData = subjectsData.classes.find(cls => normalizeSchoolClass(cls.class) === formData.class)
       if (selectedClassData) {
         if (selectedClassData.sections?.length > 0) {
           const selectedSectionData = selectedClassData.sections.find(sec => sec.section === formData.section)

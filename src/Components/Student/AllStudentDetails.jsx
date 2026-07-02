@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStudents, deleteStudent, leaveStudent, rejoinStudent } from '../../Api/students'
 import { emitToast } from '../../Api/auth'
+import { CLASS_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 import EditStudent from './EditStudent'
 
 function AllStudentDetails() {
@@ -34,7 +35,7 @@ function AllStudentDetails() {
   })
   const [statusActionLoading, setStatusActionLoading] = useState(false)
   const itemsPerPage = 10
-  const classOptions = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
+  const classOptions = CLASS_OPTIONS
 
   const getStudentId = (student) => {
     return student.ID || student._id || student.id || student.Id || student.student_id || student.StudentId || null
@@ -58,7 +59,7 @@ function AllStudentDetails() {
 
     const baseClass = student?.Class ?? student?.class
     const resolvedClass = (promotedClass ?? baseClass ?? '').toString().trim()
-    return normalizeField(resolvedClass) === 'mother care' ? 'Nursery' : resolvedClass
+    return normalizeSchoolClass(resolvedClass)
   }
 
   const getStudentSection = (student) => {

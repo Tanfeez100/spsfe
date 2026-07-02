@@ -342,6 +342,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
   const fieldIconClass = 'material-symbols-outlined shrink-0 pl-3 pr-2 text-black text-[22px]'
   const inputClass = 'w-full min-w-0 bg-transparent border-none focus:ring-0 py-2 px-2 text-sm font-medium text-slate-900 placeholder:text-slate-500'
   const siteInputClass = 'w-full min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-500 focus:ring-1 focus:ring-slate-400'
+  const fieldErrorClass = 'mt-1 text-xs font-semibold !text-red-600 dark:!text-red-400'
 
   const formContent = (
         <form onSubmit={handleSubmit} className={formClass}>
@@ -381,7 +382,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                 />
               </div>
               {fieldErrors.name ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.name}</p>
+                <p className={fieldErrorClass}>{fieldErrors.name}</p>
               ) : null}
             </div>
 
@@ -404,7 +405,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                 />
               </div>
               {fieldErrors.father_name ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.father_name}</p>
+                <p className={fieldErrorClass}>{fieldErrors.father_name}</p>
               ) : null}
             </div>
 
@@ -427,7 +428,7 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                 />
               </div>
               {fieldErrors.mother_name ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.mother_name}</p>
+                <p className={fieldErrorClass}>{fieldErrors.mother_name}</p>
               ) : null}
             </div>
 
@@ -476,10 +477,10 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                       </option>
                     ))}
                   </select>
-                </div>
-                {fieldErrors.class ? (
-                  <p className="mt-1 text-xs text-red-500">{fieldErrors.class}</p>
-              ) : null}
+              </div>
+              {fieldErrors.class ? (
+                  <p className={fieldErrorClass}>{fieldErrors.class}</p>
+                ) : null}
             </div>
 
             {/* Roll Number */}
@@ -519,9 +520,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   placeholder="Enter section (e.g., A, B)"
                   required
                 />
-              </div>
+            </div>
               {fieldErrors.section ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.section}</p>
+                <p className={fieldErrorClass}>{fieldErrors.section}</p>
               ) : null}
             </div>
 
@@ -546,9 +547,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   title="Enter a 10-digit mobile number starting with 6, 7, 8, or 9."
                   required
                 />
-              </div>
+            </div>
               {fieldErrors.mobile ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.mobile}</p>
+                <p className={fieldErrorClass}>{fieldErrors.mobile}</p>
               ) : null}
             </div>
 
@@ -570,9 +571,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   className={inputClass}
                   placeholder="Enter 12 digit Aadhaar"
                 />
-              </div>
+            </div>
               {fieldErrors.aadhaar_card ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.aadhaar_card}</p>
+                <p className={fieldErrorClass}>{fieldErrors.aadhaar_card}</p>
               ) : null}
             </div>
 
@@ -593,9 +594,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   className={inputClass}
                   placeholder="Enter PEN number"
                 />
-              </div>
+            </div>
               {fieldErrors.pen_number ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.pen_number}</p>
+                <p className={fieldErrorClass}>{fieldErrors.pen_number}</p>
               ) : null}
             </div>
 
@@ -614,9 +615,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   className={inputClass}
                   placeholder="Enter admission number"
                 />
-              </div>
+            </div>
               {fieldErrors.admission_number ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.admission_number}</p>
+                <p className={fieldErrorClass}>{fieldErrors.admission_number}</p>
               ) : null}
             </div>
 
@@ -634,9 +635,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   onBlur={handleBlur}
                   className={inputClass}
                 />
-              </div>
+            </div>
               {fieldErrors.admission_date ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.admission_date}</p>
+                <p className={fieldErrorClass}>{fieldErrors.admission_date}</p>
               ) : null}
             </div>
 
@@ -674,9 +675,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                   className={inputClass}
                   required
                 />
-              </div>
+            </div>
               {fieldErrors.date_of_birth ? (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.date_of_birth}</p>
+                <p className={fieldErrorClass}>{fieldErrors.date_of_birth}</p>
               ) : null}
             </div>
 
@@ -754,9 +755,9 @@ function AddStudent({ isOpen, onClose, onSuccess, fullPage = false }) {
                 placeholder="Enter student address"
                 required
               ></textarea>
-            </div>
+          </div>
             {fieldErrors.address ? (
-              <p className="mt-1 text-xs text-red-500">{fieldErrors.address}</p>
+              <p className={fieldErrorClass}>{fieldErrors.address}</p>
             ) : null}
           </div>
 

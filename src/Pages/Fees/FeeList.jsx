@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 
 function FeeList({ onViewInvoice, onPayFee }) {
+  const PAGE_SIZE = 15
   const [feeList, setFeeList] = useState([])
   const [filteredFeeList, setFilteredFeeList] = useState([])
   const [loading, setLoading] = useState(false)
@@ -13,6 +14,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
   const [monthFilter, setMonthFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'paid', 'unpaid', 'partial'
   const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Apply status filter when statusFilter or feeList changes
   useEffect(() => {
@@ -37,6 +39,10 @@ function FeeList({ onViewInvoice, onPayFee }) {
       setFilteredFeeList(filtered)
     }
   }, [statusFilter, feeList])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [classFilter, sectionFilter, monthFilter, statusFilter, feeList])
 
   // Load data on component mount and when filters change
   useEffect(() => {
@@ -200,6 +206,14 @@ function FeeList({ onViewInvoice, onPayFee }) {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(filteredFeeList.length / PAGE_SIZE))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE
+  const endIndex = Math.min(startIndex + PAGE_SIZE, filteredFeeList.length)
+  const paginatedFeeList = filteredFeeList.slice(startIndex, endIndex)
+  const showingStart = filteredFeeList.length === 0 ? 0 : startIndex + 1
+  const showingEnd = filteredFeeList.length === 0 ? 0 : endIndex
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -281,6 +295,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
               setStatusFilter('all')
               setFeeList([])
               setFilteredFeeList([])
+              setCurrentPage(1)
             }}
             className="w-full px-2 sm:px-4 py-1.5 sm:py-2 text-sm border border-teal-200 dark:border-teal-700/50 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/10 text-teal-700 dark:text-teal-300 transition-colors"
           >
@@ -433,7 +448,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
               </tr>
             </thead>
             <tbody>
-              {filteredFeeList.map((fee, index) => {
+              {paginatedFeeList.map((fee, index) => {
                 const totalFee = fee.total_fee || 0
                 const paidAmount = fee.total_paid || fee.paid_amount || 0
                 const netPayable = fee.net_payable || fee.balance || (totalFee - paidAmount)
@@ -553,6 +568,34 @@ function FeeList({ onViewInvoice, onPayFee }) {
             )}
           </table>
         </div>
+        {filteredFeeList.length > PAGE_SIZE && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/30">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              Showing {showingStart}-{showingEnd} of {filteredFeeList.length} records
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safeCurrentPage === 1}
+                className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                Previous
+              </button>
+              <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
         </div>
       )}
     </div>

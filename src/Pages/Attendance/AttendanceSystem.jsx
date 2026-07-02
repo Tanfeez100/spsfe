@@ -11,6 +11,7 @@ import {
 } from '../../Api/attendance'
 import { clearSession, getLoginType, getUser } from '../../Api/auth'
 import { getStudents } from '../../Api/students'
+import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 import TeacherGpsAttendance from '../AllDashboard/TeacherGpsAttendance'
 import schoolLogo from '../../assets/logo.png'
 
@@ -69,7 +70,7 @@ const normalizeStudents = (response) => {
   return rows.map((student) => ({
     id: student.id || student.ID,
     name: student.name || student.Name || '',
-    class: student.class || student.Class || '',
+    class: normalizeSchoolClass(student.class || student.Class || ''),
     section: student.section || student.Section || '',
     roll_no: student.roll_no || student.Roll || student.rollNo || '',
     academic_year: student.academic_year || student.AcademicYear || '',
@@ -453,7 +454,7 @@ function Filters({ user, bootstrap, selected, setSelected, hideMonth = true }) {
   const isTeacher = user.role === 'teacher'
   const assignments = Array.isArray(bootstrap.assignments) ? bootstrap.assignments : []
   const teacherHasMultipleAssignments = isTeacher && assignments.length > 1
-  const classes = bootstrap.classes || []
+  const classes = sortSchoolClasses((bootstrap.classes || []).map((item) => normalizeSchoolClass(item)))
   const sections = teacherHasMultipleAssignments && selected.class
     ? [...new Set(assignments.filter((item) => item.class === selected.class).map((item) => item.section).filter(Boolean))]
     : bootstrap.sections || []
@@ -1067,7 +1068,7 @@ function StudentHistory({ user, selected }) {
     loadDetail()
   }, [studentId])
 
-  const classOptions = useMemo(() => uniqueSortedValues(students, (student) => student.class), [students])
+  const classOptions = useMemo(() => sortSchoolClasses(uniqueSortedValues(students, (student) => student.class)), [students])
   const sectionOptions = useMemo(
     () => uniqueSortedValues(students.filter((student) => student.class === selectedClass), (student) => student.section),
     [selectedClass, students],
