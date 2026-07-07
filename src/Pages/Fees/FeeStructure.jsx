@@ -688,7 +688,7 @@ function FeeStructure() {
                   onClick={() => setMode('single')}
                   className={`flex-1 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                     mode === 'single'
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                   }`}
                 >
@@ -699,7 +699,7 @@ function FeeStructure() {
                   onClick={() => setMode('bulk')}
                   className={`flex-1 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                     mode === 'bulk'
-                      ? 'bg-sky-500 text-white shadow-sm'
+                      ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                   }`}
                 >

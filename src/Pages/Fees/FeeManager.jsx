@@ -12,8 +12,8 @@ function FeeManager() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [invoiceBillId, setInvoiceBillId] = useState('')
   const [paymentData, setPaymentData] = useState(null)
-  const activeTabClass = 'bg-[#7A2331] text-white shadow-md shadow-rose-900/20'
-  const inactiveTabClass = 'text-[#7A2331] hover:text-[#511621] hover:bg-[#F8EEF0] border border-transparent hover:border-[#E8CDD3]'
+  const activeTabClass = 'bg-slate-600 text-white shadow-md shadow-slate-400/20'
+  const inactiveTabClass = 'text-slate-600 hover:text-slate-800 hover:bg-slate-100 border border-transparent hover:border-slate-200'
 
   const tabs = [
     {

@@ -23,6 +23,10 @@ import {
   reviewTeacherLeaveRequest,
   saveTeacherAttendanceSettings,
 } from '../../Api/teacherAttendance'
+import {
+  getStudentLeaveRequestsAdmin,
+  reviewStudentLeaveRequest,
+} from '../../Api/studentLeaves'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const currentYear = () => String(new Date().getFullYear())
@@ -185,6 +189,35 @@ const teacherRosterLabel = (teacher) => {
   if (email) return email
 
   return 'Teacher'
+}
+
+const getStudentDisplayName = (request) => {
+  const student = request?.student || {}
+  const name = student?.name?.trim() || request?.student_name?.trim() || ''
+  const className = request?.class || student?.class || ''
+  const section = request?.section || student?.section || ''
+  const rollNo = request?.roll_no || student?.roll_no || ''
+  const fallbackParts = [className ? `Class ${className}` : '', section ? `Section ${section}` : '', rollNo ? `Roll ${rollNo}` : ''].filter(Boolean)
+
+  if (name) return name
+  if (fallbackParts.length) return fallbackParts.join(' · ')
+  return request?.student_id || 'Student'
+}
+
+const getStudentDisplayMeta = (request) => {
+  const student = request?.student || {}
+  const parts = [
+    request?.class || student?.class ? `Class ${request?.class || student?.class}` : '',
+    request?.section || student?.section ? `Section ${request?.section || student?.section}` : '',
+    request?.roll_no || student?.roll_no ? `Roll ${request?.roll_no || student?.roll_no}` : '',
+  ].filter(Boolean)
+  return parts.join(' · ')
+}
+
+const requestStatusTone = (status) => {
+  if (status === 'approved') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (status === 'rejected') return 'bg-rose-50 text-rose-700 border-rose-200'
+  return 'bg-amber-50 text-amber-700 border-amber-200'
 }
 
 const getSummary = (records = []) => {
@@ -710,18 +743,16 @@ function CheckoutRequests({ requests, onReview, teacherLookup, fallbackName }) {
                 {request.checkout_missing_remarks ? ` - ${request.checkout_missing_remarks}` : ''}
               </div>
             </div>
-            <div className="grid gap-3 lg:min-w-[420px]">
+            <div className="grid gap-3 lg:min-w-[320px]">
               <input
                 value={remarks[request.id] || ''}
                 onChange={(event) => setRemarks((prev) => ({ ...prev, [request.id]: event.target.value }))}
                 placeholder="Admin remarks"
                 className={subtleInputClass}
               />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  ['approve_present', 'Present', 'bg-emerald-600 text-white border-emerald-600'],
-                  ['mark_half_day', 'Half Day', 'bg-amber-500 text-white border-amber-500'],
-                  ['mark_absent', 'Absent', 'bg-rose-600 text-white border-rose-600'],
+                  ['approve_present', 'Approve', 'bg-emerald-600 text-white border-emerald-600'],
                   ['reject', 'Reject', 'bg-slate-900 text-white border-slate-900'],
                 ].map(([decision, label, tone]) => (
                   <button
@@ -791,6 +822,152 @@ function LeaveRequests({ leaves, isAdmin, onReview, teacherLookup, fallbackName 
   )
 }
 
+function StudentLeaveRequests({ leaves, isAdmin, onReview }) {
+  const [remarks, setRemarks] = useState({})
+  if (!leaves.length) return <Alert type="info">No student leave requests found.</Alert>
+  return (
+    <div className="grid gap-3">
+      {leaves.map((leave) => (
+        <div key={leave.id} className={`${panelClass} p-4`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-base font-black text-slate-950">{getStudentDisplayName(leave)}</span>
+                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${requestStatusTone(leave.status)}`}>
+                  {leave.status}
+                </span>
+              </div>
+              <div className="mt-2 text-sm font-semibold text-slate-500">
+                {getStudentDisplayMeta(leave) || 'Student request'} | {leave.leave_type} | {leave.from_date} to {leave.to_date}
+              </div>
+              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-700">{leave.reason}</p>
+            </div>
+            {isAdmin && leave.status === 'pending' ? (
+              <div className="grid gap-3 lg:min-w-[320px]">
+                <input
+                  value={remarks[leave.id] || ''}
+                  onChange={(event) => setRemarks((prev) => ({ ...prev, [leave.id]: event.target.value }))}
+                  placeholder="Admin remarks"
+                  className={subtleInputClass}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onReview(leave.id, { status: 'approved', admin_remarks: remarks[leave.id] || '' })}
+                    className="min-h-10 rounded-xl bg-emerald-600 px-3 text-xs font-black text-white transition hover:bg-emerald-700"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReview(leave.id, { status: 'rejected', admin_remarks: remarks[leave.id] || '' })}
+                    className="min-h-10 rounded-xl bg-rose-600 px-3 text-xs font-black text-white transition hover:bg-rose-700"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ActionRequestsPanel({
+  checkoutRequests,
+  teacherLeaves,
+  studentLeaves,
+  teacherLookup,
+  fallbackName,
+  onReviewCheckout,
+  onReviewTeacherLeave,
+  onReviewStudentLeave,
+}) {
+  const totalRequests = checkoutRequests.length + teacherLeaves.length + studentLeaves.length
+  const pendingTeacherLeaves = teacherLeaves.filter((leave) => leave.status === 'pending').length
+  const pendingStudentLeaves = studentLeaves.filter((leave) => leave.status === 'pending').length
+  const pendingCheckoutRequests = checkoutRequests.length
+
+  return (
+    <section className="space-y-4">
+      <div className={`${panelClass} p-5`}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Action</p>
+            <h3 className="mt-1 text-xl font-black text-slate-950">Requests Inbox</h3>
+            <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+              Checkout explanation, teacher leave, aur student leave requests sab ek jagah.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Total Requests</p>
+            <p className="mt-1 text-2xl font-black text-slate-950">{totalRequests}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi label="Checkout Explanations" value={pendingCheckoutRequests} icon="pending_actions" tone="amber" />
+        <Kpi label="Teacher Leaves" value={teacherLeaves.length} icon="badge" tone="cyan" />
+        <Kpi label="Student Leaves" value={studentLeaves.length} icon="school" tone="green" />
+        <Kpi label="Pending Reviews" value={pendingTeacherLeaves + pendingStudentLeaves + pendingCheckoutRequests} icon="task_alt" tone="red" />
+      </div>
+
+      <section className={`${panelClass} p-5`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Checkout</p>
+            <h4 className="mt-1 text-lg font-black text-slate-950">Explanation Requests</h4>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
+            {checkoutRequests.length} items
+          </span>
+        </div>
+        <CheckoutRequests
+          requests={checkoutRequests}
+          onReview={onReviewCheckout}
+          teacherLookup={teacherLookup}
+          fallbackName={fallbackName}
+        />
+      </section>
+
+      <section className={`${panelClass} p-5`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Teacher</p>
+            <h4 className="mt-1 text-lg font-black text-slate-950">Leave Requests</h4>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
+            {teacherLeaves.length} items
+          </span>
+        </div>
+        <LeaveRequests
+          leaves={teacherLeaves}
+          isAdmin
+          onReview={onReviewTeacherLeave}
+          teacherLookup={teacherLookup}
+          fallbackName={fallbackName}
+        />
+      </section>
+
+      <section className={`${panelClass} p-5`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Student</p>
+            <h4 className="mt-1 text-lg font-black text-slate-950">Leave Requests</h4>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
+            {studentLeaves.length} items
+          </span>
+        </div>
+        <StudentLeaveRequests leaves={studentLeaves} isAdmin onReview={onReviewStudentLeave} />
+      </section>
+    </section>
+  )
+}
+
 function TeacherGpsAttendance() {
   const [user] = useState(getUser)
   const [loginType] = useState(getLoginType)
@@ -805,7 +982,8 @@ function TeacherGpsAttendance() {
   const [monthlySummary, setMonthlySummary] = useState([])
   const [yearlySummary, setYearlySummary] = useState([])
   const [checkoutRequests, setCheckoutRequests] = useState([])
-  const [leaves, setLeaves] = useState([])
+  const [teacherLeaves, setTeacherLeaves] = useState([])
+  const [studentLeaves, setStudentLeaves] = useState([])
   const [filters, setFilters] = useState({ year: currentYear(), status: '', from: '', to: '' })
   const [loading, setLoading] = useState(true)
   const [settingsReady, setSettingsReady] = useState(false)
@@ -943,12 +1121,21 @@ function TeacherGpsAttendance() {
         ...filters,
         year: normalizedYear,
       }
-      const [settingsResponse, todayResponse, recordsResponse, checkoutResponse, leavesResponse, teachersResponse] = await Promise.all([
+      const [
+        settingsResponse,
+        todayResponse,
+        recordsResponse,
+        checkoutResponse,
+        teacherLeavesResponse,
+        studentLeavesResponse,
+        teachersResponse,
+      ] = await Promise.all([
         getTeacherAttendanceSettings(),
         getTeacherAttendanceToday(),
         getTeacherAttendanceRecords(recordsParams),
         isAdmin ? getPendingCheckoutRequests() : Promise.resolve({ requests: [] }),
         getTeacherLeaveRequests(),
+        isAdmin ? getStudentLeaveRequestsAdmin() : Promise.resolve({ requests: [] }),
         isAdmin ? getTeachers() : Promise.resolve({ teachers: [] }),
       ])
       setSettings(settingsResponse.settings)
@@ -959,7 +1146,8 @@ function TeacherGpsAttendance() {
       setMonthlySummary(recordsResponse.monthlySummary || [])
       setYearlySummary(recordsResponse.yearlySummary || [])
       setCheckoutRequests(checkoutResponse.requests || [])
-      setLeaves(leavesResponse.leaves || [])
+      setTeacherLeaves(teacherLeavesResponse.leaves || [])
+      setStudentLeaves(studentLeavesResponse.requests || [])
       setSettingsReady(true)
     } catch (err) {
       setError(err?.message || "Teacher's attendance load failed")
@@ -1026,6 +1214,21 @@ function TeacherGpsAttendance() {
     }
   }
 
+  const reviewStudentLeave = async (leaveId, payload) => {
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      await reviewStudentLeaveRequest(leaveId, payload)
+      setMessage('Student leave request updated.')
+      await load()
+    } catch (err) {
+      setError(err?.message || 'Student leave review failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const loadDailyAttendance = useCallback(async () => {
     if (!isAdmin) return
     setDailyLoading(true)
@@ -1075,19 +1278,36 @@ function TeacherGpsAttendance() {
             onClick={() => setAdminSectionTab('history')}
             className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-black transition ${
               adminSectionTab === 'history'
-                ? 'bg-slate-950 text-white shadow-sm'
+                ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            }`}
+            >
+            <span className="material-symbols-outlined text-base">calendar_month</span>
+            Attendance History
+          </button>
+          <button
+            type="button"
+            onClick={() => setAdminSectionTab('action')}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-black transition ${
+              adminSectionTab === 'action'
+                ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <span className="material-symbols-outlined text-base">calendar_month</span>
-            Attendance History
+            <span className="material-symbols-outlined text-base">pending_actions</span>
+            Action
+            {checkoutRequests.length + teacherLeaves.filter((leave) => leave.status === 'pending').length + studentLeaves.filter((leave) => leave.status === 'pending').length ? (
+              <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-black">
+                {checkoutRequests.length + teacherLeaves.filter((leave) => leave.status === 'pending').length + studentLeaves.filter((leave) => leave.status === 'pending').length}
+              </span>
+            ) : null}
           </button>
           <button
             type="button"
             onClick={() => setAdminSectionTab('daily')}
             className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-black transition ${
               adminSectionTab === 'daily'
-                ? 'bg-slate-950 text-white shadow-sm'
+                ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -1099,7 +1319,7 @@ function TeacherGpsAttendance() {
             onClick={() => setAdminSectionTab('settings')}
             className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-black transition ${
               adminSectionTab === 'settings'
-                ? 'bg-slate-950 text-white shadow-sm'
+                ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -1109,7 +1329,22 @@ function TeacherGpsAttendance() {
         </div>
       ) : null}
 
-      {adminSectionTab === 'settings' && isAdmin ? (
+      {adminSectionTab === 'action' && isAdmin ? (
+        <section className="space-y-4">
+          {error ? <Alert type="error">{error}</Alert> : null}
+          {message ? <Alert type="success">{message}</Alert> : null}
+          <ActionRequestsPanel
+            checkoutRequests={checkoutRequests}
+            teacherLeaves={teacherLeaves}
+            studentLeaves={studentLeaves}
+            teacherLookup={teacherLookup}
+            fallbackName=""
+            onReviewCheckout={reviewCheckout}
+            onReviewTeacherLeave={reviewLeave}
+            onReviewStudentLeave={reviewStudentLeave}
+          />
+        </section>
+      ) : adminSectionTab === 'settings' && isAdmin ? (
         <section className="space-y-4">
           {error ? <Alert type="error">{error}</Alert> : null}
           {message ? <Alert type="success">{message}</Alert> : null}
@@ -1173,11 +1408,11 @@ function TeacherGpsAttendance() {
           />
 
           {error ? <Alert type="error">{error}</Alert> : null}
-          {message ? <Alert type="success">{message}</Alert> : null}
-          {settingsReady && !error && !settings ? <Alert type="warning">Admin ko pehle school location settings configure karni hogi.</Alert> : null}
+            {message ? <Alert type="success">{message}</Alert> : null}
+            {settingsReady && !error && !settings ? <Alert type="warning">Admin ko pehle school location settings configure karni hogi.</Alert> : null}
 
-          {!isAdmin ? (
-            <div className={`${panelClass} p-5`}>
+            {!isAdmin ? (
+              <div className={`${panelClass} p-5`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Today</p>
@@ -1195,11 +1430,11 @@ function TeacherGpsAttendance() {
                   <Alert type="warning">Mobile app open karke pending checkout explanation submit karna mandatory hai.</Alert>
                 </div>
               ) : null}
-            </div>
-          ) : null}
+              </div>
+            ) : null}
 
-          <section className={`${panelClass} p-5`}>
-            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <section className={`${panelClass} p-5`}>
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Reports</p>
                 <h3 className="mt-1 text-xl font-black text-slate-950">Attendance Reports</h3>
@@ -1248,19 +1483,21 @@ function TeacherGpsAttendance() {
             />
           </section>
 
-          <section className="space-y-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{isAdmin ? 'Review' : 'My'}</p>
-              <h3 className="mt-1 text-xl font-black text-slate-950">{isAdmin ? 'Leave Review' : 'My Leave Requests'}</h3>
-            </div>
-            <LeaveRequests
-              leaves={leaves}
-              isAdmin={isAdmin}
-              onReview={reviewLeave}
-              teacherLookup={teacherLookup}
-              fallbackName={isAdmin ? '' : currentUserDisplayName}
-            />
-          </section>
+          {!isAdmin ? (
+            <section className="space-y-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">My</p>
+                <h3 className="mt-1 text-xl font-black text-slate-950">My Leave Requests</h3>
+              </div>
+              <LeaveRequests
+                leaves={teacherLeaves}
+                isAdmin={isAdmin}
+                onReview={reviewLeave}
+                teacherLookup={teacherLookup}
+                fallbackName={currentUserDisplayName}
+              />
+            </section>
+          ) : null}
         </>
       )}
     </div>

@@ -379,7 +379,7 @@ function StudentLifecycle() {
             onClick={() => setActiveTab('active')}
             className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${
               activeTab === 'active'
-                ? 'bg-[#dff5e8] text-[#1f665c] border border-[#b7e4c7]'
+                ? 'bg-slate-600 text-white border border-slate-600 shadow-sm shadow-slate-400/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
@@ -389,7 +389,7 @@ function StudentLifecycle() {
             onClick={() => setActiveTab('left')}
             className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${
               activeTab === 'left'
-                ? 'bg-[#dff5e8] text-[#1f665c] border border-[#b7e4c7]'
+                ? 'bg-slate-600 text-white border border-slate-600 shadow-sm shadow-slate-400/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >

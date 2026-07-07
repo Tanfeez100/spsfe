@@ -362,7 +362,7 @@ function TeacherManagement() {
           onClick={() => setActiveTab('list')}
           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
             activeTab === 'list'
-              ? 'bg-[#0f172a] text-white'
+              ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -374,7 +374,7 @@ function TeacherManagement() {
           onClick={() => setActiveTab('add')}
           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
             activeTab === 'add'
-              ? 'bg-[#0f172a] text-white'
+              ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
