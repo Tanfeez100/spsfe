@@ -320,7 +320,7 @@ function TopNav({ user, activeTab, setActiveTab }) {
                 onClick={() => pickTab(key)}
                 className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   activeTab === key
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                    ? 'border-slate-600 bg-slate-600 text-white shadow-sm shadow-slate-400/20'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
@@ -393,13 +393,13 @@ function TopNav({ user, activeTab, setActiveTab }) {
               onClick={() => pickTab(key)}
               className="flex min-h-[62px] flex-1 flex-col items-center justify-center gap-0.5 px-1"
             >
-              <span className={`material-symbols-outlined text-[22px] ${activeTab === key ? 'text-slate-900' : 'text-slate-400'}`}>
+              <span className={`material-symbols-outlined text-[22px] ${activeTab === key ? 'text-slate-600' : 'text-slate-400'}`}>
                 {icon}
               </span>
-              <span className={`text-[10px] font-black ${activeTab === key ? 'text-slate-900' : 'text-slate-400'}`}>
+              <span className={`text-[10px] font-black ${activeTab === key ? 'text-slate-600' : 'text-slate-400'}`}>
                 {shortLabel}
               </span>
-              {activeTab === key ? <span className="mt-0.5 h-0.5 w-5 rounded-full bg-slate-900" /> : <span className="mt-0.5 h-0.5 w-5" />}
+              {activeTab === key ? <span className="mt-0.5 h-0.5 w-5 rounded-full bg-slate-600" /> : <span className="mt-0.5 h-0.5 w-5" />}
             </button>
           ))}
         </div>
@@ -1769,7 +1769,7 @@ function AttendanceSystem({ embedded = false }) {
                 onClick={() => setActiveTab(key)}
                 className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
                   activeTab === key
-                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20'
+                    ? 'bg-slate-600 text-white shadow-md shadow-slate-400/20'
                     : 'border border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >

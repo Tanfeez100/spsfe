@@ -358,14 +358,14 @@ function Bills() {
         onChange={handleTabChange} 
         sx={{
           '& .MuiTab-root': {
-            color: 'rgb(88, 28, 135)',
+            color: 'rgb(71, 85, 105)',
             fontWeight: 700,
             '&.Mui-selected': {
-              color: 'rgb(190, 18, 60)',
+              color: 'rgb(71, 85, 105)',
             },
           },
           '& .MuiTabs-indicator': {
-            backgroundColor: 'rgb(190, 18, 60)',
+            backgroundColor: 'rgb(71, 85, 105)',
             height: 3,
           },
         }}

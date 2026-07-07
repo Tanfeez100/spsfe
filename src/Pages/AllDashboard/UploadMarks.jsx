@@ -13,7 +13,7 @@ function UploadMarks() {
           onClick={() => setActiveTab('submit')}
           className={`flex-1 sm:flex-initial px-3 sm:px-6 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
             activeTab === 'submit'
-              ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+              ? 'bg-slate-600 text-white shadow-lg shadow-slate-400/20'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
@@ -27,7 +27,7 @@ function UploadMarks() {
           onClick={() => setActiveTab('view')}
           className={`flex-1 sm:flex-initial px-3 sm:px-6 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
             activeTab === 'view'
-              ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+              ? 'bg-slate-600 text-white shadow-lg shadow-slate-400/20'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >

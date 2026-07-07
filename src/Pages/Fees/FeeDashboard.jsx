@@ -519,7 +519,7 @@ const styles = `
 .fd-profile-totals b{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:17px;display:block;margin-top:3px;}
 .fd-year-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
 .fd-year-tab{padding:8px 18px;border-radius:8px 8px 0 0;font-family:Georgia,serif;font-weight:700;font-size:15px;background:var(--gold-soft);color:var(--ink-soft);cursor:pointer;border:1px solid var(--cream-line);border-bottom:none;}
-.fd-year-tab.active{background:#fff;color:var(--maroon-dark);position:relative;top:1px;}
+.fd-year-tab.active{background:#475569;color:#fff;border-color:#475569;box-shadow:0 8px 18px rgba(100,116,139,.18);position:relative;top:1px;}
 .fd-receipts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
 .fd-receipt{background:#fff;border:1px solid var(--cream-line);border-radius:8px;padding:16px 18px 14px;position:relative;}
 .fd-receipt:before{content:"";position:absolute;top:-1px;left:0;right:0;height:6px;background-image:radial-gradient(circle 4px,#fff 4px,transparent 4.5px);background-size:16px 12px;background-position:0 -4px;background-repeat:repeat-x;}

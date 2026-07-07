@@ -78,7 +78,7 @@ function StudentLogin() {
                 setMessage('')
               }}
               className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
-                mode === key ? 'bg-cyan-500 text-white' : 'text-slate-300 hover:bg-slate-800'
+                mode === key ? 'bg-slate-600 text-white shadow-sm shadow-slate-400/20' : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               {label}
