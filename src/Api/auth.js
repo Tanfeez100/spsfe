@@ -8,7 +8,7 @@ const getDefaultApiBaseUrl = () => {
     }
     //https://starpublicschool.onrender.com
   }
-  return "https://starpublicschool.onrender.com";
+  return "https://starpublicschool-2kzu.onrender.com";
 };
 
 const normalizeApiBaseUrl = (url) => {
