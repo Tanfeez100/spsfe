@@ -10,7 +10,7 @@ const getDefaultApiBaseUrl = () => {
       return 'http://localhost:5000'
     }
   }
-  return 'https://starpublicschool.onrender.com'
+  return 'https://starpublicschool-2kzu.onrender.com'
 }
 
 const normalizeApiBaseUrl = (url) => {
