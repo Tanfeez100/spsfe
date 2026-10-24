@@ -48,6 +48,30 @@ function BatchIdCardGenerator({
   const [zoomLevel, setZoomLevel] = useState(100) // Screen preview zoom percentage: 100% | 125% | 150%
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [downloadingPng, setDownloadingPng] = useState(false)
+  const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false)
+
+  // Dynamic student counts for class selector badges
+  const classCounts = useMemo(() => {
+    const counts = {}
+    const list = students && students.length > 0 ? students : SAMPLE_STUDENTS
+    list.forEach((s) => {
+      const sClass = (s.Class || s.class || '').toString().trim()
+      const norm = normalizeSchoolClass(sClass) || sClass
+      counts[norm] = (counts[norm] || 0) + 1
+    })
+    return counts
+  }, [students])
+
+  // Close class dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('#class-dropdown-container')) {
+        setIsClassDropdownOpen(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   // When initialClass changes or modal opens
   useEffect(() => {
@@ -506,103 +530,75 @@ function BatchIdCardGenerator({
       {/* Main Dialog Shell */}
       <div className={shellClass}>
         {/* ================= 1. MODAL TOP HEADER ================= */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-3 sm:px-7 sps-print-no-show shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-5 sm:px-7 py-3 sps-print-no-show shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#071d3f] text-white shadow-2xs">
-              <span className="material-symbols-outlined text-xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#071d3f] text-white shadow-sm ring-1 ring-[#071d3f]/20">
+              <span className="material-symbols-outlined text-xl text-amber-300">
                 {cardType === 'admit_card' ? 'assignment_turned_in' : 'badge'}
               </span>
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-extrabold text-[#071d3f] leading-tight">
-                {cardType === 'admit_card'
-                  ? 'Examination Admit Card Studio'
-                  : 'Student ID Card Studio (55mm × 85mm)'}
-              </h2>
-              <p className="text-xs text-slate-500">
-                Official Design · 9 Cards per A4 Sheet · Direct PDF & PNG Download · Session 2026–27
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-[#071d3f] tracking-tight">
+                  {cardType === 'admit_card'
+                    ? 'Examination Admit Card Studio'
+                    : 'Student ID Card Studio'}
+                </h2>
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                  55 × 85 mm · Official CR-80
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Official Star Public School Session 2026–27 · 9 Cards per A4 Sheet · Direct Print & PDF
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Card Type Switcher: ID Card vs Admit Card */}
-            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-0.5 text-xs font-bold mr-1">
+          <div className="flex items-center gap-2.5">
+            {/* Live Active Counter Badge */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{matchingStudents.length} Students</span>
+            </div>
+
+            {/* Document Switcher: ID Card vs Admit Card */}
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-0.5 text-xs font-bold shadow-inner">
               <button
                 type="button"
                 onClick={() => setCardType('id_card')}
-                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
                   cardType === 'id_card'
-                    ? 'bg-[#071d3f] text-white shadow-xs'
+                    ? 'bg-[#071d3f] text-white shadow-xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Generate Student Identity Cards"
               >
-                <span className="material-symbols-outlined text-sm">badge</span>
+                <span className="material-symbols-outlined text-[14px]">badge</span>
                 <span>ID Card</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCardType('admit_card')}
-                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
                   cardType === 'admit_card'
-                    ? 'bg-[#071d3f] text-white shadow-xs'
+                    ? 'bg-[#071d3f] text-white shadow-xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Generate Examination Admit Cards"
               >
-                <span className="material-symbols-outlined text-sm">assignment_turned_in</span>
+                <span className="material-symbols-outlined text-[14px]">assignment_turned_in</span>
                 <span>Admit Card</span>
               </button>
             </div>
-
-            {/* Direct Download PDF Button */}
-            <button
-              type="button"
-              onClick={handleDownloadPDF}
-              disabled={downloadingPdf}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 text-xs font-bold shadow-xs disabled:opacity-60 transition-all cursor-pointer"
-              title="Download all cards as multi-page A4 PDF"
-            >
-              <span className="material-symbols-outlined text-sm">
-                {downloadingPdf ? 'sync' : 'picture_as_pdf'}
-              </span>
-              <span>{downloadingPdf ? 'Rendering PDF...' : 'Download PDF'}</span>
-            </button>
-
-            {/* Direct Download PNG Button */}
-            <button
-              type="button"
-              onClick={handleDownloadPNG}
-              disabled={downloadingPng}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1.5 text-xs font-bold shadow-xs disabled:opacity-60 transition-all cursor-pointer"
-              title="Download current A4 sheet as High-Resolution PNG"
-            >
-              <span className="material-symbols-outlined text-sm">
-                {downloadingPng ? 'sync' : 'image'}
-              </span>
-              <span>{downloadingPng ? 'Saving...' : 'PNG Sheet'}</span>
-            </button>
-
-            {/* Print Button */}
-            <button
-              type="button"
-              onClick={handlePrintAll}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#071d3f] hover:bg-[#122e58] text-white px-3 py-1.5 text-xs font-bold shadow-xs transition-all cursor-pointer"
-              title="Print all cards on A4 paper"
-            >
-              <span className="material-symbols-outlined text-sm">print</span>
-              <span>Print A4 Sheet</span>
-            </button>
 
             {onClose && (
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 transition-colors ml-1"
-                title="Close Generator"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer ml-1"
+                title="Close Studio"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
               </button>
             )}
           </div>
@@ -659,92 +655,208 @@ function BatchIdCardGenerator({
         ) : (
           /* ================= 3. GENERATED CARDS STUDIO & A4 SHEET PREVIEW ================= */
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Filter Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-2.5 sm:px-7 sps-print-no-show shrink-0">
-              {/* Quick Class Selector Pills */}
-              <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto py-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                  Class:
-                </span>
-                {['all', 'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map(
-                  (c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setSelectedClass(c)}
-                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                        selectedClass === c
-                          ? 'bg-[#071d3f] text-white shadow-2xs'
-                          : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {c === 'all' ? 'All' : c.startsWith('Class') ? c : `Cl ${c}`}
-                    </button>
-                  )
-                )}
-              </div>
+            {/* ================= FLOATING STUDIO COMMAND DOCK (Matching Mockup 2 in Light Theme) ================= */}
+            <div className="bg-[#f1f5f9]/70 px-4 sm:px-6 py-2.5 sps-print-no-show shrink-0 border-b border-slate-200/80">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-white border border-slate-200/90 p-2 sm:p-2.5 shadow-md shadow-slate-200/50">
+                {/* 1. Class Selector Dropdown & Section Switcher */}
+                <div className="flex items-center gap-2">
+                  <div className="relative" id="class-dropdown-container">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 pl-1">
+                        CLASS:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsClassDropdownOpen(!isClassDropdownOpen)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs font-black text-[#071d3f] shadow-2xs transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[16px] text-[#071d3f]">school</span>
+                        <span>{selectedClass === 'all' ? 'All Classes' : ['Nursery', 'LKG', 'UKG'].includes(selectedClass) ? selectedClass : `Class ${selectedClass}`}</span>
+                        <span className="material-symbols-outlined text-sm text-slate-400 transition-transform duration-200" style={{ transform: isClassDropdownOpen ? 'rotate(180deg)' : 'none' }}>
+                          expand_more
+                        </span>
+                      </button>
+                    </div>
 
-              {/* Controls on Right */}
-              <div className="flex items-center gap-2.5">
-                {/* On-screen Zoom Selector */}
-                <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold text-slate-600">
-                  <span className="px-2 text-[10px] text-slate-400 uppercase font-black">Zoom:</span>
-                  {[100, 125, 150].map((z) => (
-                    <button
-                      key={z}
-                      type="button"
-                      onClick={() => setZoomLevel(z)}
-                      className={`rounded-md px-2 py-1 text-xs transition-all ${
-                        zoomLevel === z
-                          ? 'bg-[#071d3f] text-white shadow-2xs'
-                          : 'hover:text-slate-900'
-                      }`}
-                      title={`Preview at ${z}% zoom`}
-                    >
-                      {z}%
-                    </button>
-                  ))}
+                    {/* Dropdown Menu Popover */}
+                    {isClassDropdownOpen && (
+                      <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                          Select Class ({matchingStudents.length} shown)
+                        </div>
+                        <div className="max-h-60 overflow-y-auto py-1">
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedClass('all'); setIsClassDropdownOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${selectedClass === 'all' ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
+                          >
+                            <span>All Classes</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedClass === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              All
+                            </span>
+                          </button>
+                          {['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((c) => {
+                            const isSel = selectedClass === c
+                            const cLabel = ['Nursery', 'LKG', 'UKG'].includes(c) ? c : `Class ${c}`
+                            const count = classCounts[c] || 0
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => { setSelectedClass(c); setIsClassDropdownOpen(false); }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${isSel ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                <span>{cLabel}</span>
+                                {count > 0 && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSel ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                    {count}
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section Switcher */}
+                  <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs">
+                    <span className="px-1.5 text-[10px] font-black uppercase text-slate-400">Sec:</span>
+                    {['all', 'A', 'B'].map((sec) => (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => setSelectedSection(sec)}
+                        className={`rounded-lg px-2 py-1 text-xs transition-all cursor-pointer ${
+                          selectedSection === sec
+                            ? 'bg-[#071d3f] text-white shadow-2xs font-extrabold'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {sec === 'all' ? 'All' : sec}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Density Switcher (9 vs 6 per A4) */}
-                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setCardsPerPage(9)}
-                    className={`rounded-md px-2.5 py-1 transition-all ${
-                      cardsPerPage === 9
-                        ? 'bg-[#071d3f] text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                    title="Fit 9 cards on each A4 paper (3x3 grid - 55mm x 85mm)"
-                  >
-                    9 / A4 Sheet (Standard)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCardsPerPage(6)}
-                    className={`rounded-md px-2.5 py-1 transition-all ${
-                      cardsPerPage === 6
-                        ? 'bg-[#071d3f] text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                    title="Fit 6 cards on each A4 paper (2x3 grid)"
-                  >
-                    6 / A4 Sheet
-                  </button>
+                {/* 2. Center Search Bar & Density/Zoom */}
+                <div className="flex flex-1 items-center justify-center gap-2 max-w-xl">
+                  {/* Search Input */}
+                  <div className="relative w-full min-w-[150px] max-w-[280px]">
+                    <span className="material-symbols-outlined absolute left-2.5 top-2 text-slate-400 text-sm pointer-events-none">
+                      search
+                    </span>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search student name or roll..."
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white pl-8 pr-7 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 shadow-2xs focus:border-[#071d3f] focus:outline-none focus:ring-2 focus:ring-[#071d3f]/10 transition-all"
+                    />
+                    {searchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                        title="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Density Switcher: 9 vs 6 per A4 */}
+                  <div className="hidden lg:inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shrink-0 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setCardsPerPage(9)}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
+                        cardsPerPage === 9
+                          ? 'bg-[#071d3f] text-white shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Fit 9 cards on each A4 paper (3x3 grid - 55mm x 85mm standard)"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">grid_view</span>
+                      <span>9 / Sheet</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardsPerPage(6)}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
+                        cardsPerPage === 6
+                          ? 'bg-[#071d3f] text-white shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                      title="Fit 6 cards on each A4 paper (2x3 grid)"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">view_module</span>
+                      <span>6 / Sheet</span>
+                    </button>
+                  </div>
+
+                  {/* Zoom Control */}
+                  <div className="hidden sm:inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shrink-0 shadow-2xs">
+                    <span className="px-1.5 text-[10px] font-black uppercase text-slate-400">Zoom:</span>
+                    {[100, 125, 150].map((z) => (
+                      <button
+                        key={z}
+                        type="button"
+                        onClick={() => setZoomLevel(z)}
+                        className={`rounded-lg px-2 py-1 text-xs transition-all cursor-pointer ${
+                          zoomLevel === z
+                            ? 'bg-[#071d3f] text-white shadow-2xs font-bold'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                        title={`Preview at ${z}% zoom`}
+                      >
+                        {z}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-2.5 top-2 text-slate-400 text-sm">
-                    search
-                  </span>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search name/roll..."
-                    className="rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:outline-none w-32 sm:w-40"
-                  />
+                {/* 3. Right Action Cluster (Emerald PDF, Navy/Gold Print, PNG) */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Download PDF Button */}
+                  <button
+                    type="button"
+                    onClick={handleDownloadPDF}
+                    disabled={downloadingPdf}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-3.5 py-1.5 text-xs font-extrabold shadow-sm shadow-emerald-700/20 active:scale-[0.98] disabled:opacity-60 transition-all cursor-pointer"
+                    title="Download all cards as multi-page A4 PDF"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {downloadingPdf ? 'sync' : 'picture_as_pdf'}
+                    </span>
+                    <span>{downloadingPdf ? 'PDF...' : 'Download PDF'}</span>
+                  </button>
+
+                  {/* Print IDs Button */}
+                  <button
+                    type="button"
+                    onClick={handlePrintAll}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#071d3f] hover:bg-[#122e58] text-white px-3.5 py-1.5 text-xs font-extrabold shadow-sm shadow-[#071d3f]/20 active:scale-[0.98] transition-all cursor-pointer"
+                    title="Print all cards on A4 paper"
+                  >
+                    <span className="material-symbols-outlined text-base text-amber-300">print</span>
+                    <span>Print IDs</span>
+                  </button>
+
+                  {/* PNG Sheet Button */}
+                  <button
+                    type="button"
+                    onClick={handleDownloadPNG}
+                    disabled={downloadingPng}
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 text-xs font-bold shadow-2xs active:scale-[0.98] disabled:opacity-60 transition-all cursor-pointer"
+                    title="Download current A4 sheet as High-Resolution PNG"
+                  >
+                    <span className="material-symbols-outlined text-base text-slate-500">
+                      {downloadingPng ? 'sync' : 'image'}
+                    </span>
+                    <span>{downloadingPng ? 'PNG...' : 'PNG'}</span>
+                  </button>
                 </div>
               </div>
             </div>
