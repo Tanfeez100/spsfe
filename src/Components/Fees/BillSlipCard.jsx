@@ -1,215 +1,70 @@
 import React, { forwardRef } from 'react'
 import schoolLogo from '../../assets/logo.png'
+import qrCodeImg from '../../assets/high_quality_qr.png'
+import stampImg from '../../assets/stampcert.png'
 import './BillSlipCard.css'
 
-// Helper: Convert number to words in Indian Numbering System
-function convertNumberToWords(num) {
-  const n = Math.floor(Number(num) || 0)
-  if (n <= 0) return 'Zero Rupees'
-
-  const ones = [
-    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-    'Seventeen', 'Eighteen', 'Nineteen',
-  ]
-  const tens = [
-    '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety',
-  ]
-
-  const convertLessThanOneThousand = (number) => {
-    let current = ''
-    if (number >= 100) {
-      current += ones[Math.floor(number / 100)] + ' Hundred '
-      number %= 100
-    }
-    if (number >= 20) {
-      current += tens[Math.floor(number / 10)] + ' '
-      number %= 10
-    }
-    if (number > 0) {
-      current += ones[number] + ' '
-    }
-    return current.trim()
-  }
-
-  let words = ''
-  const crore = Math.floor(n / 10000000)
-  let remainder = n % 10000000
-  const lakh = Math.floor(remainder / 100000)
-  remainder %= 100000
-  const thousand = Math.floor(remainder / 1000)
-  remainder %= 1000
-
-  if (crore > 0) {
-    words += convertLessThanOneThousand(crore) + ' Crore '
-  }
-  if (lakh > 0) {
-    words += convertLessThanOneThousand(lakh) + ' Lakh '
-  }
-  if (thousand > 0) {
-    words += convertLessThanOneThousand(thousand) + ' Thousand '
-  }
-  if (remainder > 0) {
-    words += convertLessThanOneThousand(remainder) + ' '
-  }
-
-  return `${words.trim()} Rupees Only`
-}
-
-const formatNumber = (val) => {
-  if (val === '' || val === null || val === undefined) return '0'
-  const num = Number(val)
-  if (isNaN(num)) return val
-  return num.toLocaleString('en-IN')
-}
-
 /**
- * BillSlipCard - Replicates the reference receipt design while preserving
- * Star Public School branding, real backend data connections, and strict
- * 4-bills-per-A4-page dimensions.
+ * BillSlipCard - Uses the reference receipt's dotted-rule & watermark design,
+ * strictly keeping only our original school fields, backend-integrated fee heads,
+ * and 4-in-1 A4 sheet compatibility.
  */
 const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = false }, ref) {
-  // 1. School Information
-  const schoolName = bill.school_name || 'STAR PUBLIC SCHOOL'
-  const schoolAddress = bill.school_address || 'Meghwal mathia Bazar, West Champaran, Bihar 845106'
-  const schoolMobile = bill.school_mobile || 'Mob: 9006457330'
-  const sessionYear = bill.session || '2026-2027'
-  const copyType = bill.copy_type || bill.copyType || 'Office Copy'
-
-  // 2. Student & Receipt Information from Backend
-  const admissionNo =
-    bill.admission_no ||
-    bill.admission_number ||
-    bill.student?.admission_number ||
-    bill.student?.admission_no ||
-    bill.roll_no ||
-    bill.roll ||
-    '-'
-
-  const studentName =
-    bill.student_name ||
-    bill.name ||
-    bill.student?.name ||
-    'Student'
-
-  const fatherName =
-    bill.father_name ||
-    bill.student?.father_name ||
-    bill.student?.father ||
-    bill.Father ||
-    '-'
-
-  const motherName =
-    bill.mother_name ||
-    bill.student?.mother_name ||
-    bill.student?.mother ||
-    bill.Mother ||
-    '-'
-
-  const billNo =
-    bill.bill_number ||
-    bill.receipt_no ||
-    bill.receipt_number ||
-    bill.invoice_number ||
-    bill.bill_id ||
-    'REC-1001'
-
+  // 1. Original Student & Receipt Fields from Backend
+  const billNo = bill.bill_number || bill.invoice_number || bill.bill_id || bill.receipt_no || '-'
   const billDate = bill.date
     ? (bill.date.includes('/') || bill.date.includes('-')
         ? bill.date
         : new Date(bill.date).toLocaleDateString('en-GB'))
     : new Date().toLocaleDateString('en-GB')
 
+  const studentName = bill.student_name || bill.student?.name || bill.name || 'Student'
+  const fatherName = bill.father_name || bill.student?.father_name || bill.student?.father || '-'
   const className = bill.class || bill.student?.class || '-'
   const sectionName = bill.section || bill.student?.section || ''
-  const classDisplay = sectionName ? `${className} - ${sectionName}` : className
+  const rollNo = bill.roll_no || bill.student?.roll_no || bill.roll || '-'
 
-  const dob =
-    bill.dob ||
-    bill.date_of_birth ||
-    bill.student?.date_of_birth ||
-    '-'
-
-  const installment =
-    bill.installment ||
-    bill.month ||
-    bill.billing_month ||
-    'OCTOBER 2026'
-
-  const route =
-    bill.route ||
-    bill.transport_route ||
-    (bill.uses_transport || Number(bill.transport || 0) > 0 ? 'School Transport Route' : 'Local')
-
-  const destination =
-    bill.destination ||
-    bill.address ||
-    bill.student?.address ||
-    'West Champaran'
-
-  // 3. Fee Items from Backend (Items array or individual fee fields)
-  let items = []
-  if (Array.isArray(bill.items) && bill.items.length > 0) {
-    items = bill.items
-      .filter((it) => Number(it.amount || 0) > 0)
-      .map((it) => ({
-        name: (it.fee_name || it.name || 'Fee').toUpperCase(),
-        amount: Number(it.amount || 0),
-      }))
+  // 2. Map original fee items from backend
+  const itemsMap = {}
+  if (Array.isArray(bill.items)) {
+    bill.items.forEach((item) => {
+      const name = (item.fee_name || item.name || '').toLowerCase()
+      const amt = Number(item.amount || 0)
+      if (name.includes('tuition')) itemsMap.tuition = amt
+      else if (name.includes('exam')) itemsMap.exam = amt
+      else if (name.includes('annual')) itemsMap.annual = amt
+      else if (name.includes('computer') || name.includes('lab')) itemsMap.computer = amt
+      else if (name.includes('transport') || name.includes('bus')) itemsMap.transport = amt
+      else if (name.includes('due') || name.includes('previous')) itemsMap.due = amt
+      else {
+        itemsMap[name] = amt
+      }
+    })
   }
 
-  if (items.length === 0) {
-    const directItems = []
-    if (Number(bill.tuition || 0) > 0) directItems.push({ name: 'TUITION FEE', amount: Number(bill.tuition) })
-    if (Number(bill.computer || bill.lab || 0) > 0) directItems.push({ name: 'COMPUTER FEE', amount: Number(bill.computer || bill.lab) })
-    if (Number(bill.transport || 0) > 0) directItems.push({ name: 'TRANSPORT FEE', amount: Number(bill.transport) })
-    if (Number(bill.exam || 0) > 0) directItems.push({ name: 'EXAM FEE', amount: Number(bill.exam) })
-    if (Number(bill.annual || 0) > 0) directItems.push({ name: 'ANNUAL FEE', amount: Number(bill.annual) })
-    if (Number(bill.hostel || 0) > 0) directItems.push({ name: 'HOSTEL FEE', amount: Number(bill.hostel) })
-    if (Number(bill.previous_due || bill.due || 0) > 0) directItems.push({ name: 'PREVIOUS DUE', amount: Number(bill.previous_due || bill.due) })
+  const tuitionFee = itemsMap.tuition ?? (bill.tuition !== undefined && bill.tuition !== '' ? bill.tuition : '')
+  const examFee = itemsMap.exam ?? (bill.exam !== undefined && bill.exam !== '' ? bill.exam : '')
+  const annualFee = itemsMap.annual ?? (bill.annual !== undefined && bill.annual !== '' ? bill.annual : '')
+  const computerFee = itemsMap.computer ?? (bill.computer !== undefined && bill.computer !== '' ? bill.computer : '')
+  const transportFee = itemsMap.transport ?? (bill.transport !== undefined && bill.transport !== '' ? bill.transport : '')
+  const previousDue = itemsMap.due ?? (bill.previous_due !== undefined && bill.previous_due !== '' ? bill.previous_due : (bill.due !== undefined && bill.due !== '' ? bill.due : ''))
 
-    if (directItems.length > 0) {
-      items = directItems
-    } else {
-      // Default standard fee breakdown if no items exist
-      items = [
-        { name: 'TUITION FEE', amount: 1500 },
-        { name: 'COMPUTER FEE', amount: 300 },
-        { name: 'TRANSPORT FEE', amount: 600 },
-      ]
-    }
+  const summary = bill.summary || {}
+  const calculatedTotal = Array.isArray(bill.items)
+    ? bill.items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
+    : (Number(bill.total) || Number(bill.amount) || '')
+
+  const totalAmount = summary.total_amount ?? (calculatedTotal || (bill.total !== undefined ? bill.total : ''))
+  const advanceAmount = summary.advance_used ?? (bill.advance_used ?? (bill.advance !== undefined ? bill.advance : ''))
+  const netPayable = summary.net_payable ?? (bill.net_payable ?? (bill.netPayable ?? totalAmount))
+
+  const formatRs = (val) => {
+    if (val === '' || val === null || val === undefined) return '-'
+    const num = Number(val)
+    if (isNaN(num)) return val
+    if (num === 0) return '-'
+    return num.toLocaleString('en-IN')
   }
-
-  // 4. Totals and Calculations
-  const calculatedSum = items.reduce((acc, it) => acc + (Number(it.amount) || 0), 0)
-  const calculatedFee = bill.calculated_fee !== undefined ? Number(bill.calculated_fee) : calculatedSum
-
-  const concession =
-    bill.concession !== undefined
-      ? Number(bill.concession)
-      : (bill.discount !== undefined ? Number(bill.discount) : (Number(bill.advance_used || 0)))
-
-  const discount = Number(bill.special_discount || 0)
-
-  const netPayable =
-    bill.net_payable !== undefined
-      ? Number(bill.net_payable)
-      : (bill.total !== undefined ? Number(bill.total) : Math.max(0, calculatedFee - concession - discount))
-
-  const paymentMode = bill.payment_mode || bill.mode || 'Cash'
-
-  const totalPaid =
-    bill.paid_amount !== undefined
-      ? Number(bill.paid_amount)
-      : (bill.total_paid !== undefined ? Number(bill.total_paid) : netPayable)
-
-  const dueAmount =
-    bill.due_amount !== undefined
-      ? Number(bill.due_amount)
-      : Math.max(0, netPayable - totalPaid)
-
-  const remark = bill.remark || bill.remarks || 'FEE PAYMENT RECEIVED'
-  const amountInWords = bill.amount_in_words || convertNumberToWords(totalPaid)
 
   return (
     <div
@@ -217,37 +72,37 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       id="bill-slip-capture-node"
       className="bill-receipt-card"
     >
-      {/* 1. Header Section */}
-      <div className="flex items-start justify-between">
+      {/* 1. School Header */}
+      <div className="flex items-start justify-between pb-0.5">
         {/* Left: School Logo */}
         <div className="w-12 h-12 shrink-0 flex items-center justify-center pt-0.5">
           <img
             src={schoolLogo}
-            alt="School Crest"
+            alt="Star Public School Crest"
             className="w-11 h-11 object-contain"
           />
         </div>
 
-        {/* Center: School Branding */}
+        {/* Center: School Details (Proper 2 lines with phone number) */}
         <div className="flex-1 text-center px-1">
-          <h1 className="text-base sm:text-lg font-black tracking-wide uppercase text-black leading-tight">
-            {schoolName}
+          <h1 className="text-[15px] font-black tracking-wide uppercase text-black leading-tight">
+            STAR PUBLIC SCHOOL
           </h1>
-          <p className="text-[10px] sm:text-[10.5px] text-black font-medium leading-tight mt-0.5">
-            {schoolAddress}
+          <p className="text-[9.5px] text-black font-medium leading-tight mt-0.5">
+            Meghwal mathia Bazar, West Champaran, Bihar - 845106
           </p>
-          <p className="text-[10px] sm:text-[10.5px] text-black font-medium leading-tight">
-            {schoolMobile}
+          <p className="text-[9.5px] text-black font-semibold leading-tight mt-0.5">
+            Mob: 9006457330
           </p>
-          <p className="text-[10.5px] font-bold text-black leading-tight mt-0.5">
-            Fee Receipt {sessionYear}
+          <p className="text-[10.5px] font-bold text-black uppercase tracking-wider leading-tight mt-1">
+            Fee Receipt
           </p>
         </div>
 
-        {/* Right: Copy Tag */}
-        <div className="w-16 shrink-0 text-right self-end pb-0.5">
-          <span className="text-[10px] font-semibold text-black tracking-tight italic">
-            {copyType}
+        {/* Right: Office Copy Tag */}
+        <div className="w-12 shrink-0 text-right self-start pt-0.5">
+          <span className="text-[9px] font-bold text-black tracking-tight italic bg-slate-100/90 px-1.5 py-0.5 rounded border border-black/30 inline-block">
+            Office Copy
           </span>
         </div>
       </div>
@@ -255,68 +110,46 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       {/* Dotted Divider 1 */}
       <hr className="receipt-dotted-rule" />
 
-      {/* 2. Student Information (2 Columns with aligned colons) */}
-      <div className="grid grid-cols-2 gap-x-2 text-[10.5px] sm:text-[11px] leading-tight text-black">
+      {/* 2. Original Student Details (Exactly our 6 fields with aligned colons & better vertical spacing) */}
+      <div className="grid grid-cols-2 gap-x-3 text-[10.5px] leading-tight text-black py-1">
         {/* Left Column */}
-        <div className="space-y-0.5">
+        <div className="space-y-1.5">
           <div className="flex">
-            <span className="w-22 font-bold shrink-0">Admission No.</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{admissionNo}</span>
-          </div>
-          <div className="flex">
-            <span className="w-22 font-bold shrink-0">Name</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{studentName}</span>
-          </div>
-          <div className="flex">
-            <span className="w-22 font-bold shrink-0">F. Name</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{fatherName}</span>
-          </div>
-          <div className="flex">
-            <span className="w-22 font-bold shrink-0">Receipt No.</span>
-            <span className="w-3 font-bold text-center">:</span>
+            <span className="w-16 font-bold shrink-0">Bill No</span>
+            <span className="w-2.5 font-bold text-center">:</span>
             <span className="font-semibold truncate">{billNo}</span>
           </div>
           <div className="flex">
-            <span className="w-22 font-bold shrink-0">Dob</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{dob}</span>
+            <span className="w-16 font-bold shrink-0">Student</span>
+            <span className="w-2.5 font-bold text-center">:</span>
+            <span className="font-semibold truncate">{studentName}</span>
           </div>
           <div className="flex">
-            <span className="w-22 font-bold shrink-0">Route</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{route}</span>
+            <span className="w-16 font-bold shrink-0">Class</span>
+            <span className="w-2.5 font-bold text-center">:</span>
+            <span className="font-semibold truncate">
+              {className}
+              {sectionName ? ` (${sectionName})` : ''}
+            </span>
           </div>
         </div>
 
         {/* Right Column */}
-        <div className="space-y-0.5">
+        <div className="space-y-1.5">
           <div className="flex">
-            <span className="w-18 font-bold shrink-0">Date</span>
-            <span className="w-3 font-bold text-center">:</span>
+            <span className="w-14 font-bold shrink-0">Date</span>
+            <span className="w-2.5 font-bold text-center">:</span>
             <span className="font-semibold truncate">{billDate}</span>
           </div>
           <div className="flex">
-            <span className="w-18 font-bold shrink-0">Class</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{classDisplay}</span>
+            <span className="w-14 font-bold shrink-0">Father</span>
+            <span className="w-2.5 font-bold text-center">:</span>
+            <span className="font-semibold truncate">{fatherName}</span>
           </div>
           <div className="flex">
-            <span className="w-18 font-bold shrink-0">M. Name</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{motherName}</span>
-          </div>
-          <div className="flex">
-            <span className="w-18 font-bold shrink-0">Install</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{installment}</span>
-          </div>
-          <div className="flex">
-            <span className="w-18 font-bold shrink-0">Destination</span>
-            <span className="w-3 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{destination}</span>
+            <span className="w-14 font-bold shrink-0">Roll</span>
+            <span className="w-2.5 font-bold text-center">:</span>
+            <span className="font-semibold truncate">{rollNo}</span>
           </div>
         </div>
       </div>
@@ -324,63 +157,93 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       {/* Dotted Divider 2 */}
       <hr className="receipt-dotted-rule" />
 
-      {/* 3. Fee Particulars Table with Logo Watermark */}
-      <div className="receipt-watermark-container">
-        {/* Faded Watermark Crest */}
+      {/* 3. Fee Breakdown Table & QR / Stamp */}
+      <div className="receipt-watermark-container my-0.5">
+        {/* Subtle Watermark in background */}
         <div className="receipt-watermark-overlay">
           <img src={schoolLogo} alt="Watermark" />
         </div>
 
-        {/* Table Content */}
-        <div className="receipt-table-content">
-          {/* Header Row */}
-          <div className="flex justify-between items-center text-[11px] font-black uppercase text-black pt-0.5">
-            <span>PARTICULARS</span>
-            <span>Amount</span>
-          </div>
+        {/* Main Content Grid: Fee Details on Left, QR & Stamp on Right */}
+        <div className="receipt-table-content grid grid-cols-[1fr_100px] gap-2 pt-0.5">
+          {/* Left Column: Fee Particulars & Description */}
+          <div>
+            {/* Particulars Header */}
+            <div className="flex justify-between items-center text-[10.5px] font-black uppercase text-black pb-0.5">
+              <span>PARTICULARS</span>
+              <span>Rs.</span>
+            </div>
 
-          <hr className="receipt-dotted-rule" />
+            <hr className="receipt-dotted-rule" />
 
-          {/* Item Rows */}
-          <div className="space-y-0.5 py-0.5">
-            {items.map((it, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center text-[10.5px] sm:text-[11px] font-bold uppercase text-black"
-              >
-                <span>{it.name}</span>
-                <span className="font-semibold text-right">{formatNumber(it.amount)}</span>
+            {/* Fee Items */}
+            <div className="space-y-1 text-[10px] text-black py-0.5">
+              <div className="flex justify-between items-center font-medium">
+                <span>Tuition Fee</span>
+                <span className="font-semibold font-mono">{formatRs(tuitionFee)}</span>
               </div>
-            ))}
+              <div className="flex justify-between items-center font-medium">
+                <span>Exam Fee</span>
+                <span className="font-semibold font-mono">{formatRs(examFee)}</span>
+              </div>
+              <div className="flex justify-between items-center font-medium">
+                <span>Annual Fee</span>
+                <span className="font-semibold font-mono">{formatRs(annualFee)}</span>
+              </div>
+              <div className="flex justify-between items-center font-medium">
+                <span>Computer Fee</span>
+                <span className="font-semibold font-mono">{formatRs(computerFee)}</span>
+              </div>
+              <div className="flex justify-between items-center font-medium">
+                <span>Transport Fee</span>
+                <span className="font-semibold font-mono">{formatRs(transportFee)}</span>
+              </div>
+              <div className="flex justify-between items-center font-medium">
+                <span>Previous Due</span>
+                <span className="font-semibold font-mono">{formatRs(previousDue)}</span>
+              </div>
+            </div>
+
+            <hr className="receipt-dotted-rule" />
+
+            {/* Description / Summary Rows */}
+            <div className="space-y-1 text-[10px] text-black pt-1">
+              <div className="flex justify-between items-center font-bold">
+                <span>Total</span>
+                <span className="font-black font-mono">{formatRs(totalAmount)}</span>
+              </div>
+              <div className="flex justify-between items-center font-medium">
+                <span>Advance</span>
+                <span className="font-semibold font-mono">{formatRs(advanceAmount)}</span>
+              </div>
+              <div className="flex justify-between items-center font-black pt-0.5">
+                <span>Net Payable</span>
+                <span className="font-black font-mono">{formatRs(netPayable)}</span>
+              </div>
+            </div>
           </div>
 
-          <hr className="receipt-dotted-rule" />
-
-          {/* CALCULATED FEE */}
-          <div className="flex justify-between items-center text-[11px] font-black uppercase text-black">
-            <span>CALCULATED FEE</span>
-            <span className="font-black text-right">{formatNumber(calculatedFee)}</span>
-          </div>
-
-          {/* Concession / Discount if any */}
-          {concession > 0 && (
-            <div className="flex justify-between items-center text-[10.5px] font-bold uppercase text-black py-0.5">
-              <span>CONCESSION</span>
-              <span className="font-bold text-right">{formatNumber(concession)}</span>
+          {/* Right Column: QR Code & School Seal */}
+          <div className="flex flex-col items-center justify-between text-center pl-1 border-l border-dotted border-black">
+            {/* QR Code */}
+            <div className="w-19 h-19 p-1 border border-black bg-white flex items-center justify-center">
+              <img src={qrCodeImg} alt="Payment QR" className="w-full h-full object-contain" />
             </div>
-          )}
+            <p className="text-[8px] font-bold text-black leading-tight mt-0.5">
+              पेमेंट के लिए<br />QR कोड स्कैन करें
+            </p>
 
-          {discount > 0 && (
-            <div className="flex justify-between items-center text-[10.5px] font-bold uppercase text-black py-0.5">
-              <span>DISCOUNT</span>
-              <span className="font-bold text-right">{formatNumber(discount)}</span>
+            {/* School Seal */}
+            <div className="w-15 h-15 mt-1.5 flex items-center justify-center">
+              {stampImg ? (
+                <img src={stampImg} alt="Stamp" className="w-full h-full object-contain" />
+              ) : (
+                <div className="w-full h-full border border-black rounded-full flex flex-col items-center justify-center text-[7px] font-bold">
+                  <span>★ SPS ★</span>
+                  <span className="text-[6px]">West Champaran</span>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* NET PAYABLE */}
-          <div className="flex justify-between items-center text-[11px] font-black uppercase text-black pt-0.5">
-            <span>NET PAYABLE</span>
-            <span className="font-black text-right">{formatNumber(netPayable)}</span>
           </div>
         </div>
       </div>
@@ -388,38 +251,15 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       {/* Dotted Divider 3 */}
       <hr className="receipt-dotted-rule" />
 
-      {/* 4. Payment & Amount in Words */}
-      <div className="space-y-0.5 py-0.5">
-        <div className="flex justify-between items-center text-[11px] font-black text-black">
-          <span>Total Paid By {paymentMode}</span>
-          <span className="font-black text-right">{formatNumber(totalPaid)}</span>
+      {/* 4. Footer: Receiver Signature with more length & clean line */}
+      <div className="flex items-center justify-between text-[10px] font-bold text-black pt-2 pb-1">
+        <div className="flex items-center gap-1.5 flex-1">
+          <span>Signature of Receiver:</span>
+          <span className="flex-1 border-b border-dotted border-black ml-1"></span>
         </div>
-
-        <div className="text-center text-[10px] sm:text-[10.5px] font-bold text-black italic py-0.5">
-          (In Words) {amountInWords}
+        <div className="ml-4 shrink-0">
+          <span>(Signature)</span>
         </div>
-      </div>
-
-      {/* Dotted Divider 4 */}
-      <hr className="receipt-dotted-rule" />
-
-      {/* 5. Due Amount */}
-      <div className="flex justify-between items-center text-[11px] font-black uppercase text-black">
-        <span>DUE AMT</span>
-        <span className="font-black text-right">{formatNumber(dueAmount)}</span>
-      </div>
-
-      {/* Dotted Divider 5 */}
-      <hr className="receipt-dotted-rule" />
-
-      {/* 6. Remarks */}
-      <div className="text-[10.5px] font-black uppercase text-black">
-        <span>REMARK : {remark}</span>
-      </div>
-
-      {/* 7. Signature Footer */}
-      <div className="flex justify-end pt-5 pb-0.5">
-        <span className="text-[11px] font-bold text-black">(Signature)</span>
       </div>
     </div>
   )
