@@ -333,34 +333,79 @@ function BatchIdCardGenerator({
     }
   }
 
-  // Quick Single Student Card PNG Download
+  // Quick Single Student Card PNG Download (High-Definition Unscaled Capture)
   const handleDownloadSingleCardPNG = async (student, elementId) => {
     try {
       const cardEl = document.getElementById(elementId)
       if (!cardEl) return
       const sName = student.Name || student.name || 'Student'
       emitToast('info', `Saving ID card for ${sName}...`, 'Please wait')
-      const canvas = await html2canvas(cardEl, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff',
+
+      // Create an unscaled offscreen host to ensure exact 350px x 541px native capture without parent scale interference
+      const offscreenHost = document.createElement('div')
+      offscreenHost.style.position = 'fixed'
+      offscreenHost.style.top = '0'
+      offscreenHost.style.left = '-10000px'
+      offscreenHost.style.width = '350px'
+      offscreenHost.style.height = '541px'
+      offscreenHost.style.transform = 'none'
+      offscreenHost.style.zIndex = '-9999'
+      offscreenHost.style.overflow = 'visible'
+      offscreenHost.style.background = '#ffffff'
+
+      // Clone card element directly into offscreen host
+      const clone = cardEl.cloneNode(true)
+      clone.style.transform = 'none'
+      clone.style.margin = '0'
+      clone.style.position = 'static'
+      clone.style.width = '350px'
+      clone.style.height = '541px'
+      clone.style.boxShadow = 'none'
+
+      // Synchronize image sources from original card to clone
+      const origImgs = cardEl.querySelectorAll('img')
+      const cloneImgs = clone.querySelectorAll('img')
+      origImgs.forEach((orig, idx) => {
+        if (cloneImgs[idx]) {
+          cloneImgs[idx].src = orig.src
+        }
       })
-      const filename = `ID_Card_${sName.replace(/\s+/g, '_')}_Roll_${student.Roll || student.roll || '0'}.png`
-      canvas.toBlob((blob) => {
-        const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png')
-        const link = document.createElement('a')
-        link.download = filename
-        link.href = url
-        document.body.appendChild(link)
-        link.click()
-        setTimeout(() => {
-          if (document.body.contains(link)) document.body.removeChild(link)
-          if (blob) URL.revokeObjectURL(url)
-        }, 1000)
-      }, 'image/png')
-      emitToast('success', `Saved ID card for ${sName}!`, 'Card Downloaded')
+
+      offscreenHost.appendChild(clone)
+      document.body.appendChild(offscreenHost)
+
+      try {
+        const canvas = await html2canvas(clone, {
+          scale: 3, // Ultra-sharp 3x HD resolution (1050px x 1623px)
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          width: 350,
+          height: 541,
+        })
+
+        const filename = `ID_Card_${sName.replace(/\s+/g, '_')}_Roll_${student.Roll || student.roll || '0'}.png`
+
+        canvas.toBlob((blob) => {
+          const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png')
+          const link = document.createElement('a')
+          link.download = filename
+          link.href = url
+          document.body.appendChild(link)
+          link.click()
+          setTimeout(() => {
+            if (document.body.contains(link)) document.body.removeChild(link)
+            if (blob) URL.revokeObjectURL(url)
+          }, 1000)
+        }, 'image/png')
+
+        emitToast('success', `Saved ID card for ${sName}!`, 'Card Downloaded')
+      } finally {
+        if (document.body.contains(offscreenHost)) {
+          document.body.removeChild(offscreenHost)
+        }
+      }
     } catch (err) {
       console.error('Failed to download card:', err)
       emitToast('error', `Download failed: ${err?.message}`, 'Error')
