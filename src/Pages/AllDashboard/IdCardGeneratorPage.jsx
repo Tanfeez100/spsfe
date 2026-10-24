@@ -62,7 +62,7 @@ export default function IdCardGeneratorPage() {
             isOpen={true}
             isPage={true}
             students={students}
-            initialClass="Nursery"
+            initialClass="1"
           />
         </div>
       </div>

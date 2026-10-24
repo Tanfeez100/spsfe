@@ -928,7 +928,7 @@ function Dashboard({ initialView = 'dashboard' }) {
               <BatchIdCardGenerator
                 isPage={true}
                 students={realStudents}
-                initialClass="Nursery"
+                initialClass="1"
               />
             </div>
           )}

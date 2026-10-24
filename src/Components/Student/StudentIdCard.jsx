@@ -34,19 +34,18 @@ function StudentIdCard({
   validTill = '2027',
   orientation = 'vertical',
   cardType = 'id_card', // 'id_card' | 'admit_card'
-  cardTemplate = 'curved_gold', // 'curved_gold' | 'royal_prestige' | 'modern_tech' | 'elite_classic'
   onPrint = null,
   showPrintButton = false,
   showCutLines = true,
 }) {
-  const studentName = student.Name || student.name || 'Ajay Kumar Giri'
-  const studentClass = student.Class || student.class || 'Nursery'
+  const studentName = student.Name || student.name || 'Student Name'
+  const studentClass = student.Class || student.class || ''
   const formattedClass = studentClass.startsWith('Class') || ['Nursery', 'LKG', 'UKG'].includes(studentClass)
     ? studentClass
-    : `Class ${studentClass}`
-  const rollNo = student.Roll || student.roll_no || student.roll || student.RollNo || '17'
+    : studentClass ? `Class ${studentClass}` : 'Class 1'
+  const rollNo = student.Roll || student.roll_no || student.roll || student.RollNo || '01'
   const studentSection = student.Section || student.section || 'A'
-  const fatherName = student.FatherName || student.father_name || student.father || student.Father || 'Mathura Nand Giri'
+  const fatherName = student.Father || student.FatherName || student.father_name || student.father || 'Father Name'
   const dob = formatDateToIndian(student.DateOfBirth || student.date_of_birth || student.dob || student.DOB)
   const studentAddress = student.Address || student.address || student.residential_address || 'Meghwal Mathia, West Champaran'
   const admissionNo =
@@ -57,8 +56,9 @@ function StudentIdCard({
     student.admissionNo ||
     student.ID ||
     student.id ||
-    `SPS-2026-${rollNo}`
-  const mobile =
+    `SPS-${rollNo}`
+
+  const rawMobile =
     student.Mobile ||
     student.mobile ||
     student.phone ||
@@ -66,17 +66,15 @@ function StudentIdCard({
     student.emergency_contact ||
     student.EmergencyContact ||
     student.contact ||
-    '+91 94702 46849'
-  const bloodGroup =
-    student.BloodGroup ||
-    student.blood_group ||
-    student.bloodGroup ||
     ''
-  const academicSession =
-    student.AcademicYear ||
-    student.academic_year ||
-    student.session ||
-    '2026-2027'
+
+  const mobileFormatted = rawMobile
+    ? (rawMobile.startsWith('+91')
+        ? rawMobile
+        : rawMobile.replace(/\D/g, '').length === 10
+        ? `+91 ${rawMobile.replace(/\D/g, '').slice(0, 5)} ${rawMobile.replace(/\D/g, '').slice(5)}`
+        : rawMobile)
+    : '+91 94702 46849'
 
   // Comprehensive student photo resolution supporting all casing conventions & objects
   const rawPhoto =
@@ -103,11 +101,11 @@ function StudentIdCard({
 
   const photoUrl = extractedPhotoUrl
     ? (extractedPhotoUrl.startsWith('http://') ||
-       extractedPhotoUrl.startsWith('https://') ||
-       extractedPhotoUrl.startsWith('data:') ||
-       extractedPhotoUrl.startsWith('blob:')
-        ? extractedPhotoUrl
-        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${extractedPhotoUrl.startsWith('/') ? '' : '/'}${extractedPhotoUrl}`)
+      extractedPhotoUrl.startsWith('https://') ||
+      extractedPhotoUrl.startsWith('data:') ||
+      extractedPhotoUrl.startsWith('blob:')
+      ? extractedPhotoUrl
+      : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${extractedPhotoUrl.startsWith('/') ? '' : '/'}${extractedPhotoUrl}`)
     : null
 
   const [imgError, setImgError] = useState(false)
@@ -116,7 +114,7 @@ function StudentIdCard({
     setImgError(false)
   }, [photoUrl])
 
-  // Rich formatted student details for instant smartphone camera / QR scanner readout
+  // Full detailed student info for smartphone QR scanning
   const qrLines = [
     'STAR PUBLIC SCHOOL',
     '==============================',
@@ -127,16 +125,13 @@ function StudentIdCard({
     `Class & Sec: ${formattedClass} (Sec: ${studentSection})`,
     `Adm No: ${admissionNo}`,
     `Father's Name: ${fatherName}`,
+    `Contact No: ${mobileFormatted}`,
     `Date of Birth: ${dob}`,
-    mobile ? `Emergency Contact: ${mobile}` : null,
-    bloodGroup ? `Blood Group: ${bloodGroup}` : null,
     `Address: ${studentAddress}`,
-    `Academic Session: ${academicSession}`,
+    `Academic Session: 2026-2027`,
     `Valid Till: ${cardType === 'admit_card' ? '2026-27' : validTill}`,
     '------------------------------',
-    'School: Star Public School',
-    'Meghwal Mathia Bazar, West Champaran, Bihar 845106',
-    'Helpline: +91 94702 46849',
+    'Star Public School, West Champaran',
     'Status: OFFICIAL & ACTIVE STUDENT',
   ].filter(Boolean)
 
@@ -150,7 +145,7 @@ function StudentIdCard({
       width: 240,
       errorCorrectionLevel: 'M',
       color: {
-        dark: cardTemplate === 'royal_prestige' ? '#061a38' : '#071d3f',
+        dark: '#071d3f',
         light: '#ffffff',
       },
     })
@@ -163,596 +158,16 @@ function StudentIdCard({
     return () => {
       isCurrent = false
     }
-  }, [qrData, cardTemplate])
+  }, [qrData])
 
-  // Helper avatar for photo fallback
-  const renderStudentAvatar = (avatarSize = 'full') => (
-    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-[#e8f0fc] to-[#d0e2f9] relative">
-      <svg viewBox="0 0 80 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-        <circle cx="40" cy="32" r="18" fill="#1e3a6a" opacity="0.85" />
-        <path d="M22,32 C22,18 30,12 40,12 C50,12 58,18 58,32 C54,26 48,22 40,22 C32,22 26,26 22,32 Z" fill="#071d3f" />
-        <path d="M10,88 C10,65 24,56 40,56 C56,56 70,65 70,88 L10,88 Z" fill="#071d3f" />
-        <polygon points="32,56 40,70 48,56 40,58" fill="#ffffff" />
-        <polygon points="32,56 40,68 36,56" fill="#f1f5f9" />
-        <polygon points="48,56 40,68 44,56" fill="#e2e8f0" />
-        <polygon points="38,64 42,64 43,84 40,88 37,84" fill="#d4af37" />
-        <polygon points="37.5,62 42.5,62 41.5,65 38.5,65" fill="#b89326" />
-      </svg>
-    </div>
-  )
-
-  // ==================== VERTICAL (PORTRAIT) ID CARD TEMPLATES ====================
+  // ==================== VERTICAL (PORTRAIT) EXACT REPLICA ====================
   if (orientation === 'vertical') {
-    // -------------------------------------------------------------
-    // TEMPLATE 1: ROYAL PRESTIGE (Deep Navy & Metallic Gold Double Frame)
-    // -------------------------------------------------------------
-    if (cardTemplate === 'royal_prestige') {
-      return (
-        <div className="sps-id-card-wrapper flex flex-col items-center">
-          <div
-            id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
-            className={`sps-id-card relative w-[350px] h-[541px] rounded-[18px] border-[2.5px] border-[#d4af37] bg-[#061a38] shadow-2xl overflow-hidden select-none text-white transition-transform ${
-              showCutLines ? 'ring-1 ring-amber-300/60' : ''
-            }`}
-            style={{
-              fontFamily: "'Lexend', 'Manrope', -apple-system, sans-serif",
-              aspectRatio: '55 / 85',
-            }}
-          >
-            {/* Inner Inset Gold Hairline Frame */}
-            <div className="pointer-events-none absolute inset-2 rounded-[12px] border-[1.2px] border-[#d4af37]/70 z-20" />
-            {/* 4 Corner Gold Accents */}
-            <div className="pointer-events-none absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t-2 border-l-2 border-[#f7dc8a] z-30" />
-            <div className="pointer-events-none absolute top-2.5 right-2.5 w-2.5 h-2.5 border-t-2 border-r-2 border-[#f7dc8a] z-30" />
-            <div className="pointer-events-none absolute bottom-2.5 left-2.5 w-2.5 h-2.5 border-b-2 border-l-2 border-[#f7dc8a] z-30" />
-            <div className="pointer-events-none absolute bottom-2.5 right-2.5 w-2.5 h-2.5 border-b-2 border-r-2 border-[#f7dc8a] z-30" />
-
-            {/* Subtle Royal Crest Watermark in Background */}
-            <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 -translate-y-1/2 opacity-[0.07] w-[230px] h-[230px] select-none z-0">
-              <img src={schoolLogo} alt="" crossOrigin="anonymous" className="w-full h-full object-contain filter invert" />
-            </div>
-
-            {/* Top Royal Crest Header */}
-            <div className="relative pt-3.5 pb-2 px-4 text-center z-10 shrink-0">
-              <div className="flex items-center justify-center gap-2">
-                <img
-                  src={schoolLogo}
-                  alt="Crest"
-                  crossOrigin="anonymous"
-                  className="h-10 w-10 object-contain drop-shadow"
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
-                <div>
-                  <h1 className="text-[15px] font-black uppercase tracking-wider text-[#f7dc8a] leading-tight font-sans drop-shadow-sm">
-                    STAR PUBLIC SCHOOL
-                  </h1>
-                  <p className="text-[8px] font-medium text-[#dfd0b2] tracking-wider uppercase">
-                    Meghwal mathia Bazar, West Champaran
-                  </p>
-                </div>
-              </div>
-
-              {/* Gold Star Divider */}
-              <div className="flex items-center justify-center gap-2 my-1 max-w-[220px] mx-auto">
-                <span className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#d4af37] to-[#d4af37]" />
-                <span className="text-[#f59e0b] text-[9px] leading-none drop-shadow">★</span>
-                <span className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-[#d4af37] to-[#d4af37]" />
-              </div>
-
-              {/* Gilded Document Type Badge */}
-              <div className="mt-1">
-                <span className="inline-block rounded-full bg-gradient-to-r from-[#b38728] via-[#fbf5b7] to-[#b38728] text-[#061a38] px-3.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider shadow-sm">
-                  {cardType === 'admit_card' ? 'EXAMINATION ADMIT CARD' : 'OFFICIAL STUDENT IDENTITY CARD'}
-                </span>
-              </div>
-            </div>
-
-            {/* Photo Box with Gold Bezel */}
-            <div className="relative flex flex-col items-center justify-center z-10 shrink-0 mt-0.5 mb-1.5">
-              <div className="relative w-[98px] h-[120px] rounded-[10px] border-[2.2px] border-[#d4af37] overflow-hidden bg-slate-900 shadow-md ring-1 ring-[#f7dc8a]/50">
-                {photoUrl && !imgError ? (
-                  <img
-                    src={photoUrl}
-                    alt={studentName}
-                    className="w-full h-full object-cover object-top"
-                    onError={() => setImgError(true)}
-                  />
-                ) : (
-                  renderStudentAvatar()
-                )}
-              </div>
-            </div>
-
-            {/* Royal Details Box with Translucent Blue & Gold Trim */}
-            <div className="relative z-10 px-4 w-full flex-1 flex flex-col justify-between pb-3">
-              <div className="bg-[#0c244c]/90 border border-[#d4af37]/40 rounded-xl px-3 py-2 w-full max-w-[310px] mx-auto space-y-1 text-[12.5px] leading-tight shadow-inner font-sans">
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Student Name
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-black text-white tracking-tight text-[13.5px] leading-tight flex-1 text-left break-words">
-                    {studentName}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Class & Sec
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-extrabold text-[#fbf5b7] tracking-tight text-[13px] leading-tight flex-1 text-left">
-                    {formattedClass} (Sec: {studentSection})
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Roll Number
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-black text-white tracking-tight text-[13.5px] leading-tight flex-1 text-left">
-                    {rollNo}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Father&apos;s Name
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-bold text-slate-100 tracking-tight text-[12.5px] leading-tight flex-1 text-left break-words">
-                    {fatherName}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Date of Birth
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-bold text-slate-100 font-mono tracking-tight text-[12.5px] leading-tight flex-1 text-left">
-                    {dob}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Address
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-medium text-slate-200 tracking-tight text-[11.5px] leading-tight flex-1 text-left line-clamp-1">
-                    {studentAddress}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[96px] flex-shrink-0 font-bold text-[#f7dc8a] text-left">
-                    Valid Till
-                  </span>
-                  <span className="font-bold text-[#f7dc8a] mr-2">:</span>
-                  <span className="font-bold text-[#f7dc8a] font-mono tracking-tight text-[12.5px] leading-tight flex-1 text-left">
-                    {cardType === 'admit_card' ? '2026–27' : validTill}
-                  </span>
-                </div>
-              </div>
-
-              {/* Bottom Row: Gold QR & Principal Signature */}
-              <div className="w-full flex items-end justify-between px-2 pt-1.5 shrink-0">
-                <div className="flex flex-col items-center">
-                  <div className="relative w-[58px] h-[58px] rounded-[8px] border-[1.8px] border-[#d4af37] bg-white p-0.5 shadow-md flex items-center justify-center overflow-hidden">
-                    <img
-                      src={qrDataUrl || highQualityQr}
-                      alt="Student QR"
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <span className="text-[7.5px] font-black uppercase tracking-wider text-[#f7dc8a] mt-0.5">
-                    VERIFIED ID
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center text-center pr-1">
-                  <div className="h-7 w-24 flex items-center justify-center">
-                    <span
-                      className="text-[23px] text-[#f7dc8a] font-serif italic font-normal leading-none select-none tracking-normal"
-                      style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
-                    >
-                      Principal
-                    </span>
-                  </div>
-                  <div className="w-24 h-[1.2px] bg-[#d4af37]/80 mt-0.5" />
-                  <p className="text-[9.5px] font-black text-[#dfd0b2] tracking-wider mt-0.5 uppercase">
-                    {cardType === 'admit_card' ? 'Exam Controller' : 'Principal'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {showPrintButton && (
-            <div className="mt-2 flex items-center gap-2 sps-print-no-show">
-              <button
-                type="button"
-                onClick={onPrint || (() => window.print())}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm">print</span>
-                <span>Print This Card</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // -------------------------------------------------------------
-    // TEMPLATE 2: MODERN DUAL-TONE (Navy & Emerald Green Dynamic Ribbon)
-    // -------------------------------------------------------------
-    if (cardTemplate === 'modern_tech') {
-      return (
-        <div className="sps-id-card-wrapper flex flex-col items-center">
-          <div
-            id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
-            className={`sps-id-card relative w-[350px] h-[541px] rounded-[18px] border-[2.5px] border-[#071d3f] bg-white shadow-xl overflow-hidden select-none text-slate-900 transition-transform ${
-              showCutLines ? 'ring-1 ring-emerald-300/60' : ''
-            }`}
-            style={{
-              fontFamily: "'Lexend', 'Manrope', -apple-system, sans-serif",
-              aspectRatio: '55 / 85',
-            }}
-          >
-            {/* Dynamic Angled Header (Navy + Emerald Wedge + Gold Stripe) */}
-            <div className="relative bg-[#071d3f] pt-3 pb-3 px-3.5 text-white z-10 shrink-0 overflow-hidden">
-              {/* Emerald Green Diagonal Angled Wing */}
-              <div
-                className="absolute top-0 right-0 w-[140px] h-full bg-[#059669] transform skew-x-[-24deg] translate-x-6 z-0"
-              />
-              {/* Electric Gold Accent Slash */}
-              <div
-                className="absolute top-0 right-[125px] w-[5px] h-full bg-[#f59e0b] transform skew-x-[-24deg] z-0"
-              />
-
-              <div className="flex items-center gap-2.5 relative z-10">
-                <img
-                  src={schoolLogo}
-                  alt="Crest"
-                  crossOrigin="anonymous"
-                  className="h-[46px] w-[46px] object-contain drop-shadow"
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-amber-300 text-xs">★</span>
-                    <h1 className="text-[15.5px] font-black uppercase tracking-tight text-white leading-tight font-sans">
-                      STAR PUBLIC SCHOOL
-                    </h1>
-                  </div>
-                  <p className="text-[8.5px] font-medium text-slate-200 tracking-tight leading-tight mt-0.5">
-                    Meghwal mathia Bazar, West Champaran, Bihar
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Circular Framed Photo with Active Status Chip */}
-            <div className="relative flex flex-col items-center justify-center pt-2.5 pb-1 z-10 shrink-0">
-              <div className="relative w-[100px] h-[100px] rounded-full border-[3px] border-[#059669] ring-2 ring-amber-400 overflow-hidden bg-slate-100 shadow-md">
-                {photoUrl && !imgError ? (
-                  <img
-                    src={photoUrl}
-                    alt={studentName}
-                    className="w-full h-full object-cover object-top"
-                    onError={() => setImgError(true)}
-                  />
-                ) : (
-                  renderStudentAvatar()
-                )}
-              </div>
-              {/* Overlapping Status Badge */}
-              <div className="-mt-3 z-20">
-                <span className="inline-flex items-center gap-1 bg-[#059669] text-white text-[8px] font-black px-2.5 py-0.5 rounded-full shadow-sm uppercase tracking-wider border border-white">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-200 animate-pulse" />
-                  ACTIVE STUDENT
-                </span>
-              </div>
-            </div>
-
-            {/* Centered Student Name & Quick Chips */}
-            <div className="text-center px-4 z-10 shrink-0">
-              <h2 className="text-[15px] font-black uppercase tracking-tight text-[#071d3f] leading-tight">
-                {studentName}
-              </h2>
-              {/* Class & Roll Pill Chips */}
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="bg-[#071d3f] text-amber-300 text-[10px] font-extrabold px-3 py-0.5 rounded-lg shadow-2xs">
-                  CLASS: {studentClass}
-                </span>
-                <span className="bg-[#059669] text-white text-[10px] font-extrabold px-3 py-0.5 rounded-lg shadow-2xs">
-                  ROLL NO: {rollNo}
-                </span>
-              </div>
-            </div>
-
-            {/* Modern Details Box */}
-            <div className="relative px-4 pt-2 pb-2 flex-1 flex flex-col justify-between z-10 font-sans">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 w-full max-w-[305px] mx-auto space-y-1 text-[12px] leading-tight">
-                <div className="flex items-baseline justify-between border-b border-slate-200/60 pb-0.5">
-                  <span className="font-bold text-slate-500">Admission No</span>
-                  <span className="font-extrabold text-[#071d3f]">{admissionNo}</span>
-                </div>
-                <div className="flex items-baseline justify-between border-b border-slate-200/60 pb-0.5">
-                  <span className="font-bold text-slate-500">Father&apos;s Name</span>
-                  <span className="font-extrabold text-slate-800">{fatherName}</span>
-                </div>
-                <div className="flex items-baseline justify-between border-b border-slate-200/60 pb-0.5">
-                  <span className="font-bold text-slate-500">Date of Birth</span>
-                  <span className="font-extrabold text-slate-800 font-mono">{dob}</span>
-                </div>
-                <div className="flex items-baseline justify-between border-b border-slate-200/60 pb-0.5">
-                  <span className="font-bold text-slate-500">Emergency Phone</span>
-                  <span className="font-extrabold text-emerald-700 font-mono">{mobile}</span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="font-bold text-slate-500">Address</span>
-                  <span className="font-semibold text-slate-700 line-clamp-1 max-w-[180px] text-right">{studentAddress}</span>
-                </div>
-              </div>
-
-              {/* Bottom Row */}
-              <div className="w-full flex items-end justify-between px-2 pt-1 shrink-0">
-                <div className="flex flex-col items-center">
-                  <div className="w-[56px] h-[56px] rounded-[8px] border-[2px] border-[#059669] bg-white p-0.5 shadow-xs flex items-center justify-center overflow-hidden">
-                    <img
-                      src={qrDataUrl || highQualityQr}
-                      alt="Student QR"
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <span className="text-[7.5px] font-black uppercase tracking-wider text-[#059669] mt-0.5">
-                    Scan to Verify
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center text-center pr-1">
-                  <div className="h-7 w-24 flex items-center justify-center">
-                    <span
-                      className="text-[23px] text-[#071d3f] font-serif italic font-normal leading-none select-none tracking-normal"
-                      style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
-                    >
-                      Principal
-                    </span>
-                  </div>
-                  <div className="w-24 h-[1.5px] bg-[#071d3f] mt-0.5" />
-                  <p className="text-[9.5px] font-black text-[#071d3f] tracking-wider mt-0.5 uppercase">
-                    Authorized Sign
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Color Bar */}
-            <div className="h-[6px] w-full bg-gradient-to-r from-[#071d3f] via-[#f59e0b] to-[#059669] shrink-0" />
-          </div>
-
-          {showPrintButton && (
-            <div className="mt-2 flex items-center gap-2 sps-print-no-show">
-              <button
-                type="button"
-                onClick={onPrint || (() => window.print())}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm">print</span>
-                <span>Print This Card</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // -------------------------------------------------------------
-    // TEMPLATE 3: ELITE CLASSIC (Warm Ivory & Royal Navy Satin Wave)
-    // -------------------------------------------------------------
-    if (cardTemplate === 'elite_classic') {
-      return (
-        <div className="sps-id-card-wrapper flex flex-col items-center">
-          <div
-            id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
-            className={`sps-id-card relative w-[350px] h-[541px] rounded-[18px] border-[2.5px] border-[#071d3f] bg-[#faf8f5] shadow-xl overflow-hidden select-none text-slate-900 transition-transform ${
-              showCutLines ? 'ring-1 ring-slate-300/60' : ''
-            }`}
-            style={{
-              fontFamily: "'Lexend', 'Manrope', -apple-system, sans-serif",
-              aspectRatio: '55 / 85',
-            }}
-          >
-            {/* Upper Header: Navy with Fluid Gold Satin Ribbon Wave */}
-            <div className="relative bg-[#071d3f] pt-3 pb-4 px-4 text-white z-10 shrink-0">
-              <div className="flex items-center gap-2.5 relative z-10">
-                <img
-                  src={schoolLogo}
-                  alt="Crest"
-                  crossOrigin="anonymous"
-                  className="h-[46px] w-[46px] object-contain drop-shadow"
-                  onError={(e) => { e.target.style.display = 'none' }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-[16px] font-black uppercase tracking-tight text-white leading-tight font-sans">
-                    STAR PUBLIC SCHOOL
-                  </h1>
-                  <p className="text-[8.5px] font-medium text-amber-200/90 tracking-tight leading-tight mt-0.5">
-                    Meghwal mathia Bazar, West Champaran, Bihar 845106
-                  </p>
-                </div>
-              </div>
-
-              {/* Gold Satin Wave Ribbon */}
-              <div className="absolute -bottom-[1px] left-0 right-0 h-[8px] bg-gradient-to-r from-[#b8860b] via-[#ffd700] to-[#b8860b] shadow-xs" />
-            </div>
-
-            {/* Document Ribbon */}
-            <div className="text-center mt-2.5 z-10 shrink-0">
-              <span className="inline-block rounded-full bg-gradient-to-r from-[#d4af37] to-[#aa7c11] text-white px-3 py-0.5 text-[8.5px] font-black uppercase tracking-wider shadow-xs">
-                {cardType === 'admit_card' ? 'EXAMINATION ADMIT CARD' : 'STUDENT IDENTITY CARD'}
-              </span>
-            </div>
-
-            {/* Photo Box with Fine Navy Border */}
-            <div className="relative flex flex-col items-center justify-center mt-1 mb-1 z-10 shrink-0">
-              <div className="relative w-[100px] h-[122px] rounded-[8px] border-[2.2px] border-[#071d3f] overflow-hidden bg-white shadow-sm ring-2 ring-amber-200/60">
-                {photoUrl && !imgError ? (
-                  <img
-                    src={photoUrl}
-                    alt={studentName}
-                    className="w-full h-full object-cover object-top"
-                    onError={() => setImgError(true)}
-                  />
-                ) : (
-                  renderStudentAvatar()
-                )}
-              </div>
-            </div>
-
-            {/* Details Box on Warm Ivory */}
-            <div className="relative px-4 flex-1 flex flex-col justify-between pb-3 z-10 font-sans">
-              <div className="w-full max-w-[305px] mx-auto space-y-1.5 text-[13px] leading-tight shrink-0 pt-1">
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Student Name
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left break-words">
-                    {studentName}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Class
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left">
-                    {formattedClass}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Roll No.
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left">
-                    {rollNo}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Father&apos;s Name
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left break-words">
-                    {fatherName}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Date of Birth
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 font-mono tracking-tight text-[14px] leading-tight flex-1 text-left">
-                    {dob}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Address
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 tracking-tight text-[13px] leading-tight flex-1 text-left break-words line-clamp-2">
-                    {studentAddress}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline">
-                  <span className="w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
-                    Valid Till
-                  </span>
-                  <span className="font-bold text-[#071d3f] mr-2">:</span>
-                  <span className="font-black text-slate-900 font-mono tracking-tight text-[14px] leading-tight flex-1 text-left">
-                    {cardType === 'admit_card' ? '2026–27' : validTill}
-                  </span>
-                </div>
-              </div>
-
-              {/* Bottom Row */}
-              <div className="w-full flex items-end justify-between px-2 pt-1 pb-1 shrink-0 mt-1">
-                <div className="flex flex-col items-center">
-                  <div className="relative w-[60px] h-[60px] rounded-[8px] border-[2px] border-[#071d3f] bg-white p-1 shadow-xs flex items-center justify-center overflow-hidden">
-                    <img
-                      src={qrDataUrl || highQualityQr}
-                      alt="Student QR"
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <span className="text-[7.5px] font-black uppercase tracking-wider text-[#071d3f] mt-1 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                    ✔ Verified ID
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center text-center pr-1 pb-1">
-                  <div className="h-7 w-24 flex items-center justify-center">
-                    <span
-                      className="text-[23px] text-[#071d3f] font-serif italic font-normal leading-none select-none tracking-normal"
-                      style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
-                    >
-                      Principal
-                    </span>
-                  </div>
-                  <div className="w-24 h-[1.5px] bg-[#071d3f] mt-0.5" />
-                  <p className="text-[10px] font-black text-[#071d3f] tracking-wider mt-0.5 uppercase">
-                    {cardType === 'admit_card' ? 'Controller of Exam' : 'Principal'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Navy Bar with Gold Stripe */}
-            <div className="h-[8px] w-full bg-[#071d3f] border-t-2 border-[#d4af37] shrink-0" />
-          </div>
-
-          {showPrintButton && (
-            <div className="mt-2 flex items-center gap-2 sps-print-no-show">
-              <button
-                type="button"
-                onClick={onPrint || (() => window.print())}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm">print</span>
-                <span>Print This Card</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // -------------------------------------------------------------
-    // TEMPLATE 4: CURVED GOLD ARCH (Default / Existing Classic Design)
-    // -------------------------------------------------------------
     return (
       <div className="sps-id-card-wrapper flex flex-col items-center">
         <div
           id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
-          className={`sps-id-card relative w-[350px] h-[541px] rounded-[18px] border-[2.5px] border-[#071d3f] bg-white shadow-xl overflow-hidden select-none text-slate-900 transition-transform ${
-            showCutLines ? 'ring-1 ring-slate-300/60' : ''
-          }`}
+          className={`sps-id-card relative w-[350px] h-[541px] rounded-[18px] border-[2.5px] border-[#071d3f] bg-white shadow-xl overflow-hidden select-none text-slate-900 transition-transform ${showCutLines ? 'ring-1 ring-slate-300/60' : ''
+            }`}
           style={{
             fontFamily: "'Lexend', 'Manrope', -apple-system, sans-serif",
             aspectRatio: '55 / 85',
@@ -829,7 +244,7 @@ function StudentIdCard({
             </div>
 
             {/* Centered Passport Photo Box with Navy Frame (Clean - No 'PHOTO HERE') */}
-            <div className="sps-id-photo-frame relative w-[102px] h-[126px] rounded-[10px] border-[2.2px] border-[#071d3f] overflow-hidden bg-slate-100 shadow-sm shrink-0 z-10 mb-2">
+            <div className="sps-id-photo-frame relative w-[100px] h-[120px] rounded-[10px] border-[2.2px] border-[#071d3f] overflow-hidden bg-slate-100 shadow-sm shrink-0 z-10 mb-1.5">
               {photoUrl && !imgError ? (
                 <img
                   src={photoUrl}
@@ -838,18 +253,35 @@ function StudentIdCard({
                   onError={() => setImgError(true)}
                 />
               ) : (
-                renderStudentAvatar()
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-[#e8f0fc] to-[#d0e2f9] relative">
+                  {/* Professional School Student Avatar Placeholder */}
+                  <svg viewBox="0 0 80 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                    {/* Head */}
+                    <circle cx="40" cy="32" r="18" fill="#1e3a6a" opacity="0.85" />
+                    {/* Hair shape */}
+                    <path d="M22,32 C22,18 30,12 40,12 C50,12 58,18 58,32 C54,26 48,22 40,22 C32,22 26,26 22,32 Z" fill="#071d3f" />
+                    {/* Uniform Blazer / Shoulders */}
+                    <path d="M10,88 C10,65 24,56 40,56 C56,56 70,65 70,88 L10,88 Z" fill="#071d3f" />
+                    {/* White Shirt Collar */}
+                    <polygon points="32,56 40,70 48,56 40,58" fill="#ffffff" />
+                    <polygon points="32,56 40,68 36,56" fill="#f1f5f9" />
+                    <polygon points="48,56 40,68 44,56" fill="#e2e8f0" />
+                    {/* School Gold Tie */}
+                    <polygon points="38,64 42,64 43,84 40,88 37,84" fill="#d4af37" />
+                    <polygon points="37.5,62 42.5,62 41.5,65 38.5,65" fill="#b89326" />
+                  </svg>
+                </div>
               )}
             </div>
 
-            {/* Student Details (Enhanced +2px Font Size & Optimal Row Spacing) */}
-            <div className="sps-id-details-box w-full max-w-[305px] mx-auto space-y-1.5 z-10 pt-1 pb-1 text-[13px] leading-tight shrink-0 font-sans">
+            {/* Student Details (Including Contact No. with Optimal Row Spacing) */}
+            <div className="sps-id-details-box w-full max-w-[305px] mx-auto space-y-1 z-10 pt-0.5 pb-0.5 text-[12.5px] leading-tight shrink-0 font-sans">
               <div className="flex items-baseline">
                 <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Student Name
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left break-words">
+                <span className="font-black text-slate-900 tracking-tight text-[13.5px] leading-tight flex-1 text-left break-words">
                   {studentName}
                 </span>
               </div>
@@ -859,7 +291,7 @@ function StudentIdCard({
                   Class
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left">
+                <span className="font-black text-slate-900 tracking-tight text-[13.5px] leading-tight flex-1 text-left">
                   {formattedClass}
                 </span>
               </div>
@@ -869,7 +301,7 @@ function StudentIdCard({
                   Roll No.
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left">
+                <span className="font-black text-slate-900 tracking-tight text-[13.5px] leading-tight flex-1 text-left">
                   {rollNo}
                 </span>
               </div>
@@ -879,8 +311,18 @@ function StudentIdCard({
                   Father&apos;s Name
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left break-words">
+                <span className="font-black text-slate-900 tracking-tight text-[13px] leading-tight flex-1 text-left break-words">
                   {fatherName}
+                </span>
+              </div>
+
+              <div className="flex items-baseline">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                  Contact No.
+                </span>
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 font-mono tracking-tight text-[13px] leading-tight flex-1 text-left">
+                  {mobileFormatted}
                 </span>
               </div>
 
@@ -889,7 +331,7 @@ function StudentIdCard({
                   Date of Birth
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 font-mono tracking-tight text-[14px] leading-tight flex-1 text-left">
+                <span className="font-black text-slate-900 font-mono tracking-tight text-[13px] leading-tight flex-1 text-left">
                   {dob}
                 </span>
               </div>
@@ -899,7 +341,7 @@ function StudentIdCard({
                   Address
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[13px] leading-tight flex-1 text-left break-words line-clamp-2">
+                <span className="font-black text-slate-900 tracking-tight text-[12.5px] leading-tight flex-1 text-left break-words line-clamp-1">
                   {studentAddress}
                 </span>
               </div>
@@ -909,7 +351,7 @@ function StudentIdCard({
                   {cardType === 'admit_card' ? 'Exam Session' : 'Valid Till'}
                 </span>
                 <span className="font-bold text-[#071d3f] mr-2">:</span>
-                <span className="font-black text-slate-900 font-mono tracking-tight text-[14px] leading-tight flex-1 text-left">
+                <span className="font-black text-slate-900 font-mono tracking-tight text-[13px] leading-tight flex-1 text-left">
                   {cardType === 'admit_card' ? '2026–27' : validTill}
                 </span>
               </div>
@@ -1006,9 +448,8 @@ function StudentIdCard({
     <div className="sps-id-card-wrapper flex flex-col items-center">
       <div
         id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
-        className={`sps-id-card relative w-[540px] h-[340px] max-w-full rounded-[22px] border-[3px] border-[#071d3f] bg-white shadow-xl overflow-hidden select-none text-slate-900 transition-transform ${
-          showCutLines ? 'ring-1 ring-slate-300/60' : ''
-        }`}
+        className={`sps-id-card relative w-[540px] h-[340px] max-w-full rounded-[22px] border-[3px] border-[#071d3f] bg-white shadow-xl overflow-hidden select-none text-slate-900 transition-transform ${showCutLines ? 'ring-1 ring-slate-300/60' : ''
+          }`}
         style={{
           fontFamily: "'Lexend', 'Manrope', -apple-system, sans-serif",
           aspectRatio: '1.588 / 1',
@@ -1112,6 +553,14 @@ function StudentIdCard({
               <span className="font-bold text-[#071d3f] mr-2.5">:</span>
               <span className="font-black text-slate-900 truncate tracking-tight text-[14px] sm:text-[15px]">
                 {fatherName}
+              </span>
+            </div>
+
+            <div className="flex items-baseline text-[13px] sm:text-[14px] leading-tight">
+              <span className="sps-id-details-label w-[110px] flex-shrink-0 font-bold text-[#071d3f]">Contact No.</span>
+              <span className="font-bold text-[#071d3f] mr-2.5">:</span>
+              <span className="font-black text-slate-900 font-mono tracking-tight text-[13px] sm:text-[14px]">
+                {mobileFormatted}
               </span>
             </div>
 
