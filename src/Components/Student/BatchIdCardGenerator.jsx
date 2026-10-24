@@ -740,11 +740,10 @@ function BatchIdCardGenerator({
                   </div>
                 </div>
 
-                {/* 2. Center Search Bar & Density/Zoom */}
-                <div className="flex flex-1 items-center justify-center gap-2 max-w-xl">
-                  {/* Search Input */}
-                  <div className="relative w-full min-w-[150px] max-w-[280px]">
-                    <span className="material-symbols-outlined absolute left-2.5 top-2 text-slate-400 text-sm pointer-events-none">
+                {/* 2. Center Search Bar */}
+                <div className="flex flex-1 items-center justify-center max-w-md">
+                  <div className="relative w-full min-w-[180px] max-w-[320px]">
+                    <span className="material-symbols-outlined absolute left-3 top-2 text-slate-400 text-sm pointer-events-none">
                       search
                     </span>
                     <input
@@ -752,68 +751,18 @@ function BatchIdCardGenerator({
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Search student name or roll..."
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white pl-8 pr-7 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 shadow-2xs focus:border-[#071d3f] focus:outline-none focus:ring-2 focus:ring-[#071d3f]/10 transition-all"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white pl-9 pr-7 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 shadow-2xs focus:border-[#071d3f] focus:outline-none focus:ring-2 focus:ring-[#071d3f]/10 transition-all"
                     />
                     {searchTerm && (
                       <button
                         type="button"
                         onClick={() => setSearchTerm('')}
-                        className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                        className="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
                         title="Clear search"
                       >
                         ✕
                       </button>
                     )}
-                  </div>
-
-                  {/* Density Switcher: 9 vs 6 per A4 */}
-                  <div className="hidden lg:inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shrink-0 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setCardsPerPage(9)}
-                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
-                        cardsPerPage === 9
-                          ? 'bg-[#071d3f] text-white shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Fit 9 cards on each A4 paper (3x3 grid - 55mm x 85mm standard)"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">grid_view</span>
-                      <span>9 / Sheet</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCardsPerPage(6)}
-                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
-                        cardsPerPage === 6
-                          ? 'bg-[#071d3f] text-white shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Fit 6 cards on each A4 paper (2x3 grid)"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">view_module</span>
-                      <span>6 / Sheet</span>
-                    </button>
-                  </div>
-
-                  {/* Zoom Control */}
-                  <div className="hidden sm:inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shrink-0 shadow-2xs">
-                    <span className="px-1.5 text-[10px] font-black uppercase text-slate-400">Zoom:</span>
-                    {[100, 125, 150].map((z) => (
-                      <button
-                        key={z}
-                        type="button"
-                        onClick={() => setZoomLevel(z)}
-                        className={`rounded-lg px-2 py-1 text-xs transition-all cursor-pointer ${
-                          zoomLevel === z
-                            ? 'bg-[#071d3f] text-white shadow-2xs font-bold'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                        title={`Preview at ${z}% zoom`}
-                      >
-                        {z}%
-                      </button>
-                    ))}
                   </div>
                 </div>
 
