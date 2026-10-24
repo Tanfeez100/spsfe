@@ -193,6 +193,8 @@ function App() {
             <Route path="/marks-upload" element={<Dashboard />} />
             <Route path="/upload-photo" element={<Dashboard />} />
             <Route path="/result-view" element={<Dashboard />} />
+            <Route path="/examinations" element={<Dashboard initialView="examinationManagement" />} />
+            <Route path="/examinations/:tab" element={<Dashboard initialView="examinationManagement" />} />
           </Route>
           <Route
             element={
