@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getInvoiceDetails, downloadInvoicePDF } from '../../Api/fees';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas-pro';
 import BillSlipCard from '../../Components/Fees/BillSlipCard';
 
 const formatCurrency = (value) =>
@@ -94,6 +95,61 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
       setError(err?.message || 'Failed to download invoice PDF');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [downloading4In1, setDownloading4In1] = useState(false);
+  const download4In1BillPDF = async () => {
+    const cardElement = document.getElementById('bill-slip-capture-node');
+    if (!cardElement) {
+      handleDownloadPDF();
+      return;
+    }
+
+    setDownloading4In1(true);
+    try {
+      const canvas = await html2canvas(cardElement, {
+        scale: 3,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      // A4 portrait: 210mm x 297mm (1 Page with 4 Bills in 2x2 grid)
+      const marginX = 5;
+      const marginY = 5;
+      const gapX = 4;
+      const gapY = 5;
+
+      const cardWidth = 98;
+      const cardHeight = Math.min(138, (canvas.height * cardWidth) / canvas.width);
+
+      const positions = [
+        { x: marginX, y: marginY },
+        { x: marginX + cardWidth + gapX, y: marginY },
+        { x: marginX, y: marginY + cardHeight + gapY },
+        { x: marginX + cardWidth + gapX, y: marginY + cardHeight + gapY },
+      ];
+
+      positions.forEach((pos) => {
+        pdf.addImage(imgData, 'PNG', pos.x, pos.y, cardWidth, cardHeight, undefined, 'FAST');
+      });
+
+      const name = (invoiceData?.student?.name || invoiceData?.name || 'Student').replace(/\s+/g, '_');
+      const billIdStr = invoiceData?.invoice_number || billId || 'Receipt';
+      pdf.save(`Fee_Bill_4in1_${name}_${billIdStr}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate 4-in-1 bill PDF:', err);
+      handleDownloadPDF();
+    } finally {
+      setDownloading4In1(false);
     }
   };
 
@@ -325,14 +381,25 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
                 <span className="material-symbols-outlined text-[16px]">receipt_long</span>
                 Official Canva Slip Preview
               </span>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="h-8 px-3 rounded-xl bg-[#002b66] hover:bg-[#08224d] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[15px]">print</span>
-                Print Slip
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={download4In1BillPDF}
+                  disabled={downloading4In1}
+                  className="h-8 px-3 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[15px]">download</span>
+                  {downloading4In1 ? 'Generating...' : 'Download (4 on 1 Page)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="h-8 px-3 rounded-xl bg-[#002b66] hover:bg-[#08224d] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[15px]">print</span>
+                  Print Slip
+                </button>
+              </div>
             </div>
             <BillSlipCard bill={invoiceData} />
           </div>

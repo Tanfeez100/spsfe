@@ -278,8 +278,8 @@ function Bills() {
     try {
       emitToast({
         type: 'info',
-        title: 'Rendering PDF',
-        message: 'Rendering official fee bill receipt in 300 DPI...',
+        title: 'Rendering 4-in-1 Bill PDF',
+        message: 'Rendering official fee bill (4 bills on 1 A4 page) in 300 DPI...',
       })
 
       const canvas = await html2canvas(cardElement, {
@@ -296,21 +296,36 @@ function Bills() {
         format: 'a4',
       })
 
-      const imgWidth = 125
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      const xPos = (210 - imgWidth) / 2
-      const yPos = 18
+      // A4 portrait: 210mm x 297mm (1 Page with 4 Bills in 2x2 grid)
+      const marginX = 5
+      const marginY = 5
+      const gapX = 4
+      const gapY = 5
 
-      pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight, undefined, 'FAST')
+      const cardWidth = 98 // 98 * 2 + 5 * 2 + 4 = 210mm
+      const cardHeight = Math.min(138, (canvas.height * cardWidth) / canvas.width)
+
+      // 4 Quadrants (2x2 grid on 1 single A4 page)
+      const positions = [
+        { x: marginX, y: marginY },                                         // Top-Left (Slot 1)
+        { x: marginX + cardWidth + gapX, y: marginY },                      // Top-Right (Slot 2)
+        { x: marginX, y: marginY + cardHeight + gapY },                     // Bottom-Left (Slot 3)
+        { x: marginX + cardWidth + gapX, y: marginY + cardHeight + gapY },  // Bottom-Right (Slot 4)
+      ]
+
+      positions.forEach((pos) => {
+        pdf.addImage(imgData, 'PNG', pos.x, pos.y, cardWidth, cardHeight, undefined, 'FAST')
+      })
+
       const name = (billToDownload?.student_name || 'Student').replace(/\s+/g, '_')
       const billId = billToDownload?.bill_number || 'Receipt'
-      const fileName = `Fee_Bill_${name}_${billId}.pdf`
+      const fileName = `Fee_Bill_4in1_${name}_${billId}.pdf`
 
       pdf.save(fileName)
       emitToast({
         type: 'success',
         title: 'Download Complete',
-        message: `Saved ${fileName} successfully.`,
+        message: `Saved ${fileName} (4 bills on 1 page) successfully.`,
       })
     } catch (err) {
       console.error('Failed to capture card as canvas:', err)
@@ -1222,8 +1237,21 @@ function Bills() {
           </div>
         ) : (
           /* SINGLE CARD DETAIL VIEW */
-          <div className="py-6 flex justify-center bg-slate-50/50 rounded-2xl my-5 border border-slate-100 overflow-x-auto">
+          <div className="py-6 flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl my-5 border border-slate-100 overflow-x-auto">
             <BillSlipCard bill={activePreviewBill} />
+            {/* Hidden persistent 4-in-1 container for seamless 4-in-1 export */}
+            <div className="sr-only opacity-0 pointer-events-none absolute -left-[9999px]">
+              <main id="four-in-one-a4-sheet" className="p-4 bg-white">
+                <div className="bill-grid-sheet">
+                  {[0, 1, 2, 3].map((slotIdx) => {
+                    const billForSlot = previewRealBills[slotIdx] || fallbackSampleBill
+                    return (
+                      <BillSlipCard key={slotIdx} bill={billForSlot} />
+                    )
+                  })}
+                </div>
+              </main>
+            </div>
           </div>
         )}
 
@@ -1269,7 +1297,7 @@ function Bills() {
                 className="h-10 px-4 rounded-xl border border-blue-400 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#002b66] shadow-2xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">download</span>
-                {downloadingPdf ? 'Downloading...' : 'Download This Bill (PDF)'}
+                {downloadingPdf ? 'Downloading...' : 'Download Bill (4 on 1 Page)'}
               </button>
             )}
 
@@ -1503,7 +1531,7 @@ function Bills() {
                       className="h-10 px-4 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#002b66] shadow-2xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                     >
                       <span className="material-symbols-outlined text-[16px]">download</span>
-                      {downloadingPdf ? 'Downloading...' : 'Download This Bill (PDF)'}
+                      {downloadingPdf ? 'Downloading...' : 'Download Bill (4 on 1 Page)'}
                     </button>
 
                     <button
