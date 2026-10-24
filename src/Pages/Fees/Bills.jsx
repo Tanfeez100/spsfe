@@ -212,6 +212,12 @@ function Bills() {
         },
         roll: student.roll_no || student.admission_number || '-',
         name: student.name || 'Student',
+        mother_name: student.mother_name || '-',
+        admission_no: student.admission_number || student.scholar_no || student.roll_no || '-',
+        dob: student.date_of_birth || '-',
+        route: student.uses_transport ? (student.transport_route || 'etmadpur to school') : 'Local',
+        destination: student.address || 'Adhiyarin Ka Purava',
+        installment: billingMonth || 'OCT, NOV, DEC',
         tuition: tuitionAmount,
         lab: labAmount,
         computer: labAmount,
@@ -222,19 +228,38 @@ function Bills() {
         total: total,
       }
     })
-  }, [realStudents, feeStructures, feeHeads, selectedClass, selectedSection])
+  }, [realStudents, feeStructures, feeHeads, selectedClass, selectedSection, billingMonth])
 
-  // Exact Canva Template Fallback when no live student is loaded
+  // Exact Template Fallback when no live student is loaded
   const fallbackSampleBill = useMemo(() => ({
-    bill_number: 'B-1792409793612',
-    date: '19/10/2026',
-    student_name: 'Student',
-    father_name: '-',
-    class: selectedClass !== 'All Classes' ? selectedClass : '',
-    roll_no: '-',
-    items: [],
-    summary: {},
-  }), [selectedClass])
+    bill_number: '1748',
+    date: '29-10-2025',
+    student_name: 'Trivia',
+    father_name: 'Mr.',
+    mother_name: 'Mrs.',
+    admission_no: '11123',
+    class: 'CIT A+',
+    section: 'A',
+    roll_no: '12',
+    dob: '01-02-2017',
+    route: 'etmadpur to school',
+    destination: 'Adhiyarin Ka Purava',
+    installment: 'OCT, NOV, DEC',
+    items: [
+      { fee_name: 'TRANSPORT', amount: 1350 },
+      { fee_name: 'HOSTEL', amount: 15000 },
+      { fee_name: 'TUITION FEES NEW', amount: 1500 },
+      { fee_name: 'COMPUTER FEE', amount: 300 },
+      { fee_name: 'TRIVIA', amount: 250 },
+    ],
+    calculated_fee: 18400,
+    other_charges: 300,
+    concession: 1000,
+    net_payable: 17100,
+    paid_amount: 17000,
+    due_amount: 100,
+    remark: 'DEMO RECEIPT',
+  }), [])
 
   // Currently active bill for the live preview card
   const activePreviewBill = useMemo(() => {
@@ -1194,13 +1219,13 @@ function Bills() {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
           <span className="text-xs font-bold text-slate-600">
             {sheetViewMode === 'sheet' ? (
-              <>Showing 4 Receipts on 1 A4 Page · Exact Canva Template Layout</>
+              <>Showing 4 Receipts on 1 A4 Page · Official Fee Receipt Template</>
             ) : previewRealBills.length > 0 ? (
               <>
                 Showing student <strong>{previewIndex + 1}</strong> of <strong>{previewRealBills.length}</strong> (Roll: {previewRealBills[previewIndex]?.roll})
               </>
             ) : (
-              <>Official Canva Receipt Template (Ready to Download / Print)</>
+              <>Official Fee Receipt Template (Ready to Download / Print)</>
             )}
           </span>
 
@@ -1260,7 +1285,7 @@ function Bills() {
       </div>
 
       {/* ========================================================
-          CANVA BILL PREVIEW & DOWNLOAD MODAL
+          BILL PREVIEW & DOWNLOAD MODAL
           ======================================================== */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
@@ -1273,7 +1298,7 @@ function Bills() {
                     Official Fee Bill Preview ({billingMonth})
                   </h3>
                   <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-black text-[#002b66]">
-                    Canva Slip Design
+                    Receipt Slip Design
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
