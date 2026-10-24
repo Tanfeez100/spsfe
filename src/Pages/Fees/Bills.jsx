@@ -232,34 +232,32 @@ function Bills() {
 
   // Exact Template Fallback when no live student is loaded
   const fallbackSampleBill = useMemo(() => ({
-    bill_number: '1748',
-    date: '29-10-2025',
-    student_name: 'Trivia',
-    father_name: 'Mr.',
-    mother_name: 'Mrs.',
-    admission_no: '11123',
-    class: 'CIT A+',
-    section: 'A',
-    roll_no: '12',
-    dob: '01-02-2017',
-    route: 'etmadpur to school',
-    destination: 'Adhiyarin Ka Purava',
-    installment: 'OCT, NOV, DEC',
+    bill_number: 'REC-1001',
+    date: new Date().toLocaleDateString('en-GB'),
+    student_name: 'Aman Kumar',
+    father_name: 'Rajesh Kumar',
+    mother_name: 'Sunita Devi',
+    admission_no: 'SPS-2026-1042',
+    class: selectedClass !== 'All Classes' ? selectedClass : '1',
+    section: selectedSection !== 'All Sections' ? selectedSection : 'A',
+    roll_no: '01',
+    dob: '12-05-2018',
+    route: 'School Bus Route',
+    destination: 'West Champaran',
+    installment: billingMonth || 'OCTOBER 2026',
     items: [
-      { fee_name: 'TRANSPORT', amount: 1350 },
-      { fee_name: 'HOSTEL', amount: 15000 },
-      { fee_name: 'TUITION FEES NEW', amount: 1500 },
+      { fee_name: 'TUITION FEE', amount: 1500 },
       { fee_name: 'COMPUTER FEE', amount: 300 },
-      { fee_name: 'TRIVIA', amount: 250 },
+      { fee_name: 'TRANSPORT FEE', amount: 600 },
+      { fee_name: 'EXAM FEE', amount: 500 },
     ],
-    calculated_fee: 18400,
-    other_charges: 300,
-    concession: 1000,
-    net_payable: 17100,
-    paid_amount: 17000,
-    due_amount: 100,
-    remark: 'DEMO RECEIPT',
-  }), [])
+    calculated_fee: 2900,
+    concession: 0,
+    net_payable: 2900,
+    paid_amount: 2900,
+    due_amount: 0,
+    remark: 'FEE PAYMENT RECEIVED',
+  }), [selectedClass, selectedSection, billingMonth])
 
   // Currently active bill for the live preview card
   const activePreviewBill = useMemo(() => {
@@ -355,10 +353,24 @@ function Bills() {
         format: 'a4',
       })
 
-      const pdfWidth = 210
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+      const pageWidth = 210
+      const pageHeight = 297
+      const margin = 4
+      const maxW = pageWidth - margin * 2 // 202mm
+      const maxH = pageHeight - margin * 2 // 289mm
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST')
+      let finalWidth = maxW
+      let finalHeight = (canvas.height * finalWidth) / canvas.width
+
+      if (finalHeight > maxH) {
+        finalHeight = maxH
+        finalWidth = (canvas.width * finalHeight) / canvas.height
+      }
+
+      const xPos = margin + (maxW - finalWidth) / 2
+      const yPos = margin + (maxH - finalHeight) / 2
+
+      pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight, undefined, 'FAST')
       const fileName = `Star_Public_School_Bills_4in1_Sheet_${Date.now()}.pdf`
       pdf.save(fileName)
 
