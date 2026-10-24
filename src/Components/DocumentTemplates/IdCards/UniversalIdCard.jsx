@@ -5,6 +5,9 @@ import ClassicWhiteIdCard from './ClassicWhiteIdCard'
 import PremiumGradientIdCard from './PremiumGradientIdCard'
 import CompactVerticalIdCard from './CompactVerticalIdCard'
 import SmartIdentityIdCard from './SmartIdentityIdCard'
+import RoyalPrestigeIdCard from './RoyalPrestigeIdCard'
+import ModernTechDualToneIdCard from './ModernTechDualToneIdCard'
+import EliteClassicIdCard from './EliteClassicIdCard'
 
 export default function UniversalIdCard({
   templateId,
@@ -27,6 +30,12 @@ export default function UniversalIdCard({
   }
 
   switch (effectiveTemplateId) {
+    case 'id_card_royal_prestige':
+      return <RoyalPrestigeIdCard {...props} />
+    case 'id_card_modern_tech':
+      return <ModernTechDualToneIdCard {...props} />
+    case 'id_card_elite_classic':
+      return <EliteClassicIdCard {...props} />
     case 'id_card_classic_white':
       return <ClassicWhiteIdCard {...props} />
     case 'id_card_premium_gradient':
@@ -40,3 +49,4 @@ export default function UniversalIdCard({
       return <ModernBlueIdCard {...props} />
   }
 }
+

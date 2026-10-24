@@ -5,6 +5,8 @@ import { emitToast } from '../../Api/auth'
 import { getAllStudents } from '../../Api/students'
 import html2canvas from 'html2canvas-pro'
 import { jsPDF } from 'jspdf'
+import { useDocumentTemplates } from '../../context/DocumentTemplateContext'
+import { DOCUMENT_TEMPLATES } from '../../constants/documentTemplateRegistry'
 
 const SAMPLE_STUDENTS = [
   { ID: 'SPS-2026-01', Name: 'Ajay Kumar Giri', Class: '1', Section: 'A', Roll: '17', FatherName: 'Mathura Nand Giri', DOB: '12-12-2012', Mobile: '+91 94702 46849', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
@@ -87,6 +89,19 @@ function BatchIdCardGenerator({
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [downloadingPng, setDownloadingPng] = useState(false)
   const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false)
+
+  // Document Template Integration
+  const docContext = useDocumentTemplates()
+  const activeSystemTemplate = docContext?.getActiveTemplateId
+    ? docContext.getActiveTemplateId(cardType)
+    : (cardType === 'admit_card' ? 'admit_card_modern_blue' : 'id_card_royal_prestige')
+  const [selectedTemplate, setSelectedTemplate] = useState(activeSystemTemplate)
+
+  useEffect(() => {
+    setSelectedTemplate(activeSystemTemplate)
+  }, [activeSystemTemplate, cardType])
+
+  const availableTemplates = DOCUMENT_TEMPLATES[cardType] || []
 
   // Dynamic student counts for class selector badges from real data
   const classCounts = useMemo(() => {
@@ -351,7 +366,7 @@ function BatchIdCardGenerator({
       offscreenHost.style.transform = 'none'
       offscreenHost.style.zIndex = '-9999'
       offscreenHost.style.overflow = 'visible'
-      offscreenHost.style.background = '#ffffff'
+      offscreenHost.style.background = 'transparent'
 
       // Clone card element directly into offscreen host
       const clone = cardEl.cloneNode(true)
@@ -380,7 +395,7 @@ function BatchIdCardGenerator({
           useCORS: true,
           allowTaint: true,
           logging: false,
-          backgroundColor: '#ffffff',
+          backgroundColor: null,
           width: 350,
           height: 541,
         })
@@ -836,6 +851,36 @@ function BatchIdCardGenerator({
                       </button>
                     ))}
                   </div>
+
+                  {/* Card Design Template Selector */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 pl-1 hidden lg:inline">
+                      DESIGN:
+                    </span>
+                    <div className="relative">
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => {
+                          const newId = e.target.value
+                          setSelectedTemplate(newId)
+                          if (docContext?.setActiveTemplate) {
+                            docContext.setActiveTemplate(cardType, newId)
+                          }
+                        }}
+                        className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 pl-2.5 pr-7 py-1.5 text-xs font-black text-[#071d3f] shadow-2xs focus:border-[#071d3f] focus:outline-none cursor-pointer appearance-none max-w-[170px] sm:max-w-[210px] truncate"
+                        title="Choose Card Design Template"
+                      >
+                        {availableTemplates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined absolute right-1.5 top-1.5 pointer-events-none text-slate-400 text-sm">
+                        expand_more
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 2. Center Search Bar */}
@@ -981,6 +1026,7 @@ function BatchIdCardGenerator({
                                     validTill={validTillYear}
                                     orientation={orientation}
                                     cardType={cardType}
+                                    templateId={selectedTemplate}
                                     showPrintButton={false}
                                     showCutLines={false}
                                   />

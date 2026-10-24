@@ -37,6 +37,7 @@ function StudentIdCard({
   validTill = '2027',
   orientation = 'vertical',
   cardType = 'id_card', // 'id_card' | 'admit_card'
+  templateId = null,
   onPrint = null,
   showPrintButton = false,
   showCutLines = true,
@@ -156,10 +157,10 @@ function StudentIdCard({
   }, [qrData])
 
   // Global Active Document Template from Document Management System
-  let activeTemplateId = 'id_card_modern_blue'
+  let activeTemplateId = templateId || 'id_card_modern_blue'
   try {
     const docContext = useDocumentTemplates()
-    if (docContext?.getActiveTemplateId) {
+    if (!templateId && docContext?.getActiveTemplateId) {
       activeTemplateId = docContext.getActiveTemplateId(cardType === 'admit_card' ? 'admit_card' : 'id_card')
     }
   } catch {
