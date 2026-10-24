@@ -6,15 +6,50 @@ import html2canvas from 'html2canvas-pro'
 import { jsPDF } from 'jspdf'
 
 const SAMPLE_STUDENTS = [
-  { ID: 'SPS-2026-01', Name: 'Ajay Kumar Giri', Class: 'Nursery', Section: 'A', Roll: '17', FatherName: 'Mathura Nand Giri', DOB: '12-12-2012', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
-  { ID: 'SPS-2026-02', Name: 'Aarav Sharma', Class: 'Nursery', Section: 'A', Roll: '01', FatherName: 'Ramesh Sharma', DOB: '15-05-2013', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
-  { ID: 'SPS-2026-03', Name: 'Ananya Verma', Class: 'Nursery', Section: 'A', Roll: '02', FatherName: 'Sanjay Verma', DOB: '20-08-2013', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
-  { ID: 'SPS-2026-04', Name: 'Aryan Kumar', Class: 'Nursery', Section: 'A', Roll: '03', FatherName: 'Sunil Kumar', DOB: '11-01-2013', Address: 'Narkatiaganj, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
-  { ID: 'SPS-2026-05', Name: 'Ishita Patel', Class: 'Nursery', Section: 'A', Roll: '04', FatherName: 'Manoj Patel', DOB: '04-03-2013', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820112/public/ttmdyrriphttcmvbgqgk.jpg' },
-  { ID: 'SPS-2026-06', Name: 'Kavya Singh', Class: 'Nursery', Section: 'A', Roll: '05', FatherName: 'Rajesh Singh', DOB: '22-09-2012', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
-  { ID: 'SPS-2026-07', Name: 'Manish Pandey', Class: 'Nursery', Section: 'A', Roll: '06', FatherName: 'Dinesh Pandey', DOB: '18-07-2013', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
-  { ID: 'SPS-2026-08', Name: 'Neha Kumari', Class: 'Nursery', Section: 'A', Roll: '07', FatherName: 'Vinod Kumar', DOB: '30-11-2012', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
-  { ID: 'SPS-2026-09', Name: 'Rohan Gupta', Class: 'Nursery', Section: 'A', Roll: '08', FatherName: 'Pradeep Gupta', DOB: '09-02-2013', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
+  { ID: 'SPS-2026-01', Name: 'Ajay Kumar Giri', Class: 'Nursery', Section: 'A', Roll: '17', FatherName: 'Mathura Nand Giri', DOB: '12-12-2012', Mobile: '+91 94702 46849', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
+  { ID: 'SPS-2026-02', Name: 'Aarav Sharma', Class: 'Nursery', Section: 'A', Roll: '01', FatherName: 'Ramesh Sharma', DOB: '15-05-2013', Mobile: '+91 98765 43210', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
+  { ID: 'SPS-2026-03', Name: 'Ananya Verma', Class: 'Nursery', Section: 'A', Roll: '02', FatherName: 'Sanjay Verma', DOB: '20-08-2013', Mobile: '+91 98112 33445', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
+  { ID: 'SPS-2026-04', Name: 'Aryan Kumar', Class: 'Nursery', Section: 'A', Roll: '03', FatherName: 'Sunil Kumar', DOB: '11-01-2013', Mobile: '+91 99887 76655', Address: 'Narkatiaganj, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
+  { ID: 'SPS-2026-05', Name: 'Ishita Patel', Class: 'Nursery', Section: 'A', Roll: '04', FatherName: 'Manoj Patel', DOB: '04-03-2013', Mobile: '+91 98220 45116', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820112/public/ttmdyrriphttcmvbgqgk.jpg' },
+  { ID: 'SPS-2026-06', Name: 'Kavya Singh', Class: 'Nursery', Section: 'A', Roll: '05', FatherName: 'Rajesh Singh', DOB: '22-09-2012', Mobile: '+91 97110 55432', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
+  { ID: 'SPS-2026-07', Name: 'Manish Pandey', Class: 'Nursery', Section: 'A', Roll: '06', FatherName: 'Dinesh Pandey', DOB: '18-07-2013', Mobile: '+91 94500 12345', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
+  { ID: 'SPS-2026-08', Name: 'Neha Kumari', Class: 'Nursery', Section: 'A', Roll: '07', FatherName: 'Vinod Kumar', DOB: '30-11-2012', Mobile: '+91 94702 46849', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
+  { ID: 'SPS-2026-09', Name: 'Rohan Gupta', Class: 'Nursery', Section: 'A', Roll: '08', FatherName: 'Pradeep Gupta', DOB: '09-02-2013', Mobile: '+91 98765 43210', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
+]
+
+export const CARD_TEMPLATES = [
+  {
+    id: 'curved_gold',
+    name: 'Curved Gold Arch',
+    tag: 'Classic',
+    desc: 'Navy Arch Header with Golden Ribbon & Wave',
+    icon: 'stars',
+    accentColor: '#d4af37',
+  },
+  {
+    id: 'royal_prestige',
+    name: 'Royal Prestige',
+    tag: 'Luxury',
+    desc: 'Deep Navy & Double Gold Metallic Inlay Frame',
+    icon: 'workspace_premium',
+    accentColor: '#f59e0b',
+  },
+  {
+    id: 'modern_tech',
+    name: 'Modern Dual-Tone',
+    tag: 'Tech',
+    desc: 'Emerald & Navy Geometric Split with Active Badge',
+    icon: 'bolt',
+    accentColor: '#059669',
+  },
+  {
+    id: 'elite_classic',
+    name: 'Elite Classic',
+    tag: 'Ivory',
+    desc: 'Warm Ivory Card with Fluid Satin Ribbon Wave',
+    icon: 'diamond',
+    accentColor: '#071d3f',
+  },
 ]
 
 // Safe constructor helper for jsPDF across Vite / ESM environments
@@ -41,6 +76,7 @@ function BatchIdCardGenerator({
   const [selectedSection, setSelectedSection] = useState('all')
   const [validTillYear, setValidTillYear] = useState('2027')
   const [cardType, setCardType] = useState('id_card') // 'id_card' | 'admit_card'
+  const [cardTemplate, setCardTemplate] = useState('curved_gold') // 'curved_gold' | 'royal_prestige' | 'modern_tech' | 'elite_classic'
   const [orientation, setOrientation] = useState('vertical') // Default: Vertical (55mm x 85mm)
   const [cardsPerPage, setCardsPerPage] = useState(9) // Standard: 9 cards per A4 page (3x3 grid)
   const [searchTerm, setSearchTerm] = useState('')
@@ -49,6 +85,7 @@ function BatchIdCardGenerator({
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [downloadingPng, setDownloadingPng] = useState(false)
   const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false)
+  const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false)
 
   // Dynamic student counts for class selector badges
   const classCounts = useMemo(() => {
@@ -738,6 +775,102 @@ function BatchIdCardGenerator({
                       </button>
                     ))}
                   </div>
+
+                  {/* Design Template Switcher */}
+                  <div className="relative" id="design-template-container">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 pl-1">
+                        DESIGN:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsTemplateDropdownOpen(!isTemplateDropdownOpen)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-300 px-3 py-1.5 text-xs font-black text-amber-950 shadow-2xs transition-all cursor-pointer"
+                        title="Choose ID card design theme"
+                      >
+                        <span className="material-symbols-outlined text-[16px] text-amber-600">
+                          {CARD_TEMPLATES.find((t) => t.id === cardTemplate)?.icon || 'palette'}
+                        </span>
+                        <span>{CARD_TEMPLATES.find((t) => t.id === cardTemplate)?.name || 'Curved Gold'}</span>
+                        <span
+                          className="material-symbols-outlined text-sm text-amber-700 transition-transform duration-200"
+                          style={{ transform: isTemplateDropdownOpen ? 'rotate(180deg)' : 'none' }}
+                        >
+                          expand_more
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Design Popover Dropdown */}
+                    {isTemplateDropdownOpen && (
+                      <div className="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between">
+                          <span>Select Card Design</span>
+                          <span className="text-[9.5px] text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            4 Live Templates
+                          </span>
+                        </div>
+                        <div className="space-y-1 pt-1.5">
+                          {CARD_TEMPLATES.map((tmpl) => {
+                            const isSelected = cardTemplate === tmpl.id
+                            return (
+                              <button
+                                key={tmpl.id}
+                                type="button"
+                                onClick={() => {
+                                  setCardTemplate(tmpl.id)
+                                  setIsTemplateDropdownOpen(false)
+                                }}
+                                className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#071d3f] text-white shadow-xs'
+                                    : 'hover:bg-slate-50 text-slate-800'
+                                }`}
+                              >
+                                <div
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                    isSelected
+                                      ? 'bg-white/20 text-amber-300'
+                                      : 'bg-slate-100 text-slate-700'
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-base">
+                                    {tmpl.icon}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-black truncate">{tmpl.name}</span>
+                                    <span
+                                      className={`text-[8.5px] px-1.5 py-0.2 rounded-full font-bold uppercase ${
+                                        isSelected
+                                          ? 'bg-amber-400 text-slate-950'
+                                          : 'bg-slate-100 text-slate-500'
+                                      }`}
+                                    >
+                                      {tmpl.tag}
+                                    </span>
+                                  </div>
+                                  <p
+                                    className={`text-[10px] truncate ${
+                                      isSelected ? 'text-slate-200' : 'text-slate-400'
+                                    }`}
+                                  >
+                                    {tmpl.desc}
+                                  </p>
+                                </div>
+                                {isSelected && (
+                                  <span className="material-symbols-outlined text-base text-amber-400">
+                                    check
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 2. Center Search Bar */}
@@ -884,6 +1017,7 @@ function BatchIdCardGenerator({
                                     validTill={validTillYear}
                                     orientation={orientation}
                                     cardType={cardType}
+                                    cardTemplate={cardTemplate}
                                     showPrintButton={false}
                                     showCutLines={false}
                                   />
