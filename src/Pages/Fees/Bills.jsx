@@ -475,22 +475,24 @@ function Bills() {
     return canvas.toDataURL('image/png')
   }
 
-  // Generate Canva-Styled Official Star Public School Receipt PDF
+  // Generate Official Star Public School Receipt PDF (4 Bills per A4 Page)
   const generateReceiptPDF = (bills) => {
     if (!bills || bills.length === 0) return
     const doc = new jsPDF('p', 'mm', 'a4')
     doc.setLanguage('hi')
 
-    const pageWidth = doc.internal.pageSize.getWidth() // 210mm
-    const pageHeight = doc.internal.pageSize.getHeight() // 297mm
-
-    const margin = 8
-    const billWidth = (pageWidth - margin * 3) / 2 // ~93mm
-    const billHeight = (pageHeight - margin * 3) / 2 // ~136.5mm
+    const marginX = 5
+    const marginY = 5
+    const gapX = 4
+    const gapY = 5
+    const billWidth = 98
+    const billHeight = 138
 
     const formatBillAmount = (amount) => {
-      const numericAmount = Number(amount || 0)
-      return numericAmount === 0 ? '' : numericAmount.toLocaleString('en-IN')
+      if (amount === '' || amount === null || amount === undefined) return '-'
+      const numericAmount = Number(amount)
+      if (isNaN(numericAmount) || numericAmount === 0) return '-'
+      return numericAmount.toLocaleString('en-IN')
     }
 
     bills.forEach((bill, index) => {
@@ -502,95 +504,83 @@ function Bills() {
         doc.addPage()
       }
 
-      const x = margin + col * (billWidth + margin)
-      const y = margin + row * (billHeight + margin)
+      const x = marginX + col * (billWidth + gapX)
+      const y = marginY + row * (billHeight + gapY)
 
-      // 1. Card Container (White Background & Rounded Border)
+      // 1. Clean Receipt Border
       doc.setFillColor(255, 255, 255)
-      doc.setDrawColor(215, 222, 232)
+      doc.setDrawColor(0, 0, 0)
       doc.setLineWidth(0.4)
-      doc.roundedRect(x, y, billWidth, billHeight, 4, 4, 'FD')
+      doc.rect(x, y, billWidth, billHeight, 'FD')
 
-      // 2. Corner Waves (Top Right, Top Left, Bottom Right)
-      // Top-Right Gold & Navy Swoosh
-      doc.setFillColor(212, 175, 55) // Gold
-      doc.triangle(x + billWidth - 36, y, x + billWidth, y, x + billWidth, y + 26, 'F')
-      doc.setFillColor(0, 43, 102) // Navy
-      doc.triangle(x + billWidth - 32, y, x + billWidth, y, x + billWidth, y + 23, 'F')
-
-      // Top-Left Gold & Navy Arc
-      doc.setFillColor(212, 175, 55)
-      doc.triangle(x, y, x + 16, y, x, y + 16, 'F')
-      doc.setFillColor(0, 43, 102)
-      doc.triangle(x, y, x + 13, y, x, y + 13, 'F')
-
-      // Bottom-Right Gold & Navy Swoosh
-      doc.setFillColor(212, 175, 55)
-      doc.triangle(x + billWidth - 28, y + billHeight, x + billWidth, y + billHeight, x + billWidth, y + billHeight - 22, 'F')
-      doc.setFillColor(0, 43, 102)
-      doc.triangle(x + billWidth - 24, y + billHeight, x + billWidth, y + billHeight, x + billWidth, y + billHeight - 19, 'F')
-
-      // 3. School Logo (in circular white badge)
-      doc.setFillColor(255, 255, 255)
-      doc.circle(x + 9, y + 9, 6.5, 'F')
+      // 2. School Crest / Logo
       try {
-        doc.addImage(schoolLogo, 'PNG', x + 3.5, y + 3.5, 11, 11)
+        doc.addImage(schoolLogo, 'PNG', x + 2.5, y + 2.2, 9.5, 9.5)
       } catch (e) {
-        // logo fallback
+        // fallback
       }
 
-      // 4. Header Typography
-      doc.setTextColor(0, 43, 102)
+      // 3. School Header (Proper 2 lines address & phone number)
+      doc.setTextColor(0, 0, 0)
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(10.5)
-      doc.text('STAR PUBLIC SCHOOL', x + billWidth / 2 + 4, y + 5.5, { align: 'center' })
+      doc.setFontSize(9.5)
+      doc.text('STAR PUBLIC SCHOOL', x + billWidth / 2, y + 4.5, { align: 'center' })
 
-      doc.setTextColor(60, 70, 90)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(5.8)
+      doc.text('Meghwal mathia Bazar, West Champaran, Bihar - 845106', x + billWidth / 2, y + 7.8, { align: 'center' })
+
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(6.2)
-      doc.text(
-        'Meghwal mathia Bazar, West Champaran, Bihar 845106',
-        x + billWidth / 2 + 4,
-        y + 9.5,
-        { align: 'center', maxWidth: billWidth - 26 }
-      )
+      doc.text('Mob: 9006457330', x + billWidth / 2, y + 10.8, { align: 'center' })
 
-      doc.setTextColor(20, 30, 50)
       doc.setFontSize(6.8)
-      doc.text('Mob: 9006457330', x + billWidth / 2 + 4, y + 13.5, { align: 'center' })
+      doc.text('FEE RECEIPT', x + billWidth / 2, y + 14.2, { align: 'center' })
 
-      // 5. Student Details Info Box (Rounded Container)
-      const boxY = y + 16.5
-      const boxHeight = 15.5
-      doc.setFillColor(248, 250, 252)
-      doc.setDrawColor(215, 222, 232)
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(5.5)
+      doc.text('Office Copy', x + billWidth - 3, y + 14.2, { align: 'right' })
+
+      // Dotted Divider 1
+      doc.setDrawColor(0, 0, 0)
       doc.setLineWidth(0.3)
-      doc.roundedRect(x + 3, boxY, billWidth - 6, boxHeight, 2, 2, 'FD')
+      doc.setLineDashPattern([0.8, 0.8], 0)
+      doc.line(x + 2, y + 16, x + billWidth - 2, y + 16)
+      doc.setLineDashPattern([], 0)
 
-      const col1X = x + 5
-      const col2X = x + billWidth / 2 + 2
-      const billNo = bill.bill_number || `B-${Date.now().toString().slice(-8)}`
-      const billDate = bill.date ? new Date(bill.date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')
-      const studentName = bill.student_name || bill.name || 'Student'
-      const fatherName = bill.father_name || '-'
-      const className = `${bill.class || ''} ${bill.section ? `(${bill.section})` : ''}`.trim()
-      const rollNo = bill.roll_no || bill.roll || '-'
+      // 4. Student Details (Exactly our 6 fields with aligned colons)
+      const billNo = bill.bill_number || bill.invoice_number || bill.bill_id || bill.receipt_no || `REC-${Date.now().toString().slice(-6)}`
+      const billDate = bill.date
+        ? (bill.date.includes('/') || bill.date.includes('-') ? bill.date : new Date(bill.date).toLocaleDateString('en-GB'))
+        : new Date().toLocaleDateString('en-GB')
+      const studentName = bill.student_name || bill.student?.name || bill.name || 'Student'
+      const fatherName = bill.father_name || bill.student?.father_name || bill.student?.father || '-'
+      const className = `${bill.class || bill.student?.class || ''} ${bill.section || bill.student?.section ? `(${bill.section || bill.student?.section})` : ''}`.trim() || '-'
+      const rollNo = bill.roll_no || bill.student?.roll_no || bill.roll || '-'
 
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(6.5)
-      doc.setTextColor(20, 30, 60)
+      doc.setFontSize(6.2)
+      doc.setTextColor(0, 0, 0)
 
-      doc.text(`Bill No: ${billNo}`, col1X, boxY + 4)
-      doc.text(`Date: ${billDate}`, col2X, boxY + 4)
-      doc.text(`Student: ${studentName}`, col1X, boxY + 8.5)
-      doc.text(`Father: ${fatherName}`, col2X, boxY + 8.5)
-      doc.text(`Class: ${className}`, col1X, boxY + 13)
-      doc.text(`Roll: ${rollNo}`, col2X, boxY + 13)
+      const col1X = x + 3
+      const col2X = x + billWidth / 2 + 1.5
 
-      // 6. Left Column: Details & Description Tables
-      const tableWidth = 53
-      const tableLeftX = x + 3
-      const tableStartY = boxY + boxHeight + 2
+      doc.text(`Bill No   :  ${billNo}`, col1X, y + 19.5)
+      doc.text(`Date      :  ${billDate}`, col2X, y + 19.5)
+      doc.text(`Student :  ${studentName}`, col1X, y + 23)
+      doc.text(`Father   :  ${fatherName}`, col2X, y + 23)
+      doc.text(`Class    :  ${className}`, col1X, y + 26.5)
+      doc.text(`Roll       :  ${rollNo}`, col2X, y + 26.5)
+
+      // Dotted Divider 2
+      doc.setLineDashPattern([0.8, 0.8], 0)
+      doc.line(x + 2, y + 28.5, x + billWidth - 2, y + 28.5)
+      doc.setLineDashPattern([], 0)
+
+      // 5. Fee Particulars Table
+      const tableStartY = y + 29.5
+      const tableWidth = 62
+      const tableLeftX = x + 2.5
 
       const getAmount = (keyword) => {
         if (Array.isArray(bill.items)) {
@@ -600,55 +590,64 @@ function Bills() {
         return bill[keyword] ?? ''
       }
 
+      const tuitionFee = getAmount('tuition')
+      const examFee = getAmount('exam')
+      const annualFee = getAmount('annual')
+      const computerFee = getAmount('computer') || getAmount('lab')
+      const transportFee = getAmount('transport')
+      const previousDue = getAmount('due') || getAmount('previous')
+
       const detailsData = [
-        ['Tuition Fee', formatBillAmount(getAmount('tuition'))],
-        ['Exam Fee', formatBillAmount(getAmount('exam'))],
-        ['Annual Fee', formatBillAmount(getAmount('annual'))],
-        ['Computer Fee', formatBillAmount(getAmount('computer') || getAmount('lab'))],
-        ['Transport Fee', formatBillAmount(getAmount('transport'))],
-        ['Previous Due', formatBillAmount(getAmount('due') || getAmount('previous'))],
+        ['Tuition Fee', formatBillAmount(tuitionFee)],
+        ['Exam Fee', formatBillAmount(examFee)],
+        ['Annual Fee', formatBillAmount(annualFee)],
+        ['Computer Fee', formatBillAmount(computerFee)],
+        ['Transport Fee', formatBillAmount(transportFee)],
+        ['Previous Due', formatBillAmount(previousDue)],
       ]
 
       autoTable(doc, {
         startY: tableStartY,
-        head: [['Details', 'Rs.']],
+        head: [['PARTICULARS', 'Rs.']],
         body: detailsData,
         margin: { left: tableLeftX },
         tableWidth: tableWidth,
         columnStyles: {
-          0: { cellWidth: 38 },
-          1: { cellWidth: 15, halign: 'right' },
+          0: { cellWidth: 44 },
+          1: { cellWidth: 18, halign: 'right' },
         },
         styles: {
-          fontSize: 6.2,
-          cellPadding: 0.9,
-          fontStyle: 'bold',
-          textColor: [20, 25, 35],
+          fontSize: 6,
+          cellPadding: 1,
+          fontStyle: 'normal',
+          textColor: [0, 0, 0],
           font: 'helvetica',
-          lineColor: [225, 230, 238],
-          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          lineWidth: 0.1,
         },
         headStyles: {
-          fillColor: [10, 56, 117],
-          textColor: [255, 255, 255],
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
           font: 'helvetica',
           fontStyle: 'bold',
-          fontSize: 6.5,
+          fontSize: 6.2,
           cellPadding: 1.1,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.2,
         },
-        theme: 'grid',
+        theme: 'plain',
       })
 
-      const detailsEndY = doc.lastAutoTable.finalY + 1.5
+      const detailsEndY = doc.lastAutoTable.finalY + 1
 
-      // Description Summary Table
-      const totalAmount = bill.summary?.total_amount ?? (bill.total ?? '')
-      const advanceAmount = bill.summary?.advance_used ?? (bill.advance ?? '')
-      const netPayable = bill.summary?.net_payable ?? (bill.netPayable ?? totalAmount)
+      // Summary
+      const summary = bill.summary || {}
+      const totalAmount = summary.total_amount ?? (bill.total ?? '')
+      const advanceAmount = summary.advance_used ?? (bill.advance ?? '')
+      const netPayable = summary.net_payable ?? (bill.netPayable ?? totalAmount)
 
       autoTable(doc, {
         startY: detailsEndY,
-        head: [['Description', 'Rs.']],
         body: [
           ['Total', formatBillAmount(totalAmount)],
           ['Advance', formatBillAmount(advanceAmount)],
@@ -657,94 +656,65 @@ function Bills() {
         margin: { left: tableLeftX },
         tableWidth: tableWidth,
         columnStyles: {
-          0: { cellWidth: 38 },
-          1: { cellWidth: 15, halign: 'right' },
+          0: { cellWidth: 44, fontStyle: 'bold' },
+          1: { cellWidth: 18, halign: 'right', fontStyle: 'bold' },
         },
         styles: {
           fontSize: 6.2,
           cellPadding: 0.9,
-          fontStyle: 'bold',
-          textColor: [20, 25, 35],
+          textColor: [0, 0, 0],
           font: 'helvetica',
-          lineColor: [225, 230, 238],
-          lineWidth: 0.2,
         },
-        headStyles: {
-          fillColor: [10, 56, 117],
-          textColor: [255, 255, 255],
-          font: 'helvetica',
-          fontStyle: 'bold',
-          fontSize: 6.5,
-          cellPadding: 1.1,
-        },
-        theme: 'grid',
+        theme: 'plain',
       })
 
-      // 7. Right Column: QR Code, Hindi Instruction, Stamp Seal
-      const qrSize = 25
-      const qrX = x + billWidth - qrSize - 4
-      const qrY = tableStartY
+      // 6. Right Column: QR Code, Hindi Text, School Stamp
+      const qrSize = 22
+      const qrX = x + tableWidth + 6
+      const qrY = tableStartY + 1
 
-      // QR container card
-      doc.setFillColor(255, 255, 255)
-      doc.setDrawColor(220, 226, 235)
-      doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 1.5, 1.5, 'FD')
-
+      // QR Code
       try {
         doc.addImage(PAYMENT_QR_URL, 'PNG', qrX, qrY, qrSize, qrSize)
       } catch (e) {
         // fallback
       }
 
-      // Golden flourish line
-      doc.setDrawColor(212, 175, 55)
-      doc.setLineWidth(0.3)
-      doc.line(qrX + 3, qrY + qrSize + 2, qrX + qrSize - 3, qrY + qrSize + 2)
-
-      // Hindi Text
+      // Hindi scan text
       try {
-        const hindiTextImage = renderTextAsImage('पेमेंट के लिए', 13, 'Arial, sans-serif')
-        doc.addImage(hindiTextImage, 'PNG', qrX - 8, qrY + qrSize + 2.5, 41, 7)
-        const hindiTextImage2 = renderTextAsImage('QR कोड स्कैन करें', 13, 'Arial, sans-serif')
-        doc.addImage(hindiTextImage2, 'PNG', qrX - 8, qrY + qrSize + 8, 41, 7)
+        const hindiImg1 = renderTextAsImage('पेमेंट के लिए', 12, 'Arial, sans-serif')
+        doc.addImage(hindiImg1, 'PNG', qrX - 5, qrY + qrSize + 1, 32, 5)
+        const hindiImg2 = renderTextAsImage('QR कोड स्कैन करें', 12, 'Arial, sans-serif')
+        doc.addImage(hindiImg2, 'PNG', qrX - 5, qrY + qrSize + 5.5, 32, 5)
       } catch (e) {
         // fallback
       }
 
-      // Circular Stamp Seal
-      const stampSize = 23
-      const stampY = qrY + qrSize + 17
+      // Stamp
+      const stampSize = 20
+      const stampY = qrY + qrSize + 13
       try {
-        doc.addImage(STAMP_CERT_URL, 'PNG', qrX + (qrSize - stampSize) / 2, stampY, stampSize, stampSize)
+        doc.addImage(STAMP_CERT_URL, 'PNG', qrX + 1, stampY, stampSize, stampSize)
       } catch (e) {
         // fallback
       }
 
-      // 8. Bottom Navy Signature Pill
-      const pillY = y + billHeight - 8.5
-      const pillH = 5.5
-      doc.setFillColor(0, 43, 102)
-      doc.roundedRect(x + 3, pillY, billWidth - 6, pillH, 2.75, 2.75, 'F')
+      // Dotted Divider 3
+      doc.setLineDashPattern([0.8, 0.8], 0)
+      doc.line(x + 2, y + billHeight - 9, x + billWidth - 2, y + billHeight - 9)
+      doc.setLineDashPattern([], 0)
 
-      // White circle inside pill
-      doc.setFillColor(255, 255, 255)
-      doc.circle(x + 6, pillY + 2.75, 1.8, 'F')
-      doc.setTextColor(0, 43, 102)
-      doc.setFontSize(5.5)
-      doc.text('✎', x + 5.2, pillY + 3.4)
-
-      // Signature text
-      doc.setTextColor(255, 255, 255)
+      // 7. Footer: Receiver Signature
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(6.5)
-      doc.text('Signature of Receiver: ________________________', x + 9.5, pillY + 3.7)
+      doc.setFontSize(6)
+      doc.text('Signature of Receiver: __________________________', x + 3, y + billHeight - 4)
+      doc.text('(Signature)', x + billWidth - 3, y + billHeight - 4, { align: 'right' })
     })
 
-    const fileName = bills.length === 1 && bills[0].student_name
-      ? `Star_Public_School_Bill_${bills[0].student_name.replace(/\s+/g, '_')}_${Date.now()}.pdf`
-      : `Star_Public_School_Bills_${Date.now()}.pdf`
-
+    const classLabel = selectedClass !== 'All Classes' ? `_Class_${selectedClass}` : ''
+    const fileName = `Star_Public_School_Bills${classLabel}_${Date.now()}.pdf`
     doc.save(fileName)
+    return fileName
   }
 
   // Handle Generate Monthly Bills using Real API and Data (NO DUMMY FALLBACK)
@@ -787,37 +757,46 @@ function Bills() {
       }
 
       // Fetch actual generated bills data for PDF printing
-      const downloadRes = await downloadBillsData({
-        month: monthParam,
-        class: selectedClass === 'All Classes' ? '' : selectedClass,
-      })
-
-      const generatedBills = Array.isArray(downloadRes?.bills)
-        ? downloadRes.bills
-        : (Array.isArray(downloadRes) ? downloadRes : [])
-
-      if (generatedBills.length > 0) {
-        generateReceiptPDF(generatedBills)
-        const successMsg = `Generated and downloaded ${generatedBills.length} official bills for ${selectedClass} (${monthParam}).`
-        setSuccess(successMsg)
-        emitToast({
-          type: 'success',
-          title: 'Monthly Bills Generated',
-          message: successMsg,
+      let billsToDownload = []
+      try {
+        const downloadRes = await downloadBillsData({
+          month: monthParam,
+          class: selectedClass === 'All Classes' ? '' : selectedClass,
         })
-      } else if (totalSuccessCount > 0) {
-        const successMsg = `Bills created for ${totalSuccessCount} active students for ${monthParam}.`
+
+        const generatedBills = Array.isArray(downloadRes?.bills)
+          ? downloadRes.bills
+          : (Array.isArray(downloadRes) ? downloadRes : [])
+
+        if (generatedBills.length > 0) {
+          billsToDownload = generatedBills
+        }
+      } catch (dlErr) {
+        console.warn('Could not fetch bills from download endpoint, using live student data:', dlErr)
+      }
+
+      // If downloadRes didn't return bills or was empty, use previewRealBills of all students in this class
+      if (!billsToDownload || billsToDownload.length === 0) {
+        billsToDownload = previewRealBills
+      }
+
+      // AUTOMATICALLY DOWNLOAD BILLS FOR ALL STUDENTS OF THE CLASS (4 ON 1 A4 PAGE)!
+      if (billsToDownload && billsToDownload.length > 0) {
+        generateReceiptPDF(billsToDownload)
+        const successMsg = `Bills generated & PDF downloaded for all ${billsToDownload.length} students in ${selectedClass} (${monthParam}).`
         setSuccess(successMsg)
         emitToast({
           type: 'success',
-          title: 'Bills Processed',
+          title: 'Bills Generated & Downloaded',
           message: successMsg,
         })
       } else {
+        const successMsg = `Bills processed for active students in ${selectedClass} (${monthParam}).`
+        setSuccess(successMsg)
         emitToast({
           type: 'info',
-          title: 'Bill Notice',
-          message: `Bills were evaluated. Active students for ${selectedClass} already have bills or month is closed.`,
+          title: 'Bills Evaluated',
+          message: successMsg,
         })
       }
     } catch (err) {
