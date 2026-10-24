@@ -89,6 +89,7 @@ function BatchIdCardGenerator({
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [downloadingPng, setDownloadingPng] = useState(false)
   const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false)
+  const [inspectingStudent, setInspectingStudent] = useState(null)
 
   // Document Template Integration
   const docContext = useDocumentTemplates()
@@ -909,6 +910,33 @@ function BatchIdCardGenerator({
                   </div>
                 </div>
 
+                {/* Live Sheet Zoom Controls */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel((z) => Math.max(75, z - 25))}
+                      disabled={zoomLevel <= 75}
+                      className="p-1 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                      title="Zoom Out Sheet Preview"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">zoom_out</span>
+                    </button>
+                    <span className="px-1.5 text-[10.5px] font-mono font-bold text-slate-700 min-w-[36px] text-center">
+                      {zoomLevel}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel((z) => Math.min(150, z + 25))}
+                      disabled={zoomLevel >= 150}
+                      className="p-1 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                      title="Zoom In Sheet Preview"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">zoom_in</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* 3. Right Action Cluster (Emerald PDF, Navy/Gold Print, PNG) */}
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Download PDF Button */}
@@ -1017,10 +1045,11 @@ function BatchIdCardGenerator({
                             return (
                               <div
                                 key={st.ID || st.id || idx}
-                                className="sps-id-card-cell group"
-                                title={`${st.Name || st.name} (Roll: ${st.Roll || st.roll_no})`}
+                                className="sps-id-card-cell group cursor-pointer hover:ring-2 hover:ring-blue-600 hover:shadow-lg transition-all"
+                                title={`Click to inspect ${st.Name || st.name} full size`}
+                                onClick={() => setInspectingStudent(st)}
                               >
-                                <div className="sps-card-scaler">
+                                <div className="sps-card-scaler pointer-events-none">
                                   <StudentIdCard
                                     student={st}
                                     validTill={validTillYear}
@@ -1032,11 +1061,22 @@ function BatchIdCardGenerator({
                                   />
                                 </div>
 
+                                {/* On-hover Inspect Pill Badge */}
+                                <div className="sps-print-no-show absolute inset-0 bg-[#071d3f]/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-20 pointer-events-none">
+                                  <span className="bg-[#071d3f] text-white text-[9.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1 border border-white/40">
+                                    <span className="material-symbols-outlined text-xs text-amber-300">visibility</span>
+                                    <span>Inspect Full</span>
+                                  </span>
+                                </div>
+
                                 {/* On-hover quick single card download button (Hidden on print) */}
                                 <div className="sps-print-no-show absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-30">
                                   <button
                                     type="button"
-                                    onClick={() => handleDownloadSingleCardPNG(st, cardId)}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDownloadSingleCardPNG(st, cardId)
+                                    }}
                                     className="h-6 w-6 rounded-full bg-[#071d3f] text-white flex items-center justify-center shadow-md hover:bg-emerald-700 transition-colors"
                                     title="Download this single ID card as PNG"
                                   >
@@ -1058,6 +1098,73 @@ function BatchIdCardGenerator({
           </div>
         )}
       </div>
+
+      {/* Full-Resolution Card Inspector Modal */}
+      {inspectingStudent && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="w-full flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-base font-black text-slate-900">
+                  {inspectingStudent.Name || inspectingStudent.name}
+                </h3>
+                <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                  Roll #{inspectingStudent.Roll || inspectingStudent.roll_no || '0'} · Class {inspectingStudent.Class || inspectingStudent.class}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingStudent(null)}
+                className="h-8 w-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Native 100% Unscaled Card Display */}
+            <div className="my-5 p-4 bg-slate-100/80 rounded-2xl border border-slate-200 flex justify-center shadow-inner overflow-auto max-w-full">
+              <div id="inspector-card-target" className="shadow-2xl rounded-[18px]">
+                <StudentIdCard
+                  student={inspectingStudent}
+                  validTill={validTillYear}
+                  orientation={orientation}
+                  cardType={cardType}
+                  templateId={selectedTemplate}
+                  showPrintButton={false}
+                  showCutLines={false}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="w-full pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-slate-500 font-medium">
+                Standard CR-80 PVC Dimensions (54mm × 85.6mm) · 350px × 541px
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadSingleCardPNG(inspectingStudent, 'inspector-card-target')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-xs font-extrabold shadow-sm cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">download</span>
+                  <span>Download Ultra-HD PNG</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#071d3f] hover:bg-[#122e58] text-white text-xs font-extrabold shadow-sm cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base text-amber-300">print</span>
+                  <span>Print Card</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -94,13 +94,13 @@ export default function RoyalPrestigeIdCard({
       {/* 2. Photo: Inset Beveled Golden Frame */}
       <div className="z-10 flex flex-col items-center my-auto">
         <div className="relative p-1 bg-gradient-to-br from-[#fde68a] via-[#d4af37] to-[#785412] rounded-[10px] shadow-xl">
-          <div className="w-[104px] h-[122px] bg-[#071426] rounded-[8px] p-0.5 border border-[#d4af37]/60 overflow-hidden flex items-center justify-center">
+          <div className="w-[94px] h-[110px] bg-[#071426] rounded-[8px] p-0.5 border border-[#d4af37]/60 overflow-hidden flex items-center justify-center">
             {photo ? (
               <img src={photo} alt={studentName} className="w-full h-full object-cover rounded-[6px]" />
             ) : (
               <div className="w-full h-full bg-[#0a1b32] flex flex-col items-center justify-center text-[#d4af37]/60">
-                <span className="material-symbols-outlined text-4xl">person</span>
-                <span className="text-[8px] font-sans font-bold tracking-wider mt-0.5">PHOTO</span>
+                <span className="material-symbols-outlined text-3xl">person</span>
+                <span className="text-[7.5px] font-sans font-bold tracking-wider mt-0.5">PHOTO</span>
               </div>
             )}
           </div>
@@ -111,33 +111,39 @@ export default function RoyalPrestigeIdCard({
           <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-[#fde68a] rounded-full border border-[#785412]" />
         </div>
 
-        {/* Student Name & Grade */}
-        <h2 className="text-[17px] font-black tracking-[0.08em] text-[#f6e5ad] mt-2 text-center uppercase leading-tight truncate max-w-[310px]">
+        {/* Student Name */}
+        <h2 className="text-[16px] font-black tracking-[0.08em] text-[#f6e5ad] mt-1.5 text-center uppercase leading-tight truncate max-w-[310px]">
           {studentName}
         </h2>
-        <p className="text-[12px] font-semibold text-[#d4af37] tracking-wider mt-0.5 font-sans">
-          Student, Gr. {rawClass}{studentSection}
-        </p>
 
         {/* Ribbon Pill: STUDENT IDENTITY CARD */}
-        <div className="my-1.5 flex items-center gap-2">
-          <span className="text-[9px] text-[#d4af37]">★</span>
-          <span className="text-[10px] font-black tracking-[0.2em] text-[#fae8b4] uppercase">
+        <div className="my-1 flex items-center gap-1.5">
+          <span className="text-[8px] text-[#d4af37]">★</span>
+          <span className="text-[9.5px] font-black tracking-[0.2em] text-[#fae8b4] uppercase">
             STUDENT IDENTITY CARD
           </span>
-          <span className="text-[9px] text-[#d4af37]">★</span>
+          <span className="text-[8px] text-[#d4af37]">★</span>
         </div>
 
-        {/* Key Metadata Row */}
-        <div className="text-[10px] text-[#d4af37]/90 font-sans tracking-wide space-y-0.5 text-center">
-          <p className="font-mono">
-            ID: <strong className="text-white">{admissionNo}</strong> · DOB: <strong className="text-white">{dob}</strong> · VALID: <strong className="text-white">{validTill}</strong>
-          </p>
-          {mobile && (
-            <p className="text-[9.5px] text-slate-300 font-mono">
-              Contact: {mobile} {fatherName ? `· Father: ${fatherName}` : ''}
-            </p>
-          )}
+        {/* Primary Details Box (Complete School Details) */}
+        <div className="w-[305px] bg-[#061120]/90 border border-[#d4af37]/50 rounded-lg p-2 text-[10.5px] font-sans text-[#ecd696] space-y-1 shadow-inner">
+          <div className="flex justify-between items-center border-b border-[#d4af37]/25 pb-0.5">
+            <span className="text-[#d4af37] text-[9.5px] uppercase font-bold tracking-wider">Class & Roll:</span>
+            <span className="font-bold text-white">Class {rawClass} ({studentSection}) &nbsp;·&nbsp; Roll #{rollNo}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-[#d4af37]/25 pb-0.5">
+            <span className="text-[#d4af37] text-[9.5px] uppercase font-bold tracking-wider">Father's Name:</span>
+            <span className="font-semibold text-white truncate max-w-[190px]">{fatherName}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-[#d4af37]/25 pb-0.5">
+            <span className="text-[#d4af37] text-[9.5px] uppercase font-bold tracking-wider">Contact / Mob:</span>
+            <span className="font-mono font-bold text-white">{mobile || '+91 94702 46849'}</span>
+          </div>
+          <div className="flex justify-between items-center text-[9.5px] pt-0.5 font-mono">
+            <span>ID: <strong className="text-white">{admissionNo}</strong></span>
+            <span>DOB: <strong className="text-white">{dob}</strong></span>
+            <span>Valid: <strong className="text-[#fde047]">{validTill}</strong></span>
+          </div>
         </div>
       </div>
 

@@ -112,43 +112,41 @@ export default function EliteClassicIdCard({
       {/* 3. Centered Golden Framed Photo (Intersecting Ribbon) */}
       <div className="flex flex-col items-center z-20 mt-4">
         <div className="relative p-1 bg-gradient-to-br from-[#fde047] via-[#d4af37] to-[#854d0e] rounded-[6px] shadow-xl">
-          <div className="w-[102px] h-[122px] bg-white rounded-[4px] p-0.5 border border-[#ca8a04] overflow-hidden flex items-center justify-center">
+          <div className="w-[94px] h-[110px] bg-white rounded-[4px] p-0.5 border border-[#ca8a04] overflow-hidden flex items-center justify-center">
             {photo ? (
               <img src={photo} alt={studentName} className="w-full h-full object-cover rounded-[2px]" />
             ) : (
               <div className="w-full h-full bg-[#f4ecd8] flex flex-col items-center justify-center text-[#854d0e]">
-                <span className="material-symbols-outlined text-4xl">person</span>
-                <span className="text-[8px] font-sans font-bold tracking-wider mt-0.5">PHOTO</span>
+                <span className="material-symbols-outlined text-3xl">person</span>
+                <span className="text-[7.5px] font-sans font-bold tracking-wider mt-0.5">PHOTO</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Student Name & Grade */}
-        <h2 className="text-[17px] font-black text-[#0f1d33] mt-2 tracking-tight text-center uppercase truncate max-w-[310px]">
+        {/* Student Name */}
+        <h2 className="text-[16px] font-black text-[#0f1d33] mt-1.5 tracking-tight text-center uppercase truncate max-w-[310px]">
           {studentName}
         </h2>
-        <p className="text-[11.5px] font-semibold text-[#854d0e] tracking-wide mt-0.5 font-sans">
-          Student, Gr. {rawClass}{studentSection}
-        </p>
 
-        {/* 2-Column Clean Metadata */}
-        <div className="mt-3 w-full px-6 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-sans text-slate-800">
-          <div>
-            <span className="text-slate-400 font-bold block text-[9.5px]">ID:</span>
-            <span className="font-mono font-black text-slate-900">{admissionNo}</span>
+        {/* Structured Primary Details Box */}
+        <div className="mt-1.5 w-[305px] bg-white/85 border border-[#e2d8c3] rounded-xl p-2 text-[10.5px] font-sans text-slate-800 space-y-1 shadow-2xs">
+          <div className="flex justify-between items-center border-b border-[#e2d8c3]/60 pb-0.5">
+            <span className="text-[#854d0e] text-[9.5px] uppercase font-bold tracking-wider">Class & Roll:</span>
+            <span className="font-bold text-slate-900">Class {rawClass} ({studentSection}) &nbsp;·&nbsp; Roll #{rollNo}</span>
           </div>
-          <div>
-            <span className="text-slate-400 font-bold block text-[9.5px]">GR:</span>
-            <span className="font-bold text-slate-900">{rawClass}</span>
+          <div className="flex justify-between items-center border-b border-[#e2d8c3]/60 pb-0.5">
+            <span className="text-[#854d0e] text-[9.5px] uppercase font-bold tracking-wider">Father's Name:</span>
+            <span className="font-semibold text-slate-900 truncate max-w-[190px]">{fatherName}</span>
           </div>
-          <div>
-            <span className="text-slate-400 font-bold block text-[9.5px]">ROLL:</span>
-            <span className="font-mono font-black text-slate-900">{rollNo}</span>
+          <div className="flex justify-between items-center border-b border-[#e2d8c3]/60 pb-0.5">
+            <span className="text-[#854d0e] text-[9.5px] uppercase font-bold tracking-wider">Mobile / Phone:</span>
+            <span className="font-mono font-bold text-slate-900">{mobile || '+91 94702 46849'}</span>
           </div>
-          <div>
-            <span className="text-slate-400 font-bold block text-[9.5px]">DOB:</span>
-            <span className="font-mono font-bold text-slate-900">{dob}</span>
+          <div className="flex justify-between items-center text-[9.5px] pt-0.5 font-mono">
+            <span>ID: <strong className="text-slate-900">{admissionNo}</strong></span>
+            <span>DOB: <strong className="text-slate-900">{dob}</strong></span>
+            <span>Valid: <strong className="text-[#854d0e]">{validTill}</strong></span>
           </div>
         </div>
       </div>

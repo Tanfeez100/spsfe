@@ -98,51 +98,53 @@ export default function ModernTechDualToneIdCard({
       {/* 2. Photo Section: Rounded Frame with Gold/Emerald Ring and Active Badge */}
       <div className="flex flex-col items-center z-10 -mt-2">
         <div className="relative p-1 rounded-full bg-gradient-to-tr from-[#059669] via-[#d4af37] to-[#071933] shadow-lg">
-          <div className="w-[102px] h-[102px] rounded-full p-0.5 bg-white overflow-hidden flex items-center justify-center">
+          <div className="w-[94px] h-[94px] rounded-full p-0.5 bg-white overflow-hidden flex items-center justify-center">
             {photo ? (
               <img src={photo} alt={studentName} className="w-full h-full object-cover rounded-full" />
             ) : (
               <div className="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                <span className="material-symbols-outlined text-4xl">person</span>
+                <span className="material-symbols-outlined text-3xl">person</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Glowing Pill Badge: ACTIVE */}
-        <div className="bg-emerald-600 text-white text-[8px] font-black tracking-widest uppercase px-3 py-0.5 rounded-full shadow-xs -mt-2.5 z-20 flex items-center gap-1 border border-white">
+        <div className="bg-emerald-600 text-white text-[8px] font-black tracking-widest uppercase px-3 py-0.5 rounded-full shadow-xs -mt-2 z-20 flex items-center gap-1 border border-white">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
           <span>ACTIVE</span>
         </div>
 
         {/* Student Name */}
-        <h2 className="text-[17px] font-black text-[#071933] mt-2 tracking-tight uppercase text-center truncate max-w-[310px]">
+        <h2 className="text-[16px] font-black text-[#071933] mt-1 tracking-tight uppercase text-center truncate max-w-[310px]">
           {studentName}
         </h2>
-        <p className="text-[11.5px] font-semibold text-slate-500 tracking-wide mt-0.5">
-          Student, Gr. {rawClass}{studentSection}
-        </p>
 
         {/* Two Deep Navy Pill Badges */}
-        <div className="flex items-center gap-2 mt-2">
-          <span className="bg-[#071933] text-white text-[10px] font-extrabold px-3 py-1 rounded-full tracking-wide uppercase shadow-2xs">
-            CLASS: {rawClass}th
+        <div className="flex items-center gap-2 mt-1">
+          <span className="bg-[#071933] text-white text-[9.5px] font-extrabold px-3 py-0.5 rounded-full tracking-wide uppercase shadow-2xs">
+            CLASS: {rawClass} ({studentSection})
           </span>
-          <span className="bg-[#071933] text-white text-[10px] font-mono font-extrabold px-3 py-1 rounded-full tracking-wide uppercase shadow-2xs">
+          <span className="bg-[#071933] text-white text-[9.5px] font-mono font-extrabold px-3 py-0.5 rounded-full tracking-wide uppercase shadow-2xs">
             ROLL NO: {rollNo}
           </span>
         </div>
 
-        {/* Metadata Details Line */}
-        <div className="mt-2 text-[10.5px] font-bold text-slate-700 tracking-wide text-center space-y-0.5">
-          <p className="font-mono">
-            ID: <strong className="text-slate-900">{admissionNo}</strong> &nbsp;·&nbsp; D.O.B: <strong className="text-slate-900">{dob}</strong>
-          </p>
-          {mobile && (
-            <p className="text-[9.5px] text-slate-500 font-mono">
-              Contact: {mobile}
-            </p>
-          )}
+        {/* Structured Primary Details Box */}
+        <div className="mt-1.5 w-[305px] bg-slate-50 border border-slate-200/90 rounded-xl p-2 text-[10.5px] font-sans text-slate-700 space-y-1 shadow-2xs">
+          <div className="flex justify-between items-center border-b border-slate-200/60 pb-0.5">
+            <span className="text-slate-400 text-[9.5px] uppercase font-bold tracking-wider">Father's Name:</span>
+            <span className="font-bold text-slate-900 truncate max-w-[190px]">{fatherName}</span>
+          </div>
+          <div className="flex justify-between items-center border-b border-slate-200/60 pb-0.5">
+            <span className="text-slate-400 text-[9.5px] uppercase font-bold tracking-wider">Mobile / Phone:</span>
+            <span className="font-mono font-bold text-emerald-800">{mobile || '+91 94702 46849'}</span>
+          </div>
+          <div className="flex justify-between items-center text-[9.5px] pt-0.5 font-mono">
+            <span>ID: <strong className="text-slate-900">{admissionNo}</strong></span>
+            <span>DOB: <strong className="text-slate-900">{dob}</strong></span>
+            <span>Valid: <strong className="text-slate-900">{validTill}</strong></span>
+          </div>
         </div>
       </div>
 
