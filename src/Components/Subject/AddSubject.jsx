@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { addSubjectToClass, addMultipleSubjectsToClass, getAllSubjects, getSubjectsForClass } from '../../Api/subjects'
+import {
+  addSubjectToClass,
+  addMultipleSubjectsToClass,
+  getAllSubjects,
+  getSubjectsForClass,
+} from '../../Api/subjects'
+import { CLASS_OPTIONS } from '../../constants/schoolOptions'
 
 function AddSubject({ isOpen, onClose, onSuccess }) {
   const [mode, setMode] = useState('single') // 'single' or 'multiple'
@@ -10,7 +16,7 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
     subject_name: '',
     subject_code: '',
     sequence: '',
-    subject_ids: ['']
+    subject_ids: [''],
   })
   const [allSubjects, setAllSubjects] = useState([])
   const [classSubjects, setClassSubjects] = useState([])
@@ -20,13 +26,14 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  // Fetch all subjects when modal opens
+  // Fetch all master subjects when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchAllSubjects()
     }
   }, [isOpen])
 
+  // Fetch class subjects when class/section change to suggest sequence
   useEffect(() => {
     const fetchClassSubjects = async () => {
       if (!isOpen || !formData.class.trim()) {
@@ -39,6 +46,18 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
         const response = await getSubjectsForClass(formData.class.trim(), formData.section.trim())
         const subjects = Array.isArray(response?.subjects) ? response.subjects : []
         setClassSubjects(subjects)
+
+        // Auto calculate next sequence if in single mode
+        if (mode === 'single' && !formData.sequence) {
+          const maxSeq = subjects.reduce((max, s) => {
+            const num = parseInt(s?.sequence, 10)
+            return Number.isFinite(num) && num > max ? num : max
+          }, 0)
+          setFormData((prev) => ({
+            ...prev,
+            sequence: String(maxSeq + 1),
+          }))
+        }
       } catch (err) {
         console.error('Failed to fetch class subjects:', err)
         setClassSubjects([])
@@ -48,7 +67,7 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
     }
 
     fetchClassSubjects()
-  }, [isOpen, formData.class, formData.section])
+  }, [isOpen, formData.class, formData.section, mode])
 
   const fetchAllSubjects = async () => {
     setLoadingSubjects(true)
@@ -66,30 +85,30 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }))
     setError('')
   }
 
   const handleSubjectSelect = (e) => {
     const subjectId = e.target.value
-    const selectedSubject = allSubjects.find(sub => sub.id === subjectId)
-    
+    const selectedSubject = allSubjects.find((sub) => sub.id === subjectId)
+
     if (selectedSubject) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         subject_id: selectedSubject.id,
         subject_name: selectedSubject.name,
-        subject_code: selectedSubject.code
+        subject_code: selectedSubject.code,
       }))
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         subject_id: '',
         subject_name: '',
-        subject_code: ''
+        subject_code: '',
       }))
     }
     setError('')
@@ -98,28 +117,40 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
   const handleMultipleSubjectSelect = (index, subjectId) => {
     const newSubjectIds = [...formData.subject_ids]
     newSubjectIds[index] = subjectId
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      subject_ids: newSubjectIds
+      subject_ids: newSubjectIds,
     }))
     setError('')
   }
 
   const addSubjectField = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      subject_ids: [...prev.subject_ids, '']
+      subject_ids: [...prev.subject_ids, ''],
     }))
   }
 
   const removeSubjectField = (index) => {
     if (formData.subject_ids.length > 1) {
       const newSubjectIds = formData.subject_ids.filter((_, i) => i !== index)
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        subject_ids: newSubjectIds
+        subject_ids: newSubjectIds,
       }))
     }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      class: '',
+      section: '',
+      subject_id: '',
+      subject_name: '',
+      subject_code: '',
+      sequence: '',
+      subject_ids: [''],
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -129,17 +160,22 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
 
     try {
       if (mode === 'single') {
-        // Single subject
         if (!formData.class || !formData.subject_name || !formData.subject_code || !formData.sequence) {
-          setError('Please fill all required fields')
+          setError('Please fill all required fields.')
           setLoading(false)
           return
         }
 
         const nextSequence = parseInt(formData.sequence, 10)
-        const duplicateSequence = classSubjects.some((subject) => Number(subject?.sequence) === nextSequence)
+        const duplicateSequence = classSubjects.some(
+          (subject) => Number(subject?.sequence) === nextSequence
+        )
         if (duplicateSequence) {
-          setError(`Sequence ${nextSequence} is already used for this class${formData.section ? ` / section ${formData.section}` : ''}.`)
+          setError(
+            `Sequence ${nextSequence} is already used in Class ${formData.class}${
+              formData.section ? ` (Sec ${formData.section})` : ''
+            }.`
+          )
           setLoading(false)
           return
         }
@@ -149,26 +185,28 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
           section: formData.section.trim(),
           subject_name: formData.subject_name,
           subject_code: formData.subject_code,
-          sequence: nextSequence || 1
+          sequence: nextSequence || 1,
         }
 
         const response = await addSubjectToClass(submitData)
 
-        if (response.success) {
+        if (response && response.success !== false) {
           setSuccess(true)
           setError('')
           resetForm()
           setTimeout(() => {
             setSuccess(false)
             onSuccess?.()
-            onClose()
-          }, 2000)
+            onClose?.()
+          }, 1200)
+        } else {
+          throw new Error(response?.message || 'Failed to add subject')
         }
       } else {
-        // Multiple subjects
-        const validSubjectIds = formData.subject_ids.filter(id => id && id.trim())
+        // Multiple subjects batch
+        const validSubjectIds = formData.subject_ids.filter((id) => id && id.trim())
         if (!formData.class || validSubjectIds.length === 0) {
-          setError('Please fill all required fields and select at least one subject')
+          setError('Please select a class and choose at least one subject.')
           setLoading(false)
           return
         }
@@ -176,383 +214,294 @@ function AddSubject({ isOpen, onClose, onSuccess }) {
         const submitData = {
           class: formData.class,
           section: formData.section.trim(),
-          subjects: validSubjectIds.map(subjectId => ({
-            subject_id: subjectId
-          }))
+          subjects: validSubjectIds.map((subjectId) => ({
+            subject_id: subjectId,
+          })),
         }
 
         const response = await addMultipleSubjectsToClass(submitData)
 
-        if (response.success) {
+        if (response && response.success !== false) {
           setSuccess(true)
           setError('')
           resetForm()
           setTimeout(() => {
             setSuccess(false)
             onSuccess?.()
-            onClose()
-          }, 2000)
+            onClose?.()
+          }, 1200)
+        } else {
+          throw new Error(response?.message || 'Failed to add subjects')
         }
       }
     } catch (err) {
-      // Handle duplicate key error
-      if (err?.error?.includes('duplicate key') || err?.error?.includes('unique constraint')) {
-        setError('This subject is already added to this class. Please select a different subject or class.')
-      } else if (err?.message) {
-        setError(err.message)
-      } else if (err?.error) {
-        setError(err.error)
-      } else {
-        setError('Failed to add subject(s). Please try again.')
-      }
+      const msg = err?.response?.data?.message || err?.message || 'Failed to assign subject(s)'
+      setError(msg)
     } finally {
       setLoading(false)
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      class: '',
-      subject_id: '',
-      subject_name: '',
-      subject_code: '',
-      sequence: '',
-      subject_ids: ['']
-      ,
-      section: ''
-    })
-  }
-
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ fontFamily: "'Lexend', sans-serif" }}>
-      {/* Blurred Background */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      ></div>
+  const labelClass = 'block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5'
+  const requiredMark = <span className="text-rose-500">*</span>
+  const inputClass =
+    'w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none'
 
-      {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={onClose} />
+
+      {/* Modal Dialog */}
+      <div className="relative z-10 w-full max-w-xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="sticky top-0 bg-cyan-500 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
-          <h2 className="text-xl font-black">Add Subject to Class</h2>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <span className="material-symbols-outlined text-xl">link</span>
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[#0f1e36]">
+                Assign Subject to Class
+              </h2>
+              <p className="text-xs text-slate-500">Attach master curriculum subjects to classrooms</p>
+            </div>
+          </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {success && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
-              <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                Subject(s) added successfully!
-              </p>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800 flex items-center gap-2">
+              <span className="material-symbols-outlined text-emerald-600 text-base">check_circle</span>
+              <span className="font-semibold">Subject(s) successfully assigned to class!</span>
             </div>
           )}
 
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800 flex items-center gap-2">
+              <span className="material-symbols-outlined text-rose-600 text-base">error</span>
+              <span className="font-medium">{error}</span>
             </div>
           )}
 
-          {/* Mode Toggle */}
-          <div className="flex items-center gap-4 p-3 bg-cyan-50/30 dark:bg-cyan-900/10 rounded-lg border border-cyan-200/30 dark:border-cyan-700/50">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Mode:</label>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="single"
-                  checked={mode === 'single'}
-                  onChange={(e) => {
-                    setMode(e.target.value)
-                    setError('')
-                  }}
-                  className="w-4 h-4 text-cyan-500 focus:ring-cyan-400"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">Single Subject</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="multiple"
-                  checked={mode === 'multiple'}
-                  onChange={(e) => {
-                    setMode(e.target.value)
-                    setError('')
-                  }}
-                  className="w-4 h-4 text-cyan-500 focus:ring-cyan-400"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">Multiple Subjects</span>
-              </label>
-            </div>
+          {/* Mode Selector Tabs */}
+          <div className="flex rounded-xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('single')
+                setError('')
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                mode === 'single'
+                  ? 'bg-white text-blue-700 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Single Subject
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('multiple')
+                setError('')
+              }}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                mode === 'multiple'
+                  ? 'bg-white text-blue-700 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Batch Allocation (Multiple)
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {/* Class */}
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Class <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">class</span>
-                <input
-                  type="text"
+          <form id="add-subject-form" onSubmit={handleSubmit} className="space-y-4">
+            {/* Class & Section Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Class {requiredMark}</label>
+                <select
                   name="class"
                   value={formData.class}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
-                  placeholder="Enter class (e.g., 1, 2, LKG)"
+                  className={inputClass}
                   required
-                />
+                >
+                  <option value="">Select Target Class</option>
+                  {CLASS_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      Class {c}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Section <span className="text-slate-400">(optional)</span>
-              </label>
-              <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">grid_view</span>
-                <input
-                  type="text"
+              <div>
+                <label className={labelClass}>Section Scope</label>
+                <select
                   name="section"
                   value={formData.section}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 uppercase"
-                  placeholder="Enter section (e.g., A, B)"
-                  style={{ textTransform: 'uppercase' }}
-                />
+                  className={inputClass}
+                >
+                  <option value="">All Sections (Default)</option>
+                  <option value="A">Section A</option>
+                  <option value="B">Section B</option>
+                  <option value="C">Section C</option>
+                  <option value="D">Section D</option>
+                </select>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                Section is optional. If empty, the subject will be added at class scope.
-              </p>
             </div>
-          </div>
 
-          {/* Single Subject Mode */}
-          {mode === 'single' && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Subject Dropdown */}
+            {/* Single Subject Mode */}
+            {mode === 'single' ? (
+              <div className="space-y-4 pt-2">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Subject <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                    <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">book</span>
-                    {loadingSubjects ? (
-                      <div className="w-full py-1.5 px-2 text-sm text-slate-500 dark:text-slate-400">
-                        Loading subjects...
-                      </div>
-                        ) : (
-                          <select
-                            name="subject_id"
-                            value={formData.subject_id}
-                            onChange={handleSubjectSelect}
-                        className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white dropdown-cyan"
-                        required
-                      >
-                        <option value="">Select Subject</option>
-                        {allSubjects.map((subject) => (
-                          <option key={subject.id} value={subject.id}>
-                            {subject.name} ({subject.code})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-
-                {/* Subject Code (Read-only) */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Subject Code
-                  </label>
-                  <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10">
-                    <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">code</span>
-                    <input
-                      type="text"
-                      name="subject_code"
-                      value={formData.subject_code}
-                      readOnly
-                      className="w-full bg-transparent border-none py-1.5 px-2 text-sm text-slate-600 dark:text-slate-400 cursor-not-allowed"
-                      placeholder="Auto-filled from subject"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Subject Name (Read-only) */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Subject Name
-                  </label>
-                  <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10">
-                    <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">book</span>
-                    <input
-                      type="text"
-                      name="subject_name"
-                      value={formData.subject_name}
-                      readOnly
-                      className="w-full bg-transparent border-none py-1.5 px-2 text-sm text-slate-600 dark:text-slate-400 cursor-not-allowed"
-                      placeholder="Auto-filled from subject"
-                    />
-                  </div>
-                </div>
-
-                {/* Sequence */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Sequence <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                    <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">sort</span>
-                    <input
-                      type="number"
-                      name="sequence"
-                      value={formData.sequence}
-                      onChange={handleChange}
-                      className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
-                      placeholder="Enter sequence number"
-                      min="1"
-                      required
-                    />
-                  </div>
-                  {loadingClassSubjects && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Checking existing subject positions...</p>
-                  )}
-                  {!loadingClassSubjects && formData.sequence && classSubjects.some((subject) => Number(subject?.sequence) === parseInt(formData.sequence, 10)) && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
-                      This sequence is already used in the selected class scope.
+                  <label className={labelClass}>Select Master Subject {requiredMark}</label>
+                  <select
+                    name="subject_id"
+                    value={formData.subject_id}
+                    onChange={handleSubjectSelect}
+                    className={inputClass}
+                    required
+                  >
+                    <option value="">Choose from master catalogue...</option>
+                    {allSubjects.map((subject) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name} ({subject.code})
+                      </option>
+                    ))}
+                  </select>
+                  {allSubjects.length === 0 && !loadingSubjects && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      No master subjects found. Please create a master subject first.
                     </p>
                   )}
                 </div>
-              </div>
-            </>
-          )}
 
-          {/* Multiple Subjects Mode */}
-          {mode === 'multiple' && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Select Subjects <span className="text-red-500">*</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={addSubjectField}
-                  className="text-xs text-cyan-200 hover:text-cyan-300 font-medium flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  Add More
-                </button>
+                {formData.subject_id && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className={labelClass}>Subject Code</label>
+                      <input
+                        type="text"
+                        value={formData.subject_code}
+                        readOnly
+                        className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-mono font-medium text-slate-600 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Curriculum Sequence {requiredMark}</label>
+                      <input
+                        type="number"
+                        name="sequence"
+                        min="1"
+                        placeholder="e.g. 1"
+                        value={formData.sequence}
+                        onChange={handleChange}
+                        className={inputClass}
+                        required
+                      />
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        Order in report cards (e.g. 1 for 1st subject).
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                {formData.subject_ids.map((subjectId, index) => {
-                  return (
+            ) : (
+              /* Multiple Subjects Mode */
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className={labelClass}>Select Subjects for Batch Mapping {requiredMark}</label>
+                  <span className="text-[11px] text-slate-400">
+                    {formData.subject_ids.length} selected
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {formData.subject_ids.map((subjectId, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <div className="flex-1 flex items-center border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/50 transition-all">
-                        <span className="material-symbols-outlined pl-2 text-cyan-200 text-base">book</span>
-                        {loadingSubjects ? (
-                          <div className="w-full py-1.5 px-2 text-sm text-slate-500 dark:text-slate-400">
-                            Loading subjects...
-                          </div>
-                        ) : (
-                          <select
-                            value={subjectId}
-                            onChange={(e) => handleMultipleSubjectSelect(index, e.target.value)}
-                            className="w-full bg-transparent border-none focus:ring-0 py-1.5 px-2 text-sm text-slate-900 dark:text-white dropdown-cyan"
-                          >
-                            <option value="">Select Subject {index + 1}</option>
-                            {allSubjects.map((subject) => (
-                              <option key={subject.id} value={subject.id}>
-                                {subject.name} ({subject.code})
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
+                      <select
+                        value={subjectId}
+                        onChange={(e) => handleMultipleSubjectSelect(index, e.target.value)}
+                        className={inputClass}
+                        required
+                      >
+                        <option value="">Select subject #{index + 1}...</option>
+                        {allSubjects.map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.name} ({sub.code})
+                          </option>
+                        ))}
+                      </select>
+
                       {formData.subject_ids.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeSubjectField(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Remove"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-200 text-rose-500 hover:bg-rose-50 transition-colors"
                         >
-                          <span className="material-symbols-outlined text-base">delete</span>
+                          <span className="material-symbols-outlined text-sm">close</span>
                         </button>
                       )}
                     </div>
-                  )
-                })}
-              </div>
-              {/* Display selected subjects summary */}
-              {formData.subject_ids.filter(id => id).length > 0 && (
-                <div className="mt-3 p-3 bg-cyan-50/30 dark:bg-cyan-900/10 rounded-lg border border-cyan-200/30 dark:border-cyan-700/50">
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                    Selected Subjects ({formData.subject_ids.filter(id => id).length}):
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.subject_ids
-                      .filter(id => id)
-                      .map((subjectId) => {
-                        const subject = allSubjects.find(sub => sub.id === subjectId)
-                        return subject ? (
-                          <span
-                            key={subjectId}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-900 dark:text-white"
-                          >
-                            <span className="font-medium">{subject.name}</span>
-                            <span className="text-slate-500 dark:text-slate-400">({subject.code})</span>
-                          </span>
-                        ) : null
-                      })}
-                  </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-bold text-white bg-cyan-500 hover:bg-cyan-500/90 rounded-lg shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-base">sync</span>
-                  <span>Adding...</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-base">check</span>
-                  <span>Add Subject{mode === 'multiple' ? 's' : ''}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+                <button
+                  type="button"
+                  onClick={addSubjectField}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+                >
+                  <span className="material-symbols-outlined text-sm text-blue-600">add</span>
+                  <span>Add Another Subject</span>
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2.5 bg-slate-50/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="add-subject-form"
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
+          >
+            {loading ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-sm">check</span>
+                <span>Assign to Class</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

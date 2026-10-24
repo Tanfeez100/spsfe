@@ -53,83 +53,68 @@ const getScopedClassSubjects = (classData) => {
   })
 }
 
-// Graduation cap SVG icon component
-const GraduationCapIcon = ({ className = "w-5 h-5" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M11.7 2.805a.75.75 0 0 1 .6 0A60.65 60.65 0 0 1 22.83 8.72a.75.75 0 0 1-.231 1.337 49.948 49.948 0 0 0-9.902 3.912l-.003.002c-.114.06-.227.119-.34.18a.75.75 0 0 1-.707 0A50.88 50.88 0 0 0 7.5 12.173v-.224c0-.131.067-.248.172-.311a54.615 54.615 0 0 1 4.653-2.52.75.75 0 0 0-.65-1.352 56.123 56.123 0 0 0-4.78 2.589 1.858 1.858 0 0 0-.859 1.228 49.803 49.803 0 0 0-4.634-1.527.75.75 0 0 1-.231-1.337A60.653 60.653 0 0 1 11.7 2.805Z" />
-    <path d="M13.06 15.473a48.45 48.45 0 0 1 7.666-3.282c.134 1.414.22 2.843.255 4.284a.75.75 0 0 1-.46.71 47.87 47.87 0 0 1-8.105 2.374.75.75 0 0 1-.832-.498 48.597 48.597 0 0 1-1.467-4.23l2.943.804ZM12 15.848l-2.663-.727a49.14 49.14 0 0 1-.938-3.868 49.136 49.136 0 0 1 7.015 2.502l-3.414.093Z" />
-  </svg>
-)
-
-// Chevron down SVG
-const ChevronDown = ({ className = "w-4 h-4" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
-    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-  </svg>
-)
-
-// Custom dropdown — uses fixed positioning to always render above other elements
 function ClassDropdown({ value, onChange, classes }) {
   const [open, setOpen] = useState(false)
-  const [dropdownStyle, setDropdownStyle] = useState({})
   const triggerRef = useRef(null)
   const dropdownRef = useRef(null)
 
   useEffect(() => {
     const handler = (e) => {
       if (
-        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target) &&
         (!dropdownRef.current || !dropdownRef.current.contains(e.target))
-      ) setOpen(false)
+      ) {
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const handleToggle = () => {
-    if (!open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-        zIndex: 9999,
-      })
-    }
-    setOpen(o => !o)
-  }
-
-  const options = [{ value: '', label: 'All Classes' }, ...(classes || []).map(cls => ({ value: cls.class, label: `Class ${cls.class}` }))]
-  const selected = options.find(o => o.value === value) || options[0]
+  const options = [
+    { value: '', label: 'All Classes' },
+    ...(classes || []).map((cls) => ({
+      value: cls.class,
+      label: `Class ${cls.class}`,
+    })),
+  ]
+  const selected = options.find((o) => o.value === value) || options[0]
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full sm:w-64">
       <button
         ref={triggerRef}
         type="button"
-        onClick={handleToggle}
-        className="w-full flex items-center gap-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 transition-all px-3 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-cyan-400 flex-shrink-0">
-          <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.25a.75.75 0 0 0 1 .707A8.237 8.237 0 0 1 6 18.75c1.995 0 3.823.707 5.25 1.886V4.533ZM12.75 20.636A8.214 8.214 0 0 1 18 18.75c.966 0 1.89.166 2.75.47a.75.75 0 0 0 1-.707V4.262a.75.75 0 0 0-.5-.707A9.735 9.735 0 0 0 18 3a9.707 9.707 0 0 0-5.25 1.533v16.103Z" />
-        </svg>
-        <span className="flex-1 text-left">{selected.label}</span>
-        <ChevronDown className={`w-4 h-4 text-cyan-400 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <div className="flex items-center gap-2 truncate">
+          <span className="material-symbols-outlined text-slate-400 text-base">filter_list</span>
+          <span>{selected.label}</span>
+        </div>
+        <span className="material-symbols-outlined text-slate-400 text-sm">
+          {open ? 'expand_less' : 'expand_more'}
+        </span>
       </button>
 
-      {/* Rendered via fixed position — never clipped by parent overflow or stacking context */}
       {open && (
-        <div ref={dropdownRef} style={dropdownStyle} className="rounded-lg border border-slate-200 bg-white shadow-2xl overflow-hidden">
+        <div
+          ref={dropdownRef}
+          className="absolute left-0 top-full z-50 mt-1.5 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        >
           {options.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => { onChange(opt.value); setOpen(false) }}
-              className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm transition-colors ${
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={`w-full text-left px-3.5 py-2 text-xs sm:text-sm transition-colors ${
                 opt.value === value
-                  ? 'bg-cyan-100 text-cyan-800 font-semibold'
-                  : 'text-slate-800 hover:bg-slate-100'
+                  ? 'bg-blue-50 text-blue-700 font-semibold'
+                  : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
               {opt.label}
@@ -166,7 +151,7 @@ function AllSubjectDetails() {
     try {
       const [subjectsResponse, classesResponse] = await Promise.all([
         getAllSubjects(),
-        getAllClasses()
+        getAllClasses(),
       ])
 
       let finalData = { ...subjectsResponse }
@@ -199,6 +184,16 @@ function AllSubjectDetails() {
       newExpanded.add(classValue)
     }
     setExpandedClasses(newExpanded)
+  }
+
+  const expandAll = () => {
+    if (data?.classes) {
+      setExpandedClasses(new Set(data.classes.map((c) => c.class)))
+    }
+  }
+
+  const collapseAll = () => {
+    setExpandedClasses(new Set())
   }
 
   const closeEditModal = () => {
@@ -235,7 +230,11 @@ function AllSubjectDetails() {
       })
 
     if (duplicate) {
-      setEditError(`Sequence ${nextSequence} is already used in this class${sectionScope ? ` / section ${sectionScope}` : ''}.`)
+      setEditError(
+        `Sequence ${nextSequence} is already used in this class${
+          sectionScope ? ` / section ${sectionScope}` : ''
+        }.`
+      )
       return
     }
 
@@ -259,8 +258,17 @@ function AllSubjectDetails() {
 
   const handleRemoveFromClass = async (subject) => {
     if (!subject?.id) return
-    const subjectLabel = `${subject.subject_name || 'Subject'}${subject.section ? ` (${subject.section})` : ''}`
-    if (!window.confirm(`Remove "${subjectLabel}" from Class ${subject.classValue || ''}? This will delete related marks and invalidate published results.`)) return
+    const subjectLabel = `${subject.subject_name || 'Subject'}${
+      subject.section ? ` (${subject.section})` : ''
+    }`
+    if (
+      !window.confirm(
+        `Remove "${subjectLabel}" from Class ${
+          subject.classValue || ''
+        }? This will unbind it from marksheets and assessments.`
+      )
+    )
+      return
 
     setRemovingSubjectId(subject.id)
     try {
@@ -281,192 +289,290 @@ function AllSubjectDetails() {
     data?.classes?.filter((cls) => !selectedClass || cls.class === selectedClass) || []
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-2xl sm:text-3xl font-black text-black">All Subject Details</h2>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+    <div className="space-y-6">
+      {/* 1. Header & Actions Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+            <span>SPS</span>
+            <span>/</span>
+            <span className="text-blue-600">ACADEMICS</span>
+            <span>/</span>
+            <span>SUBJECT MANAGEMENT</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0f1e36]">
+            Subject & Curriculum Directory
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Configure subjects, syllabus order, and class-wise mappings for Academic Session 2026–27.
+          </p>
+        </div>
+
+        {/* Action Buttons Matching Theme */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <button
+            type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-cyan-500 hover:bg-cyan-500/90 text-white font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-lg shadow-cyan-500/20 transition-all text-xs sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
-            <span className="material-symbols-outlined text-base">add</span>
-            <span className="hidden sm:inline">Add Subject</span>
-            <span className="sm:hidden">Add</span>
+            <span className="material-symbols-outlined text-base text-blue-600">add</span>
+            <span>New Master Subject</span>
           </button>
+
           <button
+            type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-cyan-500 hover:bg-cyan-500/90 text-white font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-lg shadow-cyan-500/20 transition-all text-xs sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#0f1e36] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#152e50] transition-all"
           >
-            <span className="material-symbols-outlined text-base">book</span>
-            <span className="hidden md:inline">Add to Class</span>
-            <span className="md:hidden">Add</span>
+            <span className="material-symbols-outlined text-base">link</span>
+            <span>Assign to Class</span>
           </button>
+
           <button
+            type="button"
             onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-lg shadow-red-600/20 transition-all text-xs sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 shadow-2xs hover:bg-rose-50 transition-all"
           >
-            <span className="material-symbols-outlined text-base">delete</span>
-            <span className="hidden sm:inline">Delete</span>
+            <span className="material-symbols-outlined text-base text-rose-500">delete</span>
+            <span>Manage & Delete</span>
           </button>
         </div>
       </div>
 
+      {/* Error Alert */}
       {error && (
-        <div className="p-2.5 sm:p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">{error}</p>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-rose-600 text-lg">error</span>
+            <span className="font-medium">{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setError('')}
+            className="text-rose-500 hover:text-rose-700 font-bold"
+          >
+            ×
+          </button>
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <span className="material-symbols-outlined animate-spin text-3xl sm:text-4xl text-cyan-200">sync</span>
-        </div>
-      )}
-
+      {/* 2. KPI Summary Cards */}
       {!loading && !error && data?.summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <div className="gps-kpi-card rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs sm:text-sm font-medium text-slate-600">Total Classes</span>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-cyan-300/15 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-cyan-200 text-base sm:text-lg">class</span>
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-black">{data.summary.total_classes}</p>
-          </div>
-
-          <div className="gps-kpi-card rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs sm:text-sm font-medium text-slate-300">Mappings</span>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-cyan-300/15 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-cyan-200 text-base sm:text-lg">link</span>
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-black">{data.summary.total_subject_mappings}</p>
-          </div>
-
-          <div className="gps-kpi-card rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs sm:text-sm font-medium text-slate-300">Unique Subjects</span>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-cyan-300/15 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-cyan-200 text-base sm:text-lg">book</span>
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-black">{data.summary.total_unique_subjects}</p>
-          </div>
-        </div>
-      )}
-
-      {!loading && !error && data?.classes && (
-        <div className="gps-card rounded-xl p-3 sm:p-4 shadow-sm border border-slate-200">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex items-center justify-between">
             <div>
-              <label className="block text-xs font-medium text-slate-200 mb-2">Filter by Class</label>
-              {/* Custom dropdown — fully controlled width and styling */}
-              <ClassDropdown
-                value={selectedClass}
-                onChange={setSelectedClass}
-                classes={data?.classes || []}
-              />
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Total Classes
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-[#0f1e36]">
+                {data.summary.total_classes}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-400">Classrooms enrolled</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <span className="material-symbols-outlined text-2xl">school</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Class Mappings
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-[#0f1e36]">
+                {data.summary.total_subject_mappings}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-400">Curriculum allocations</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <span className="material-symbols-outlined text-2xl">menu_book</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Unique Subjects
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-[#0f1e36]">
+                {data.summary.total_unique_subjects}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-400">In master catalogue</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <span className="material-symbols-outlined text-2xl">library_books</span>
             </div>
           </div>
         </div>
       )}
 
+      {/* 3. Filter Bar & Quick Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <ClassDropdown
+            value={selectedClass}
+            onChange={setSelectedClass}
+            classes={data?.classes || []}
+          />
+          {selectedClass && (
+            <button
+              type="button"
+              onClick={() => setSelectedClass('')}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+            >
+              Clear Filter
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={expandAll}
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            Expand All
+          </button>
+          <button
+            type="button"
+            onClick={collapseAll}
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            Collapse All
+          </button>
+        </div>
+      </div>
+
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-2xs">
+          <span className="material-symbols-outlined animate-spin text-3xl text-blue-600">sync</span>
+          <p className="mt-2 text-xs font-semibold text-slate-500">Loading curriculum data...</p>
+        </div>
+      )}
+
+      {/* 4. Class-wise Subjects List */}
       {!loading && !error && filteredClasses.length > 0 && (
-        <div className="space-y-2.5 sm:space-y-3">
+        <div className="space-y-4">
           {filteredClasses.map((classData) => {
             const classSubjects = getScopedClassSubjects(classData)
+            const isExpanded = expandedClasses.has(classData.class)
 
             return (
               <div
                 key={classData.class}
-                className="gps-card rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+                className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden transition-all"
               >
+                {/* Accordion Header */}
                 <button
+                  type="button"
                   onClick={() => toggleClass(classData.class)}
-                  className="w-full flex items-center justify-between p-3 sm:p-5 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 transition-all"
+                  className="w-full flex items-center justify-between p-4 sm:p-5 text-left bg-white hover:bg-slate-50/80 transition-colors"
                 >
-                  <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                    {/* FIX 2: Graduation cap SVG — no material-symbols, no black box */}
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0 text-slate-600">
-                      <GraduationCapIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e2ecf8] text-[#1d4ed8]">
+                      <span className="material-symbols-outlined text-xl">auto_stories</span>
                     </div>
-                    <div className="text-left min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">Class {classData.class}</h3>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">{classSubjects.length} Subjects</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-[#0f1e36]">
+                          Class {classData.class}
+                        </h3>
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">
+                          {classSubjects.length} {classSubjects.length === 1 ? 'Subject' : 'Subjects'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {classSubjects.length > 0
+                          ? `Sequence: ${classSubjects.map((s) => s.subject_name).slice(0, 4).join(', ')}${classSubjects.length > 4 ? '...' : ''}`
+                          : 'No subjects assigned yet'}
+                      </p>
                     </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-6 flex-shrink-0">
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Subjects</p>
-                      <p className="text-2xl font-black text-slate-900 dark:text-white">{classSubjects.length}</p>
-                    </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-slate-400 text-lg transition-transform duration-200">
+                      {isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+                    </span>
                   </div>
                 </button>
 
-                {expandedClasses.has(classData.class) && (
-                  <div className="p-3 sm:p-5 bg-slate-50/50">
-                    <div className="gps-card-soft rounded-lg p-3 sm:p-4 border border-slate-200">
-                      {classSubjects.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                          {classSubjects.map((subject, subjectIndex) => (
-                            <div
-                              key={subject.id || `${subject.subject_code}-${subjectIndex}`}
-                              className="bg-gradient-to-br from-slate-50 to-white rounded-lg p-2.5 sm:p-3 border border-slate-200 hover:border-cyan-400 hover:shadow-md transition-all"
-                            >
+                {/* Accordion Body */}
+                {isExpanded && (
+                  <div className="p-4 sm:p-5 pt-0 border-t border-slate-100 bg-[#fbfcfb]/50">
+                    {classSubjects.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pt-4">
+                        {classSubjects.map((subject, subjectIndex) => (
+                          <div
+                            key={subject.id || `${subject.subject_code}-${subjectIndex}`}
+                            className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all flex flex-col justify-between"
+                          >
+                            <div>
                               <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-1 line-clamp-2">
-                                    {subject.subject_name}
-                                  </h5>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">{subject.subject_code}</span>
-                                  </p>
-                                  <div className="mt-1 flex flex-wrap gap-1">
-                                    {subject.section ? (
-                                      <span className="inline-flex items-center rounded-full bg-cyan-50 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700">
-                                        Section {subject.section}
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                                        Class Scope
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                  <span className="flex-shrink-0 text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
-                                    #{subject.sequence}
+                                <span className="inline-flex items-center justify-center h-6 min-w-6 px-1.5 rounded-md bg-blue-50 text-[11px] font-bold text-blue-700 border border-blue-200">
+                                  #{subject.sequence}
+                                </span>
+
+                                {subject.section ? (
+                                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                    Sec {subject.section}
                                   </span>
-                                  {subject.id ? (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenEdit(subject)}
-                                        className="rounded-md border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-semibold text-cyan-700 hover:bg-cyan-100"
-                                      >
-                                        Edit
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveFromClass(subject)}
-                                        disabled={removingSubjectId === subject.id}
-                                        className="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
-                                      >
-                                        {removingSubjectId === subject.id ? 'Removing...' : 'Remove'}
-                                      </button>
-                                    </div>
-                                  ) : null}
-                                </div>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
+                                    All Sections
+                                  </span>
+                                )}
                               </div>
+
+                              <h4 className="mt-2 text-sm font-bold text-slate-900 line-clamp-1">
+                                {subject.subject_name}
+                              </h4>
+                              <p className="text-xs font-mono font-medium text-slate-400 mt-0.5">
+                                {subject.subject_code}
+                              </p>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">No subjects found for this class</p>
-                      )}
-                    </div>
+
+                            {/* Card Footer Actions */}
+                            {subject.id && (
+                              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEdit(subject)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+                                >
+                                  <span className="material-symbols-outlined text-xs text-slate-400">
+                                    swap_vert
+                                  </span>
+                                  <span>Order</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFromClass(subject)}
+                                  disabled={removingSubjectId === subject.id}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 transition-colors shadow-2xs"
+                                >
+                                  <span className="material-symbols-outlined text-xs">close</span>
+                                  <span>{removingSubjectId === subject.id ? '...' : 'Remove'}</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-slate-400">
+                        <span className="material-symbols-outlined text-3xl mb-1">menu_book</span>
+                        <p className="text-xs">No subjects mapped to Class {classData.class} yet.</p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddModalOpen(true)}
+                          className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                        >
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Assign subjects now
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -475,13 +581,18 @@ function AllSubjectDetails() {
         </div>
       )}
 
+      {/* Empty State */}
       {!loading && !error && filteredClasses.length === 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg p-6 sm:p-8 shadow-md border border-cyan-200/30 dark:border-cyan-800/50 text-center">
-          <span className="material-symbols-outlined text-3xl sm:text-4xl text-cyan-200 mb-2 block">book</span>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">No subjects found</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-2xs">
+          <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">menu_book</span>
+          <h3 className="text-base font-bold text-slate-800">No classes found</h3>
+          <p className="text-xs text-slate-500 mt-1">
+            No class curriculum matches the selected filter criteria.
+          </p>
         </div>
       )}
 
+      {/* Modals */}
       <CreateSubject
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -498,55 +609,58 @@ function AllSubjectDetails() {
         onSuccess={fetchSubjects}
       />
 
+      {/* Edit Sequence Modal Matching Theme */}
       {editingSubject && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl dark:bg-slate-800">
-            <div className="flex items-start justify-between gap-3">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={closeEditModal} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">Edit Subject Position</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <h3 className="text-lg font-bold text-[#0f1e36]">Update Subject Position</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
                   {editingSubject.subject_name}
-                  {editingSubject.section ? `, Section ${editingSubject.section}` : ''} in Class {editingSubject.classValue}
+                  {editingSubject.section ? ` (Sec ${editingSubject.section})` : ''} • Class{' '}
+                  {editingSubject.classValue}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeEditModal}
-                className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
               >
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
               </button>
             </div>
 
             <div className="mt-4 space-y-3">
               {editError && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-100">
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
                   {editError}
                 </div>
               )}
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
-                  New Sequence
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Display Sequence Number <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={editSequence}
                   onChange={(e) => setEditSequence(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
-                  placeholder="Enter sequence number"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                  placeholder="e.g. 1"
                 />
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  Sequence must be unique within the same class and section scope.
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  Defines the appearance order in marksheets, report cards, and student view.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center justify-end gap-2">
+            <div className="mt-6 flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={closeEditModal}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
@@ -554,17 +668,17 @@ function AllSubjectDetails() {
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={savingEdit}
-                className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
               >
                 {savingEdit ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-base">sync</span>
-                    Saving...
+                    <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-base">save</span>
-                    Save
+                    <span className="material-symbols-outlined text-sm">check</span>
+                    <span>Save Order</span>
                   </>
                 )}
               </button>
