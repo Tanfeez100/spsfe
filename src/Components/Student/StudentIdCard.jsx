@@ -114,25 +114,17 @@ function StudentIdCard({
     setImgError(false)
   }, [photoUrl])
 
-  // Full detailed student info for smartphone QR scanning
+  // Streamlined student info for instant smartphone camera QR scanning
   const qrLines = [
     'STAR PUBLIC SCHOOL',
-    '==============================',
-    cardType === 'admit_card' ? 'EXAMINATION ADMIT CARD' : 'OFFICIAL STUDENT ID CARD',
-    '==============================',
-    `Student: ${studentName}`,
+    `Name: ${studentName}`,
+    `Class: ${formattedClass} (Sec: ${studentSection})`,
     `Roll No: ${rollNo}`,
-    `Class & Sec: ${formattedClass} (Sec: ${studentSection})`,
-    `Adm No: ${admissionNo}`,
-    `Father's Name: ${fatherName}`,
-    `Contact No: ${mobileFormatted}`,
-    `Date of Birth: ${dob}`,
-    `Address: ${studentAddress}`,
-    `Academic Session: 2026-2027`,
-    `Valid Till: ${cardType === 'admit_card' ? '2026-27' : validTill}`,
-    '------------------------------',
-    'Star Public School, West Champaran',
-    'Status: OFFICIAL & ACTIVE STUDENT',
+    `Father: ${fatherName}`,
+    mobileFormatted ? `Phone: ${mobileFormatted}` : null,
+    dob ? `DOB: ${dob}` : null,
+    studentAddress ? `Address: ${studentAddress}` : null,
+    admissionNo ? `Adm No: ${admissionNo}` : null,
   ].filter(Boolean)
 
   const qrData = qrLines.join('\n')
@@ -142,10 +134,10 @@ function StudentIdCard({
     let isCurrent = true
     QRCode.toDataURL(qrData, {
       margin: 1,
-      width: 240,
-      errorCorrectionLevel: 'M',
+      width: 280,
+      errorCorrectionLevel: 'L',
       color: {
-        dark: '#071d3f',
+        dark: '#000000',
         light: '#ffffff',
       },
     })
@@ -361,12 +353,13 @@ function StudentIdCard({
             <div className="w-full flex items-end justify-between z-10 px-2 pt-1 pb-1 shrink-0 mt-1">
               {/* QR Code Container with Scan Label */}
               <div className="flex flex-col items-center">
-                <div className="sps-id-qr-box relative w-[62px] h-[62px] rounded-[10px] border-[2px] border-[#071d3f] bg-white p-1 shadow-xs flex items-center justify-center overflow-hidden">
+                <div className="sps-id-qr-box relative w-[68px] h-[68px] rounded-[8px] border-[1.5px] border-[#071d3f] bg-white p-0.5 shadow-xs flex items-center justify-center overflow-hidden">
                   <img
                     src={qrDataUrl || highQualityQr}
                     alt="Student QR"
                     crossOrigin="anonymous"
                     className="w-full h-full object-contain"
+                    style={{ imageRendering: 'pixelated' }}
                   />
                 </div>
                 <span className="text-[7.5px] font-black uppercase tracking-wider text-[#071d3f] mt-1 bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200">
@@ -609,11 +602,12 @@ function StudentIdCard({
               </p>
             </div>
 
-            <div className="sps-id-qr-box relative w-[76px] h-[76px] rounded-[10px] border-[2px] border-[#071d3f] bg-white p-1 shadow-xs flex items-center justify-center overflow-hidden">
+            <div className="sps-id-qr-box relative w-[76px] h-[76px] rounded-[10px] border-[1.5px] border-[#071d3f] bg-white p-0.5 shadow-xs flex items-center justify-center overflow-hidden">
               <img
                 src={qrDataUrl || highQualityQr}
                 alt="Student Verification QR"
                 className="w-full h-full object-contain"
+                style={{ imageRendering: 'pixelated' }}
               />
             </div>
           </div>
