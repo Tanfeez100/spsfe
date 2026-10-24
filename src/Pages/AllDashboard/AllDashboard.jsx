@@ -17,6 +17,7 @@ import { getAllSubjects } from '../../Api/subjects'
 import { getAttendanceBootstrap, getHolidayCalendar } from '../../Api/attendance'
 import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 import BatchIdCardGenerator from '../../Components/Student/BatchIdCardGenerator'
+import DocumentManagement from '../DocumentManagement/DocumentManagement'
 
 function Dashboard({ initialView = 'dashboard' }) {
   const navigate = useNavigate()
@@ -75,6 +76,7 @@ function Dashboard({ initialView = 'dashboard' }) {
     '/id-cards': 'idCards',
     '/students/id-cards': 'idCards',
     '/students/admit-cards': 'idCards',
+    '/document-management': 'documentManagement',
     '/class-promotion': 'classPromotion',
     '/subjects': 'subject',
     '/teachers': 'teachers',
@@ -955,6 +957,9 @@ function Dashboard({ initialView = 'dashboard' }) {
           )}
           {!isTeacher && activeView === 'classPromotion' && (
             <div className="w-full bg-white rounded-2xl border border-slate-200 p-6 shadow-xs"><ClassPromotion /></div>
+          )}
+          {!isTeacher && activeView === 'documentManagement' && (
+            <div className="w-full"><DocumentManagement /></div>
           )}
         </div>
 

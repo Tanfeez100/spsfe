@@ -56,10 +56,14 @@ class AppErrorBoundary extends Component {
   }
 }
 
+import { DocumentTemplateProvider } from './context/DocumentTemplateContext'
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
+      <DocumentTemplateProvider>
+        <App />
+      </DocumentTemplateProvider>
     </AppErrorBoundary>
   </StrictMode>,
 )

@@ -202,6 +202,7 @@ function App() {
             }
           >
             <Route path="/class-promotion" element={<Dashboard initialView="classPromotion" />} />
+            <Route path="/document-management" element={<Dashboard initialView="documentManagement" />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

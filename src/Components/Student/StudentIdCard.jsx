@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { schoolLogoBase64 as schoolLogo } from '../../assets/logoBase64'
 import { highQualityQrBase64 as highQualityQr } from '../../assets/highQualityQrBase64'
 import QRCode from 'qrcode'
+import { useDocumentTemplates } from '../../context/DocumentTemplateContext'
+import UniversalIdCard from '../DocumentTemplates/IdCards/UniversalIdCard'
+import UniversalAdmitCard from '../DocumentTemplates/AdmitCards/UniversalAdmitCard'
 
 const formatDateToIndian = (dateStr) => {
   if (!dateStr) return '12-12-2012'
@@ -151,6 +154,55 @@ function StudentIdCard({
       isCurrent = false
     }
   }, [qrData])
+
+  // Global Active Document Template from Document Management System
+  let activeTemplateId = 'id_card_modern_blue'
+  try {
+    const docContext = useDocumentTemplates()
+    if (docContext?.getActiveTemplateId) {
+      activeTemplateId = docContext.getActiveTemplateId(cardType === 'admit_card' ? 'admit_card' : 'id_card')
+    }
+  } catch {
+    // Context fallback
+  }
+
+  // Dynamic dispatch for Admit Card
+  if (cardType === 'admit_card') {
+    return (
+      <div className="sps-id-card-wrapper flex flex-col items-center">
+        <UniversalAdmitCard
+          id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
+          templateId={activeTemplateId}
+          student={student}
+        />
+      </div>
+    )
+  }
+
+  // Dynamic dispatch for ID Card (when template is switched from Modern Blue)
+  if (cardType === 'id_card' && activeTemplateId && activeTemplateId !== 'id_card_modern_blue') {
+    return (
+      <div className="sps-id-card-wrapper flex flex-col items-center">
+        <UniversalIdCard
+          id={`sps-id-card-${rollNo}-${studentName.replace(/\s+/g, '')}`}
+          templateId={activeTemplateId}
+          student={student}
+        />
+        {showPrintButton && (
+          <div className="mt-2 flex items-center gap-2 sps-print-no-show">
+            <button
+              type="button"
+              onClick={onPrint || (() => window.print())}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">print</span>
+              <span>Print This Card</span>
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // ==================== VERTICAL (PORTRAIT) EXACT REPLICA ====================
   if (orientation === 'vertical') {
