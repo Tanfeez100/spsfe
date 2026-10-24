@@ -1,9 +1,15 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import SEO from '../../Components/SEO/SEO'
+import Sidebar from '../../Components/Sidebar'
 import AddStudent from '../../Components/Student/AddStudent'
 
 export default function AddStudentPage() {
   const navigate = useNavigate()
+  const outletContext = useOutletContext() || {}
+  const [localSidebarOpen, setLocalSidebarOpen] = useState(false)
+  const sidebarOpen = outletContext.sidebarOpen ?? localSidebarOpen
+  const setSidebarOpen = outletContext.setSidebarOpen ?? setLocalSidebarOpen
 
   const handleClose = () => {
     navigate('/students')
@@ -14,30 +20,37 @@ export default function AddStudentPage() {
   }
 
   return (
-    <div className="w-full h-full min-h-0 overflow-y-auto table-scrollbar" style={{ fontFamily: "'Lexend', sans-serif" }}>
-      <div className="w-full min-h-full">
-        {/* Header with Back Button */}
-        <div className="mb-2 flex items-center gap-4 px-5 py-3 sm:px-8 sm:py-4">
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-900 dark:text-white"
-            title="Back to Students"
-          >
-            <span className="material-symbols-outlined text-2xl">arrow_back</span>
-          </button>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white">Add New Student</h1>
-        </div>
+    <>
+      <SEO
+        title="Add New Student | Star Public School"
+        description="Fresh student admission and registration studio for Star Public School."
+        canonicalPath="/students/add"
+      />
+      <div className="flex h-full w-full overflow-hidden bg-[#fbfcfb]">
+        {/* Left Sidebar matching Canva Blueprint (Active: student) */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+          activeView="student"
+          setActiveView={(view) => {
+            if (view === 'dashboard') navigate('/dashboard')
+            else if (view === 'student') navigate('/students')
+            else navigate(`/${view}`)
+          }}
+        />
 
-        {/* AddStudent Component - Full Page */}
-        <div className="px-4 sm:px-7 pb-5">
-          <AddStudent
-            isOpen={true}
-            onClose={handleClose}
-            onSuccess={handleSuccess}
-            fullPage={true}
-          />
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-[1400px]">
+            <AddStudent
+              isOpen={true}
+              onClose={handleClose}
+              onSuccess={handleSuccess}
+              fullPage={true}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

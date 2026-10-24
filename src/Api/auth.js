@@ -16,6 +16,12 @@ const normalizeApiBaseUrl = (url) => {
   if (value === "http://localhost:8000" || value === "http://127.0.0.1:8000") {
     return "http://localhost:5000";
   }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return value && value.startsWith("http://localhost") ? value : "http://localhost:5000";
+    }
+  }
   return value || getDefaultApiBaseUrl();
 };
 

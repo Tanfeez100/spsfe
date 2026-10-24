@@ -186,6 +186,12 @@ export const getInvoiceDetails = async (billId) =>
 export const closeMonth = async (month) =>
   withErrorHandling(() => api.post('/api/fees/close-month', { month }), 'Failed to close month')
 
+export const getMonthClosureStatus = async (month) =>
+  withErrorHandling(() => api.get('/api/fees/closure-status', { params: { month } }), 'Failed to fetch closure status')
+
+export const getAutoCloseCronStatus = async () =>
+  withErrorHandling(() => api.get('/api/fees/cron-status'), 'Failed to fetch cron status')
+
 export const getStudentDues = async (studentId) =>
   withErrorHandling(() => api.get(`/api/fees/dues/${studentId}`), 'Failed to fetch student dues')
 
@@ -307,6 +313,8 @@ export default {
   recordFeePayment,
   getInvoiceDetails,
   closeMonth,
+  getMonthClosureStatus,
+  getAutoCloseCronStatus,
   getStudentDues,
   downloadInvoicePDF,
   generateBillsPDF,

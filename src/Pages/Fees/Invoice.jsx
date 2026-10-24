@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getInvoiceDetails, downloadInvoicePDF } from '../../Api/fees';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import BillSlipCard from '../../Components/Fees/BillSlipCard';
 
 const formatCurrency = (value) =>
   `Rs. ${Number(value || 0).toLocaleString('en-IN', {
@@ -312,98 +313,28 @@ function Invoice({ billId: propBillId = '', onBillIdChange }) {
       {/* Invoice Details */}
       {invoiceData && (
         <>
-          {/* Printable Invoice View (A4/4 format) */}
-          <div className="hidden print:block" style={{ pageBreakInside: 'avoid' }}>
-            <div className="w-full max-w-4xl mx-auto" style={{ width: '210mm', height: '147.5mm', padding: '10mm', border: '2px solid #960000', fontFamily: 'Courier New' }}>
-              <div className="flex flex-col h-full">
-                {/* Header */}
-                <div className="text-center mb-2">
-                  <p style={{ fontSize: '10pt', fontWeight: 'bold', margin: '2px 0' }}>STAR PUBLIC SCHOOL</p>
-                  <p style={{ fontSize: '8pt', margin: '1px 0' }}>Meghwal mathia Bazar, West Champaran, Bihar 845106</p>
-                  <p style={{ fontSize: '8pt', margin: '1px 0' }}>Mob: 9006457330</p>
-                  <p style={{ fontSize: '9pt', fontWeight: 'bold', margin: '2px 0' }}>Invoice #{invoiceData.invoice_number || invoiceData.bill_id || '--'}</p>
-                </div>
+          {/* Printable Canva Fee Slip View */}
+          <div className="hidden print:flex print:items-center print:justify-center p-4">
+            <BillSlipCard bill={invoiceData} isPrint={true} />
+          </div>
 
-                {/* Student Details */}
-                <div style={{ fontSize: '8pt', marginBottom: '4mm', lineHeight: '1.4' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                    <span><strong>SI No:</strong> {invoiceData.bill_id || '--'}</span>
-                    <span><strong>Date:</strong> {invoiceData.date ? new Date(invoiceData.date).toLocaleDateString('en-IN') : '--'}</span>
-                    <span><strong>Student:</strong> {invoiceData.student?.name || '--'}</span>
-                    <span><strong>Roll No:</strong> {invoiceData.student?.roll_no || '--'}</span>
-                    <span><strong>Father:</strong> {invoiceData.student?.father_name || '--'}</span>
-                    <span><strong>Class:</strong> {invoiceData.student?.class || '--'} - {invoiceData.student?.section || '--'}</span>
-                    <span style={{ gridColumn: '1 / -1' }}><strong>Month:</strong> {invoiceData.month || '--'}</span>
-                  </div>
-                </div>
-
-                {/* Fee Items Table */}
-                {invoiceData.items && invoiceData.items.length > 0 && (
-                  <div style={{ fontSize: '8pt', marginBottom: '3mm', flex: 1 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#808080', color: '#000' }}>
-                          <th style={{ border: '1px solid #000', padding: '2px', textAlign: 'left', fontWeight: 'bold' }}>Details</th>
-                          <th style={{ border: '1px solid #000', padding: '2px', textAlign: 'right', fontWeight: 'bold' }}>Rs.</th>
-                          <th style={{ border: '1px solid #000', padding: '2px', textAlign: 'right', fontWeight: 'bold' }}>P</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoiceData.items.map((item, idx) => (
-                          <tr key={idx}>
-                            <td style={{ border: '1px solid #000', padding: '2px' }}>{item.fee_name || ''}</td>
-                            <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>{(item.amount || 0).toLocaleString('en-IN')}</td>
-                            <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>00</td>
-                          </tr>
-                        ))}
-                        <tr style={{ backgroundColor: '#d3d3d3' }}>
-                          <td style={{ border: '1px solid #000', padding: '2px', fontWeight: 'bold' }}>Total</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right', fontWeight: 'bold' }}>{(invoiceData.items.reduce((sum, i) => sum + (i.amount || 0), 0)).toLocaleString('en-IN')}</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right', fontWeight: 'bold' }}>00</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* Summary Table */}
-                {invoiceData.summary && (
-                  <div style={{ fontSize: '8pt', marginBottom: '3mm' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#808080', color: '#000' }}>
-                          <th style={{ border: '1px solid #000', padding: '2px', textAlign: 'left', fontWeight: 'bold' }}>Description</th>
-                          <th style={{ border: '1px solid #000', padding: '2px', textAlign: 'right', fontWeight: 'bold' }}>Rs.</th>
-                          <th style={{ border: '1px solid #000', padding: '2px', textAlign: 'right', fontWeight: 'bold' }}>P</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td style={{ border: '1px solid #000', padding: '2px', fontWeight: 'bold' }}>Total</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>{(invoiceData.summary.total_amount || 0).toLocaleString('en-IN')}</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>00</td>
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1px solid #000', padding: '2px', fontWeight: 'bold' }}>Advance</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>{(invoiceData.summary.advance_used || 0).toLocaleString('en-IN')}</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>00</td>
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1px solid #000', padding: '2px', fontWeight: 'bold' }}>Net Payable</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>{(invoiceData.summary.net_payable || 0).toLocaleString('en-IN')}</td>
-                          <td style={{ border: '1px solid #000', padding: '2px', textAlign: 'right' }}>00</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* Signature */}
-                <div style={{ fontSize: '8pt', marginTop: '2mm' }}>
-                  <p>Signature of Receiver: __________________</p>
-                </div>
-              </div>
+          {/* Canva Fee Slip Live Card Preview */}
+          <div className="print:hidden mb-6 flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50/70 rounded-3xl border border-slate-200 shadow-2xs">
+            <div className="w-full max-w-[430px] flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
+              <span className="text-xs font-black uppercase tracking-wider text-[#002b66] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                Official Canva Slip Preview
+              </span>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="h-8 px-3 rounded-xl bg-[#002b66] hover:bg-[#08224d] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[15px]">print</span>
+                Print Slip
+              </button>
             </div>
+            <BillSlipCard bill={invoiceData} />
           </div>
 
           {/* Screen Display View */}

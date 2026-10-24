@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { generateBulkBills, generateBillsForAllClasses, downloadBillsPDF } from '../../Api/fees'
+import { CLASS_OPTIONS } from '../../constants/schoolOptions'
 
 function BulkBillGeneration() {
   const [loading, setLoading] = useState(false)
@@ -216,15 +217,20 @@ function BulkBillGeneration() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Class {!generateForAll && <span className="text-red-500">*</span>}
             </label>
-            <input
-              type="text"
+            <select
               required={!generateForAll}
               disabled={generateForAll}
               value={formData.class}
               onChange={(e) => setFormData({ ...formData, class: e.target.value })}
-              placeholder={generateForAll ? "Not required for all classes" : "e.g., LKG, 1, 2, 3"}
               className="w-full px-3 py-2 border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
-            />
+            >
+              <option value="">{generateForAll ? "Not required for all classes" : "Select Class"}</option>
+              {CLASS_OPTIONS.map((cls) => (
+                <option key={cls} value={cls}>
+                  Class {cls}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

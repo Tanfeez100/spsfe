@@ -17,7 +17,7 @@ function ResultView() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-black text-[#0d141b] dark:text-white">Result View</h2>
-      
+
       {/* Overall Result Card */}
       <div className="bg-gradient-to-r from-[#137fec] to-[#0d5bb8] rounded-lg p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">

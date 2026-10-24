@@ -9,6 +9,8 @@ const AllLogin = lazy(() => import('./Pages/Auth/AllLogin'))
 const StudentLogin = lazy(() => import('./Pages/StudentAuth/StudentLogin'))
 const Dashboard = lazy(() => import('./Pages/AllDashboard/AllDashboard'))
 const AddStudentPage = lazy(() => import('./Pages/AllDashboard/AddStudentPage'))
+const EditStudentPage = lazy(() => import('./Pages/AllDashboard/EditStudentPage'))
+const IdCardGeneratorPage = lazy(() => import('./Pages/AllDashboard/IdCardGeneratorPage'))
 const Results = lazy(() => import('./Pages/Results/Results'))
 const ResultsPortal = lazy(() => import('./Pages/Results/ResultsPortal'))
 const Home = lazy(() => import('./Pages/Website/Home'))
@@ -168,6 +170,9 @@ function App() {
             }
           >
             <Route path="/students/add" element={<AddStudentPage />} />
+            <Route path="/students/edit/:id" element={<EditStudentPage />} />
+            <Route path="/students/id-cards" element={<IdCardGeneratorPage />} />
+            <Route path="/students/admit-cards" element={<IdCardGeneratorPage />} />
           </Route>
           <Route
             element={
@@ -178,6 +183,7 @@ function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/students" element={<Dashboard />} />
+            <Route path="/id-cards" element={<Dashboard initialView="idCards" />} />
             <Route path="/leave-rejoin" element={<Navigate to="/dashboard" replace />} />
             <Route path="/subjects" element={<Dashboard />} />
             <Route path="/teachers" element={<Dashboard />} />

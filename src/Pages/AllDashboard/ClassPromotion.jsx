@@ -224,12 +224,12 @@ function ClassPromotion() {
 
       {showConfirmModal && (
         <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={(e) => {
-              if (e.target === e.currentTarget && !submitting) {
-                setShowConfirmModal(false)
-              }
-            }}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) {
+              setShowConfirmModal(false)
+            }
+          }}
         >
           <div className="w-full max-w-lg rounded-xl border border-slate-200 gps-card p-4 sm:p-5 shadow-xl">
             <h3 className="text-lg font-bold text-white">Confirm Class Promotion</h3>
