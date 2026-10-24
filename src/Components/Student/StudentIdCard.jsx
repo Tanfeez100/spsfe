@@ -47,7 +47,43 @@ function StudentIdCard({
   const fatherName = student.Father || student.father_name || student.father || 'Mathura Nand Giri'
   const dob = formatDateToIndian(student.DateOfBirth || student.date_of_birth || student.dob)
   const studentAddress = student.Address || student.address || student.residential_address || 'Meghwal Mathia, West Champaran'
-  const photoUrl = student.PhotoUrl || student.photo_url || student.photo || null
+  // Comprehensive student photo resolution supporting all casing conventions & objects
+  const rawPhoto =
+    student.PhotoUrl ||
+    student.photoUrl ||
+    student.photo_url ||
+    student.Photo ||
+    student.photo ||
+    student.image ||
+    student.Image ||
+    student.imageUrl ||
+    student.avatar ||
+    student.avatarUrl ||
+    student.student_photo ||
+    student.studentPhoto ||
+    null
+
+  const extractedPhotoUrl =
+    typeof rawPhoto === 'object' && rawPhoto !== null
+      ? (rawPhoto.url || rawPhoto.secure_url || rawPhoto.src || null)
+      : typeof rawPhoto === 'string' && rawPhoto.trim()
+        ? rawPhoto.trim()
+        : null
+
+  const photoUrl = extractedPhotoUrl
+    ? (extractedPhotoUrl.startsWith('http://') ||
+       extractedPhotoUrl.startsWith('https://') ||
+       extractedPhotoUrl.startsWith('data:') ||
+       extractedPhotoUrl.startsWith('blob:')
+        ? extractedPhotoUrl
+        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${extractedPhotoUrl.startsWith('/') ? '' : '/'}${extractedPhotoUrl}`)
+    : null
+
+  const [imgError, setImgError] = useState(false)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [photoUrl])
 
   const qrData = `STAR PUBLIC SCHOOL | ${cardType === 'admit_card' ? 'ADMIT CARD' : 'ID CARD'} | Student: ${studentName} | Class: ${studentClass} | Roll: ${rollNo} | Father: ${fatherName} | DOB: ${dob} | Address: ${studentAddress} | ID: ${student.AdmissionNo || student.admission_number || student.id || 'SPS-2026'}`
   const [qrDataUrl, setQrDataUrl] = useState('')
@@ -55,8 +91,8 @@ function StudentIdCard({
   useEffect(() => {
     let isCurrent = true
     QRCode.toDataURL(qrData, {
-      margin: 1,
-      width: 180,
+      margin: 0,
+      width: 200,
       color: {
         dark: '#071d3f',
         light: '#ffffff',
@@ -87,16 +123,16 @@ function StudentIdCard({
             aspectRatio: '55 / 85',
           }}
         >
-          {/* ================= 1. TOP HEADER (Style B: Left Crest + Straight Gold Ribbon) ================= */}
-          <div className="sps-id-card-header relative bg-[#071d3f] pt-2.5 pb-2 px-3 text-white z-10 shrink-0">
-            <div className="flex items-center gap-2">
+          {/* ================= 1. TOP HEADER (Curved Arch Design + Gold Ribbon) ================= */}
+          <div className="sps-id-card-header relative bg-[#071d3f] pt-3 pb-3.5 px-3.5 text-white z-10 shrink-0">
+            <div className="flex items-center gap-2.5 relative z-10">
               {/* Left: Golden Crest Logo */}
               <div className="flex-shrink-0">
                 <img
                   src={schoolLogo}
                   alt="Star Public School Crest"
                   crossOrigin="anonymous"
-                  className="sps-id-logo h-[46px] w-[46px] object-contain drop-shadow"
+                  className="sps-id-logo h-[48px] w-[48px] object-contain drop-shadow"
                   onError={(e) => {
                     e.target.style.display = 'none'
                   }}
@@ -104,16 +140,16 @@ function StudentIdCard({
               </div>
 
               {/* Thin Vertical Gold Divider Line */}
-              <div className="h-[42px] w-[1.5px] bg-gradient-to-b from-transparent via-[#d4af37] to-transparent flex-shrink-0" />
+              <div className="h-[44px] w-[1.5px] bg-gradient-to-b from-transparent via-[#d4af37] to-transparent flex-shrink-0" />
 
               {/* Right: School Title, Star Divider & Address */}
               <div className="flex-1 min-w-0 pr-0.5">
-                <h1 className="sps-id-title text-[15.5px] font-black uppercase tracking-tight text-white leading-tight font-sans">
+                <h1 className="sps-id-title text-[16px] font-black uppercase tracking-tight text-white leading-tight font-sans">
                   STAR PUBLIC SCHOOL
                 </h1>
 
                 {/* Gold Star Divider Line */}
-                <div className="flex items-center gap-1.5 my-0.5 w-full max-w-[200px]">
+                <div className="flex items-center gap-1.5 my-0.5 w-full max-w-[210px]">
                   <span className="h-[1.2px] flex-1 bg-gradient-to-r from-transparent via-[#d4af37] to-[#d4af37]" />
                   <span className="text-[#f59e0b] text-[9.5px] leading-none drop-shadow">★</span>
                   <span className="h-[1.2px] flex-1 bg-gradient-to-l from-transparent via-[#d4af37] to-[#d4af37]" />
@@ -126,137 +162,164 @@ function StudentIdCard({
               </div>
             </div>
 
-            {/* Gleaming Horizontal Metallic Gold Ribbon Stripe at Bottom of Header */}
-            <div className="absolute -bottom-[3.5px] left-0 right-0 h-[3.5px] bg-gradient-to-r from-[#9b7722] via-[#f7dc8a] to-[#9b7722] shadow-xs" />
+            {/* Gleaming Curved Arched Ribbon at Bottom of Header */}
+            <div className="absolute -bottom-[12px] left-0 right-0 w-full h-[14px] overflow-hidden pointer-events-none z-20">
+              <svg viewBox="0 0 350 14" className="w-full h-full" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="goldHeaderCurveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#9b7722" />
+                    <stop offset="35%" stopColor="#f7dc8a" />
+                    <stop offset="60%" stopColor="#d4af37" />
+                    <stop offset="100%" stopColor="#9b7722" />
+                  </linearGradient>
+                </defs>
+                <path d="M 0,0 L 350,0 C 265,11 85,11 0,0 Z" fill="#071d3f" />
+                <path d="M 0,1 C 85,12 265,12 350,1" stroke="url(#goldHeaderCurveGrad)" strokeWidth="3" fill="none" />
+              </svg>
+            </div>
           </div>
 
           {/* ================= 2. CARD BODY (Centered Photo & Aligned Details) ================= */}
-          <div className="relative px-3.5 pt-1 pb-1 flex-1 flex flex-col items-center justify-between z-10">
+          <div className="relative px-4 pt-4 pb-2.5 flex-1 flex flex-col items-center justify-between z-10">
             {/* Subtle School Watermark */}
-            <div className="pointer-events-none absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 opacity-[0.05] w-[190px] h-[190px] select-none">
+            <div className="pointer-events-none absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 opacity-[0.05] w-[200px] h-[200px] select-none">
               <img src={schoolLogo} alt="" crossOrigin="anonymous" className="w-full h-full object-contain grayscale" />
             </div>
 
             {/* Document Title Badge */}
-            <div className="sps-card-type-badge mb-1 z-20">
-              <span className="inline-block rounded-full bg-[#071d3f] border border-[#d4af37] px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-[#f59e0b] shadow-2xs">
+            <div className="sps-card-type-badge mb-1.5 z-20">
+              <span className="inline-block rounded-full bg-[#071d3f] border border-[#d4af37] px-3 py-0.5 text-[8.5px] font-black uppercase tracking-wider text-[#f59e0b] shadow-2xs">
                 {cardType === 'admit_card' ? 'EXAMINATION ADMIT CARD' : 'STUDENT IDENTITY CARD'}
               </span>
             </div>
 
             {/* Centered Passport Photo Box with Navy Frame (Clean - No 'PHOTO HERE') */}
-            <div className="sps-id-photo-frame relative w-[92px] h-[112px] rounded-[10px] border-[2px] border-[#071d3f] overflow-hidden bg-slate-100 shadow-sm shrink-0 z-10">
-              {photoUrl ? (
+            <div className="sps-id-photo-frame relative w-[102px] h-[126px] rounded-[10px] border-[2.2px] border-[#071d3f] overflow-hidden bg-slate-100 shadow-sm shrink-0 z-10 mb-2">
+              {photoUrl && !imgError ? (
                 <img
                   src={photoUrl}
                   alt={studentName}
-                  crossOrigin="anonymous"
                   className="w-full h-full object-cover object-top"
-                  onError={(e) => {
-                    e.target.onerror = null
-                    e.target.style.display = 'none'
-                  }}
+                  onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-[#e2edfa] to-[#c7daf0]">
-                  <svg viewBox="0 0 24 24" className="w-14 h-14 text-[#071d3f]/60 fill-current">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-[#e8f0fc] to-[#d0e2f9] relative">
+                  {/* Professional School Student Avatar Placeholder */}
+                  <svg viewBox="0 0 80 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                    {/* Head */}
+                    <circle cx="40" cy="32" r="18" fill="#1e3a6a" opacity="0.85" />
+                    {/* Hair shape */}
+                    <path d="M22,32 C22,18 30,12 40,12 C50,12 58,18 58,32 C54,26 48,22 40,22 C32,22 26,26 22,32 Z" fill="#071d3f" />
+                    {/* Uniform Blazer / Shoulders */}
+                    <path d="M10,88 C10,65 24,56 40,56 C56,56 70,65 70,88 L10,88 Z" fill="#071d3f" />
+                    {/* White Shirt Collar */}
+                    <polygon points="32,56 40,70 48,56 40,58" fill="#ffffff" />
+                    <polygon points="32,56 40,68 36,56" fill="#f1f5f9" />
+                    <polygon points="48,56 40,68 44,56" fill="#e2e8f0" />
+                    {/* School Gold Tie */}
+                    <polygon points="38,64 42,64 43,84 40,88 37,84" fill="#d4af37" />
+                    <polygon points="37.5,62 42.5,62 41.5,65 38.5,65" fill="#b89326" />
                   </svg>
                 </div>
               )}
             </div>
 
-            {/* Student Details (Exact Clean Aligned Table Format - No Truncation) */}
-            <div className="sps-id-details-box w-full max-w-[285px] mx-auto space-y-0.5 z-10 pt-0.5 pb-0.5 text-[11px] leading-tight shrink-0 font-sans">
+            {/* Student Details (Enhanced +2px Font Size & Optimal Row Spacing) */}
+            <div className="sps-id-details-box w-full max-w-[305px] mx-auto space-y-1.5 z-10 pt-1 pb-1 text-[13px] leading-tight shrink-0 font-sans">
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Student Name
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[12px] leading-tight flex-1 text-left break-words">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left break-words">
                   {studentName}
                 </span>
               </div>
 
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Class
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[12px] leading-tight flex-1 text-left">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left">
                   {formattedClass}
                 </span>
               </div>
 
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Roll No.
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[12px] leading-tight flex-1 text-left">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left">
                   {rollNo}
                 </span>
               </div>
 
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Father&apos;s Name
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[12px] leading-tight flex-1 text-left break-words">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 tracking-tight text-[14px] leading-tight flex-1 text-left break-words">
                   {fatherName}
                 </span>
               </div>
 
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Date of Birth
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 font-mono tracking-tight text-[12px] leading-tight flex-1 text-left">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 font-mono tracking-tight text-[14px] leading-tight flex-1 text-left">
                   {dob}
                 </span>
               </div>
 
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   Address
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 tracking-tight text-[11px] leading-tight flex-1 text-left break-words line-clamp-2">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 tracking-tight text-[13px] leading-tight flex-1 text-left break-words line-clamp-2">
                   {studentAddress}
                 </span>
               </div>
 
               <div className="flex items-baseline">
-                <span className="sps-id-details-label w-[90px] flex-shrink-0 font-bold text-[#071d3f] text-left">
+                <span className="sps-id-details-label w-[102px] flex-shrink-0 font-bold text-[#071d3f] text-left">
                   {cardType === 'admit_card' ? 'Exam Session' : 'Valid Till'}
                 </span>
-                <span className="font-bold text-[#071d3f] mr-1.5">:</span>
-                <span className="font-black text-slate-900 font-mono tracking-tight text-[12px] leading-tight flex-1 text-left">
+                <span className="font-bold text-[#071d3f] mr-2">:</span>
+                <span className="font-black text-slate-900 font-mono tracking-tight text-[14px] leading-tight flex-1 text-left">
                   {cardType === 'admit_card' ? '2026–27' : validTill}
                 </span>
               </div>
             </div>
 
-            {/* Bottom Row: QR Code on Left, Principal Signature on Right */}
-            <div className="w-full flex items-end justify-between z-10 px-2 pt-0.5 pb-0.5 shrink-0">
-              {/* QR Code Container */}
-              <div className="sps-id-qr-box relative w-[54px] h-[54px] rounded-[8px] border-[1.5px] border-[#071d3f] bg-white p-0.5 shadow-2xs flex items-center justify-center overflow-hidden">
-                <img
-                  src={qrDataUrl || highQualityQr}
-                  alt="Student QR"
-                  crossOrigin="anonymous"
-                  className="w-full h-full object-contain"
-                />
+            {/* Bottom Row: Enhanced QR Code on Left, Principal Signature on Right */}
+            <div className="w-full flex items-end justify-between z-10 px-2 pt-1 pb-1 shrink-0 mt-1">
+              {/* QR Code Container with Scan Label */}
+              <div className="flex flex-col items-center">
+                <div className="sps-id-qr-box relative w-[62px] h-[62px] rounded-[10px] border-[2px] border-[#071d3f] bg-white p-1 shadow-xs flex items-center justify-center overflow-hidden">
+                  <img
+                    src={qrDataUrl || highQualityQr}
+                    alt="Student QR"
+                    crossOrigin="anonymous"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <span className="text-[7.5px] font-black uppercase tracking-wider text-[#071d3f] mt-1 bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200">
+                  Scan to Verify
+                </span>
               </div>
 
               {/* Principal Signature & Label */}
-              <div className="flex flex-col items-center text-center pr-1">
+              <div className="flex flex-col items-center text-center pr-1 pb-1">
                 {/* Cursive Signature matching image */}
-                <div className="sps-id-sign-img h-6 w-20 flex items-center justify-center">
+                <div className="sps-id-sign-img h-7 w-24 flex items-center justify-center">
                   <span
-                    className="text-[21px] text-[#071d3f] font-serif italic font-normal leading-none select-none tracking-normal"
+                    className="text-[23px] text-[#071d3f] font-serif italic font-normal leading-none select-none tracking-normal"
                     style={{
                       fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
                     }}
@@ -265,8 +328,8 @@ function StudentIdCard({
                   </span>
                 </div>
                 {/* Horizontal Underline */}
-                <div className="w-20 h-[1.2px] bg-[#071d3f] mt-0.5" />
-                <p className="sps-id-sign-label text-[9px] font-black text-[#071d3f] tracking-wider mt-0.5 uppercase">
+                <div className="w-24 h-[1.5px] bg-[#071d3f] mt-0.5" />
+                <p className="sps-id-sign-label text-[10px] font-black text-[#071d3f] tracking-wider mt-0.5 uppercase">
                   {cardType === 'admit_card' ? 'Controller of Exam' : 'Principal'}
                 </p>
               </div>
@@ -376,13 +439,25 @@ function StudentIdCard({
           {/* Left: Photo Box */}
           <div className="flex flex-col items-center justify-start flex-shrink-0 z-10 pt-0.5">
             <div className="sps-id-photo-frame relative w-[118px] h-[150px] rounded-[14px] border-[2.5px] border-[#071d3f] overflow-hidden bg-slate-100 shadow-sm">
-              {photoUrl ? (
-                <img src={photoUrl} alt={studentName} className="w-full h-full object-cover object-top" />
+              {photoUrl && !imgError ? (
+                <img
+                  src={photoUrl}
+                  alt={studentName}
+                  className="w-full h-full object-cover object-top"
+                  onError={() => setImgError(true)}
+                />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-[#e0ebf5] to-[#c7daf0]">
-                  <span className="material-symbols-outlined text-[64px] text-[#071d3f]/60">
-                    account_box
-                  </span>
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-b from-[#e8f0fc] to-[#d0e2f9] relative">
+                  <svg viewBox="0 0 80 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                    <circle cx="40" cy="32" r="18" fill="#1e3a6a" opacity="0.85" />
+                    <path d="M22,32 C22,18 30,12 40,12 C50,12 58,18 58,32 C54,26 48,22 40,22 C32,22 26,26 22,32 Z" fill="#071d3f" />
+                    <path d="M10,88 C10,65 24,56 40,56 C56,56 70,65 70,88 L10,88 Z" fill="#071d3f" />
+                    <polygon points="32,56 40,70 48,56 40,58" fill="#ffffff" />
+                    <polygon points="32,56 40,68 36,56" fill="#f1f5f9" />
+                    <polygon points="48,56 40,68 44,56" fill="#e2e8f0" />
+                    <polygon points="38,64 42,64 43,84 40,88 37,84" fill="#d4af37" />
+                    <polygon points="37.5,62 42.5,62 41.5,65 38.5,65" fill="#b89326" />
+                  </svg>
                 </div>
               )}
             </div>

@@ -6,15 +6,15 @@ import html2canvas from 'html2canvas-pro'
 import { jsPDF } from 'jspdf'
 
 const SAMPLE_STUDENTS = [
-  { ID: 'SPS-2026-01', Name: 'Ajay Kumar Giri', Class: 'Nursery', Section: 'A', Roll: '17', FatherName: 'Mathura Nand Giri', DOB: '12-12-2012', Address: 'Meghwal Mathia, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-02', Name: 'Aarav Sharma', Class: 'Nursery', Section: 'A', Roll: '01', FatherName: 'Ramesh Sharma', DOB: '15-05-2013', Address: 'Mathia Bazar, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-03', Name: 'Ananya Verma', Class: 'Nursery', Section: 'A', Roll: '02', FatherName: 'Sanjay Verma', DOB: '20-08-2013', Address: 'Bettiah, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-04', Name: 'Aryan Kumar', Class: 'Nursery', Section: 'A', Roll: '03', FatherName: 'Sunil Kumar', DOB: '11-01-2013', Address: 'Narkatiaganj, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-05', Name: 'Ishita Patel', Class: 'Nursery', Section: 'A', Roll: '04', FatherName: 'Manoj Patel', DOB: '04-03-2013', Address: 'Meghwal Mathia, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-06', Name: 'Kavya Singh', Class: 'Nursery', Section: 'A', Roll: '05', FatherName: 'Rajesh Singh', DOB: '22-09-2012', Address: 'Mathia Bazar, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-07', Name: 'Manish Pandey', Class: 'Nursery', Section: 'A', Roll: '06', FatherName: 'Dinesh Pandey', DOB: '18-07-2013', Address: 'Bettiah, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-08', Name: 'Neha Kumari', Class: 'Nursery', Section: 'A', Roll: '07', FatherName: 'Vinod Kumar', DOB: '30-11-2012', Address: 'Meghwal Mathia, West Champaran', Photo: '' },
-  { ID: 'SPS-2026-09', Name: 'Rohan Gupta', Class: 'Nursery', Section: 'A', Roll: '08', FatherName: 'Pradeep Gupta', DOB: '09-02-2013', Address: 'Bettiah, West Champaran', Photo: '' },
+  { ID: 'SPS-2026-01', Name: 'Ajay Kumar Giri', Class: 'Nursery', Section: 'A', Roll: '17', FatherName: 'Mathura Nand Giri', DOB: '12-12-2012', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
+  { ID: 'SPS-2026-02', Name: 'Aarav Sharma', Class: 'Nursery', Section: 'A', Roll: '01', FatherName: 'Ramesh Sharma', DOB: '15-05-2013', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
+  { ID: 'SPS-2026-03', Name: 'Ananya Verma', Class: 'Nursery', Section: 'A', Roll: '02', FatherName: 'Sanjay Verma', DOB: '20-08-2013', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
+  { ID: 'SPS-2026-04', Name: 'Aryan Kumar', Class: 'Nursery', Section: 'A', Roll: '03', FatherName: 'Sunil Kumar', DOB: '11-01-2013', Address: 'Narkatiaganj, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
+  { ID: 'SPS-2026-05', Name: 'Ishita Patel', Class: 'Nursery', Section: 'A', Roll: '04', FatherName: 'Manoj Patel', DOB: '04-03-2013', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820112/public/ttmdyrriphttcmvbgqgk.jpg' },
+  { ID: 'SPS-2026-06', Name: 'Kavya Singh', Class: 'Nursery', Section: 'A', Roll: '05', FatherName: 'Rajesh Singh', DOB: '22-09-2012', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
+  { ID: 'SPS-2026-07', Name: 'Manish Pandey', Class: 'Nursery', Section: 'A', Roll: '06', FatherName: 'Dinesh Pandey', DOB: '18-07-2013', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
+  { ID: 'SPS-2026-08', Name: 'Neha Kumari', Class: 'Nursery', Section: 'A', Roll: '07', FatherName: 'Vinod Kumar', DOB: '30-11-2012', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
+  { ID: 'SPS-2026-09', Name: 'Rohan Gupta', Class: 'Nursery', Section: 'A', Roll: '08', FatherName: 'Pradeep Gupta', DOB: '09-02-2013', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
 ]
 
 // Safe constructor helper for jsPDF across Vite / ESM environments
