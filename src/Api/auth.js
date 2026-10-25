@@ -72,11 +72,37 @@ const processQueue = (error, token = null) => {
 };
 
 export const emitToast = (type = "info", message = "", title = "") => {
-  window.dispatchEvent(
-    new CustomEvent("app:toast", {
-      detail: { type, message, title },
-    }),
-  );
+  let toastType = "info";
+  let toastMessage = "";
+  let toastTitle = "";
+
+  if (typeof type === "object" && type !== null) {
+    toastType = type.type || "info";
+    toastMessage = type.message || "";
+    toastTitle = type.title || "";
+  } else {
+    toastType = type;
+    toastMessage = message;
+    toastTitle = title;
+  }
+
+  // Prevent empty ghost toasts
+  if (!String(toastMessage || "").trim() && !String(toastTitle || "").trim()) {
+    return;
+  }
+
+  // Never show raw status codes like "400 Error" in toast titles
+  if (toastTitle) {
+    toastTitle = toastTitle.replace(/\b\d{3}\s*(error|warning|info|notice)?\b/gi, "").trim();
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("app:toast", {
+        detail: { type: toastType, message: toastMessage, title: toastTitle },
+      }),
+    );
+  }
 };
 
 export const normalizeApiError = (
@@ -484,7 +510,7 @@ api.interceptors.response.use(
         emitToast(
           "error",
           "Session expired. Please login again.",
-          "401 Unauthorized",
+          "Session Expired",
         );
         return Promise.reject(normalizeApiError(refreshError));
       } finally {
@@ -494,7 +520,17 @@ api.interceptors.response.use(
 
     const normalizedError = normalizeApiError(error);
     if ([400, 401, 405, 409, 500].includes(normalizedError.status)) {
-      const statusTitle = `${normalizedError.status} Error`;
+      const msg = String(normalizedError.message || "").toLowerCase();
+      let statusTitle = "Notice";
+      if (msg.includes("closed")) {
+        statusTitle = "Month Closed";
+      } else if (normalizedError.status === 401) {
+        statusTitle = "Session Expired";
+      } else if (normalizedError.status === 409) {
+        statusTitle = "Conflict";
+      } else if (normalizedError.status >= 500) {
+        statusTitle = "Server Error";
+      }
       emitToast("error", normalizedError.message, statusTitle);
     }
 

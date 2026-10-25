@@ -59,11 +59,29 @@ function ToastContainer() {
   useEffect(() => {
     const onToast = (event) => {
       const detail = event?.detail || {}
+      let rawType = detail.type || 'info'
+      let rawTitle = detail.title || ''
+      let rawMessage = detail.message || ''
+
+      if (typeof rawType === 'object' && rawType !== null) {
+        rawMessage = rawType.message || rawMessage
+        rawTitle = rawType.title || rawTitle
+        rawType = rawType.type || 'info'
+      }
+
+      const msg = String(rawMessage || '').trim()
+      let title = String(rawTitle || '').replace(/\b\d{3}\s*(error|warning|info|notice)?\b/gi, '').trim()
+
+      // Never show empty ghost toast boxes
+      if (!msg && !title) return
+
+      const safeType = ['success', 'error', 'warning', 'info'].includes(rawType) ? rawType : 'info'
+
       const toast = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        type: detail.type || 'info',
-        title: detail.title || '',
-        message: detail.message || '',
+        type: safeType,
+        title,
+        message: msg,
       }
 
       setToasts((prev) => [...prev, toast])
@@ -77,23 +95,46 @@ function ToastContainer() {
   }, [])
 
   const typeStyles = {
-    success: 'bg-emerald-950/92 border-emerald-300/50 text-emerald-50 shadow-[0_20px_45px_rgba(6,95,70,0.28)]',
-    error: 'bg-rose-950/92 border-rose-300/55 text-rose-50 shadow-[0_20px_45px_rgba(136,19,55,0.28)]',
-    warning: 'bg-amber-950/92 border-amber-300/55 text-amber-50 shadow-[0_20px_45px_rgba(146,64,14,0.24)]',
-    info: 'bg-slate-950/92 border-cyan-300/45 text-slate-50 shadow-[0_20px_45px_rgba(8,47,73,0.26)]',
+    success: {
+      card: 'bg-white border border-emerald-200 border-l-4 border-l-emerald-500 shadow-[0_10px_25px_rgba(16,185,129,0.15)]',
+      title: 'text-emerald-700',
+      message: 'text-emerald-600',
+    },
+    error: {
+      card: 'bg-white border border-rose-200 border-l-4 border-l-rose-500 shadow-[0_10px_25px_rgba(244,63,94,0.15)]',
+      title: 'text-rose-700',
+      message: 'text-rose-600',
+    },
+    warning: {
+      card: 'bg-white border border-amber-200 border-l-4 border-l-amber-500 shadow-[0_10px_25px_rgba(245,158,11,0.15)]',
+      title: 'text-amber-700',
+      message: 'text-amber-600',
+    },
+    info: {
+      card: 'bg-white border border-slate-200 border-l-4 border-l-slate-500 shadow-[0_10px_25px_rgba(15,23,42,0.12)]',
+      title: 'text-slate-700',
+      message: 'text-slate-600',
+    },
   }
 
   return (
     <div className="fixed top-4 right-4 z-[200] space-y-2 w-[92vw] max-w-sm">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`border rounded-xl px-4 py-3 backdrop-blur-md ${typeStyles[toast.type] || typeStyles.info}`}
-        >
-          {toast.title ? <p className="text-xs font-extrabold uppercase tracking-[0.12em] mb-0.5 opacity-90">{toast.title}</p> : null}
-          <p className="text-sm leading-5 text-white/95">{toast.message}</p>
-        </div>
-      ))}
+      {toasts.map((toast) => {
+        const style = typeStyles[toast.type] || typeStyles.info
+        return (
+          <div
+            key={toast.id}
+            className={`rounded-xl px-4 py-3 ${style.card}`}
+          >
+            {toast.title ? (
+              <p className={`text-xs font-black uppercase tracking-[0.12em] mb-0.5 ${style.title}`}>
+                {toast.title}
+              </p>
+            ) : null}
+            <p className={`text-sm font-semibold leading-5 ${style.message}`}>{toast.message}</p>
+          </div>
+        )
+      })}
     </div>
   )
 }

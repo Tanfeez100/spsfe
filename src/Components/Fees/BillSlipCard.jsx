@@ -5,18 +5,36 @@ import stampImg from '../../assets/stampcert.png'
 import './BillSlipCard.css'
 
 /**
+ * Format date cleanly into DD/MM/YYYY
+ */
+const formatReceiptDate = (dateVal) => {
+  if (!dateVal) return new Date().toLocaleDateString('en-GB')
+  const str = String(dateVal).trim()
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+    return str
+  }
+  try {
+    const d = new Date(str)
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0')
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const year = d.getFullYear()
+      return `${day}/${month}/${year}`
+    }
+  } catch (_) { }
+  return str.split('T')[0]
+}
+
+/**
  * BillSlipCard - Uses the reference receipt's dotted-rule & watermark design,
  * strictly keeping only our original school fields, backend-integrated fee heads,
  * and 4-in-1 A4 sheet compatibility.
+ * On paid bills / payment receipts, displays official payment details & PAID stamp instead of payment QR code.
  */
 const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = false }, ref) {
   // 1. Original Student & Receipt Fields from Backend
-  const billNo = bill.bill_number || bill.invoice_number || bill.bill_id || bill.receipt_no || '-'
-  const billDate = bill.date
-    ? (bill.date.includes('/') || bill.date.includes('-')
-        ? bill.date
-        : new Date(bill.date).toLocaleDateString('en-GB'))
-    : new Date().toLocaleDateString('en-GB')
+  const billNo = bill.bill_number || bill.invoice_number || bill.receipt_no || bill.receipt_number || bill.bill_id || '-'
+  const billDate = formatReceiptDate(bill.date || bill.created_at || bill.payment_date)
 
   const studentName = bill.student_name || bill.student?.name || bill.name || 'Student'
   const fatherName = bill.father_name || bill.student?.father_name || bill.student?.father || '-'
@@ -52,11 +70,82 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
   const summary = bill.summary || {}
   const calculatedTotal = Array.isArray(bill.items)
     ? bill.items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
-    : (Number(bill.total) || Number(bill.amount) || '')
+    : (Number(bill.total) || Number(bill.amount) || Number(bill.total_fee) || 0)
 
-  const totalAmount = summary.total_amount ?? (calculatedTotal || (bill.total !== undefined ? bill.total : ''))
-  const advanceAmount = summary.advance_used ?? (bill.advance_used ?? (bill.advance !== undefined ? bill.advance : ''))
-  const netPayable = summary.net_payable ?? (bill.net_payable ?? (bill.netPayable ?? totalAmount))
+  const totalAmount = Number(summary.total_amount ?? (calculatedTotal || (bill.total !== undefined ? bill.total : 0)))
+
+  // Payment details for receipt
+  const paymentsList = Array.isArray(bill.payments) ? bill.payments : []
+  const latestPayment = paymentsList.length > 0 ? paymentsList[0] : null
+  const receiptNo = latestPayment?.receipt_no || bill.receipt_no || bill.receipt_number || billNo
+
+  // Direct payments vs Advance adjusted (prevent double-counting advance)
+  let directPaid = 0
+  let advancePaidFromPayments = 0
+
+  if (paymentsList.length > 0) {
+    paymentsList.forEach((p) => {
+      const amt = Number(p.amount_paid || 0)
+      const mode = (p.payment_mode || '').toLowerCase()
+      if (mode === 'advance') {
+        advancePaidFromPayments += amt
+      } else if (mode !== 'dues_adjustment') {
+        directPaid += amt
+      }
+    })
+  } else if (summary.direct_paid !== undefined) {
+    directPaid = Number(summary.direct_paid)
+  } else {
+    const rawPaid = Number(summary.total_paid ?? (bill.total_paid ?? (bill.paid_amount ?? 0)))
+    const rawMode = String(bill.payment_mode || '').toLowerCase()
+    if (rawMode === 'advance') {
+      directPaid = 0
+    } else {
+      directPaid = rawPaid
+    }
+  }
+
+  const advanceUsedFromProps = Number(summary.advance_used ?? (bill.advance_used ?? (bill.advance !== undefined ? bill.advance : 0)))
+  const advanceAmount = Math.max(advancePaidFromPayments, advanceUsedFromProps)
+  const totalSettled = directPaid + advanceAmount
+  const advanceGenerated = Number(summary.advance_generated ?? (bill.advance_generated ?? (directPaid > totalAmount ? directPaid - totalAmount : 0)))
+
+  let remainingDue = 0
+  if (summary.remaining !== undefined) {
+    remainingDue = Number(summary.remaining)
+  } else if (summary.net_payable !== undefined) {
+    remainingDue = Number(summary.net_payable)
+  } else if (bill.net_payable !== undefined) {
+    remainingDue = Number(bill.net_payable)
+  } else if (bill.netPayable !== undefined) {
+    remainingDue = Number(bill.netPayable)
+  } else if (bill.remaining !== undefined) {
+    remainingDue = Number(bill.remaining)
+  } else if (bill.due_amount !== undefined) {
+    remainingDue = Number(bill.due_amount)
+  } else {
+    remainingDue = Math.max(0, totalAmount - totalSettled)
+  }
+
+  // If amount was paid and totalAmount > 0, recalculate remainingDue strictly to avoid stale full total
+  if (totalAmount > 0 && totalSettled > 0 && remainingDue >= totalAmount) {
+    remainingDue = Math.max(0, totalAmount - totalSettled)
+  }
+
+  const rawStatus = String(summary.status || bill.bill_status || bill.status || '').toLowerCase()
+  const isExplicitBill = Boolean(bill.isBill || bill.type === 'bill' || (!bill.isReceipt && rawStatus === 'unpaid'))
+  const isPaid = !isExplicitBill && ((totalAmount > 0 && totalSettled >= totalAmount) || (remainingDue <= 0 && (rawStatus === 'paid' || totalSettled > 0)))
+  if (isPaid) {
+    remainingDue = 0
+  }
+  const isPartial = !isExplicitBill && !isPaid && (rawStatus === 'partial' || totalSettled > 0) && remainingDue > 0
+
+  let paymentModeRaw = latestPayment?.payment_mode || bill.payment_mode || (advanceAmount > 0 && directPaid === 0 ? 'Advance' : (directPaid > 0 ? 'Paid' : ''))
+  const paymentModeLabel = paymentModeRaw
+    ? String(paymentModeRaw).replace(/_/g, ' ').toUpperCase()
+    : (advanceAmount >= totalAmount ? 'ADVANCE ADJUSTED' : 'PAID')
+
+  const paymentDate = formatReceiptDate(latestPayment?.payment_date || bill.payment_date || bill.date)
 
   const formatRs = (val) => {
     if (val === '' || val === null || val === undefined) return '-'
@@ -73,36 +162,36 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       className="bill-receipt-card"
     >
       {/* 1. School Header */}
-      <div className="flex items-start justify-between pb-0.5">
+      <div className="flex items-start justify-between">
         {/* Left: School Logo */}
-        <div className="w-12 h-12 shrink-0 flex items-center justify-center pt-0.5">
+        <div className="w-11 h-11 shrink-0 flex items-center justify-center pt-0.5">
           <img
             src={schoolLogo}
             alt="Star Public School Crest"
-            className="w-11 h-11 object-contain"
+            className="w-10 h-10 object-contain"
           />
         </div>
 
-        {/* Center: School Details (Proper 2 lines with phone number) */}
+        {/* Center: School Details */}
         <div className="flex-1 text-center px-1">
-          <h1 className="text-[15px] font-black tracking-wide uppercase text-black leading-tight">
+          <h1 className="text-[14.5px] font-black tracking-wide uppercase text-black leading-tight">
             STAR PUBLIC SCHOOL
           </h1>
           <p className="text-[9.5px] text-black font-medium leading-tight mt-0.5">
-            Meghwal mathia Bazar, West Champaran, Bihar - 845106
+            Meghwal mathia Bazar, West Champaran, Bihar 845106
           </p>
-          <p className="text-[9.5px] text-black font-semibold leading-tight mt-0.5">
+          <p className="text-[9.5px] text-black font-semibold leading-tight">
             Mob: 9006457330
           </p>
-          <p className="text-[10.5px] font-bold text-black uppercase tracking-wider leading-tight mt-1">
-            Fee Receipt
+          <p className="text-[10px] font-black tracking-wide text-black leading-tight mt-0.5 uppercase">
+            {isExplicitBill ? 'Fee Bill' : isPaid ? 'Fee Payment Receipt' : isPartial ? 'Partial Fee Receipt' : 'Fee Bill'}
           </p>
         </div>
 
-        {/* Right: Office Copy Tag */}
-        <div className="w-12 shrink-0 text-right self-start pt-0.5">
-          <span className="text-[9px] font-bold text-black tracking-tight italic bg-slate-100/90 px-1.5 py-0.5 rounded border border-black/30 inline-block">
-            Office Copy
+        {/* Right: Copy Tag */}
+        <div className="w-16 shrink-0 text-right self-end pb-0.5">
+          <span className="text-[9px] font-bold text-black tracking-tight italic">
+            {isExplicitBill ? 'Student Copy' : isPaid ? 'Parent Copy' : 'Office Copy'}
           </span>
         </div>
       </div>
@@ -110,12 +199,12 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       {/* Dotted Divider 1 */}
       <hr className="receipt-dotted-rule" />
 
-      {/* 2. Original Student Details (Exactly our 6 fields with aligned colons & better vertical spacing) */}
-      <div className="grid grid-cols-2 gap-x-3 text-[10.5px] leading-tight text-black py-1">
+      {/* 2. Original Student Details (Exactly our 6 fields with aligned colons) */}
+      <div className="grid grid-cols-2 gap-x-2 text-[10.5px] leading-tight text-black">
         {/* Left Column */}
-        <div className="space-y-1.5">
+        <div className="space-y-0.5">
           <div className="flex">
-            <span className="w-16 font-bold shrink-0">Bill No</span>
+            <span className="w-16 font-bold shrink-0">{!isExplicitBill && isPaid ? 'Receipt No' : 'Bill No'}</span>
             <span className="w-2.5 font-bold text-center">:</span>
             <span className="font-semibold truncate">{billNo}</span>
           </div>
@@ -135,7 +224,7 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
         </div>
 
         {/* Right Column */}
-        <div className="space-y-1.5">
+        <div className="space-y-0.5">
           <div className="flex">
             <span className="w-14 font-bold shrink-0">Date</span>
             <span className="w-2.5 font-bold text-center">:</span>
@@ -158,7 +247,7 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       <hr className="receipt-dotted-rule" />
 
       {/* 3. Fee Breakdown Table & QR / Stamp */}
-      <div className="receipt-watermark-container my-0.5">
+      <div className="receipt-watermark-container">
         {/* Subtle Watermark in background */}
         <div className="receipt-watermark-overlay">
           <img src={schoolLogo} alt="Watermark" />
@@ -169,7 +258,7 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
           {/* Left Column: Fee Particulars & Description */}
           <div>
             {/* Particulars Header */}
-            <div className="flex justify-between items-center text-[10.5px] font-black uppercase text-black pb-0.5">
+            <div className="flex justify-between items-center text-[10.5px] font-black uppercase text-black">
               <span>PARTICULARS</span>
               <span>Rs.</span>
             </div>
@@ -177,7 +266,7 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
             <hr className="receipt-dotted-rule" />
 
             {/* Fee Items */}
-            <div className="space-y-1 text-[10px] text-black py-0.5">
+            <div className="space-y-0.5 text-[10px] text-black">
               <div className="flex justify-between items-center font-medium">
                 <span>Tuition Fee</span>
                 <span className="font-semibold font-mono">{formatRs(tuitionFee)}</span>
@@ -207,43 +296,142 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
             <hr className="receipt-dotted-rule" />
 
             {/* Description / Summary Rows */}
-            <div className="space-y-1 text-[10px] text-black pt-1">
+            <div className="space-y-0.5 text-[10px] text-black pt-0.5">
               <div className="flex justify-between items-center font-bold">
                 <span>Total</span>
                 <span className="font-black font-mono">{formatRs(totalAmount)}</span>
               </div>
-              <div className="flex justify-between items-center font-medium">
-                <span>Advance</span>
-                <span className="font-semibold font-mono">{formatRs(advanceAmount)}</span>
-              </div>
-              <div className="flex justify-between items-center font-black pt-0.5">
-                <span>Net Payable</span>
-                <span className="font-black font-mono">{formatRs(netPayable)}</span>
+
+              {advanceAmount > 0 && (
+                <div className="flex justify-between items-center font-medium receipt-green-text">
+                  <span>Advance Adjusted</span>
+                  <span className="font-semibold font-mono">-{formatRs(advanceAmount)}</span>
+                </div>
+              )}
+
+              {directPaid > 0 && (
+                <div className="flex justify-between items-center font-medium receipt-green-text">
+                  <span>Amount Paid</span>
+                  <span className="font-semibold font-mono">{formatRs(directPaid)}</span>
+                </div>
+              )}
+
+              {advanceGenerated > 0 && (
+                <div className="flex justify-between items-center font-bold text-purple-700">
+                  <span>Advance Deposit</span>
+                  <span className="font-semibold font-mono">+₹{formatRs(advanceGenerated)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center font-black pt-0.5 border-t border-dotted border-black/30">
+                <span>{isExplicitBill ? 'Net Payable' : isPaid ? 'Balance Due' : isPartial ? 'Balance Due' : 'Net Payable'}</span>
+                <span className={`font-black font-mono ${!isExplicitBill && isPaid ? 'receipt-green-text' : !isExplicitBill && isPartial ? 'receipt-red-text' : ''}`}>
+                  {isExplicitBill ? formatRs(totalAmount) : isPaid ? '₹0 (PAID)' : isPartial ? `₹${formatRs(remainingDue)} (DUE)` : formatRs(remainingDue)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: QR Code & School Seal */}
+          {/* Right Column: QR Code or Payment Stamp & Details */}
           <div className="flex flex-col items-center justify-between text-center pl-1 border-l border-dotted border-black">
-            {/* QR Code */}
-            <div className="w-19 h-19 p-1 border border-black bg-white flex items-center justify-center">
-              <img src={qrCodeImg} alt="Payment QR" className="w-full h-full object-contain" />
-            </div>
-            <p className="text-[8px] font-bold text-black leading-tight mt-0.5">
-              पेमेंट के लिए<br />QR कोड स्कैन करें
-            </p>
-
-            {/* School Seal */}
-            <div className="w-15 h-15 mt-1.5 flex items-center justify-center">
-              {stampImg ? (
-                <img src={stampImg} alt="Stamp" className="w-full h-full object-contain" />
-              ) : (
-                <div className="w-full h-full border border-black rounded-full flex flex-col items-center justify-center text-[7px] font-bold">
-                  <span>★ SPS ★</span>
-                  <span className="text-[6px]">West Champaran</span>
+            {!isExplicitBill && isPaid ? (
+              /* PAID RECEIPT: Payment Details & Official Paid Stamp (NO QR CODE) */
+              <div className="w-full flex flex-col items-center justify-between h-full py-0.5">
+                {/* Official PAID Badge */}
+                <div className="receipt-paid-badge">
+                  <div className="receipt-paid-star-text">
+                    <span>★</span>
+                    <span>PAID</span>
+                    <span>★</span>
+                  </div>
+                  <div className="receipt-paid-mode-text">
+                    {paymentModeLabel}
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Payment Details Box */}
+                <div className="receipt-details-box space-y-0.5">
+                  <div className="truncate">
+                    <span className="font-bold">RCP: </span>
+                    <span className="font-mono text-[7px] font-semibold">{receiptNo}</span>
+                  </div>
+                  <div className="truncate">
+                    <span className="font-bold">Date: </span>
+                    <span className="font-medium">{paymentDate}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold">Paid: </span>
+                    <span className="font-bold receipt-green-text">₹{formatRs(totalSettled || totalAmount)}</span>
+                  </div>
+                  {advanceGenerated > 0 && (
+                    <div>
+                      <span className="font-bold">Adv: </span>
+                      <span className="font-bold text-purple-700 font-mono">+₹{formatRs(advanceGenerated)}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-bold">Bal: </span>
+                    <span className="font-bold receipt-green-text">₹0</span>
+                  </div>
+                </div>
+              </div>
+            ) : !isExplicitBill && isPartial ? (
+              /* PARTIAL PAYMENT RECEIPT: Partial Badge, Payment Details Box with Due */
+              <div className="w-full flex flex-col items-center justify-between h-full py-0.5">
+                <div className="receipt-partial-badge">
+                  <div className="receipt-paid-star-text" style={{ color: '#92400e' }}>
+                    <span>★</span>
+                    <span>PARTIAL PAID</span>
+                    <span>★</span>
+                  </div>
+                  <div className="receipt-paid-mode-text" style={{ color: '#b45309' }}>
+                    {paymentModeLabel}
+                  </div>
+                </div>
+
+                {/* Payment Details Box with Due Balance */}
+                <div className="receipt-details-box space-y-0.5">
+                  <div className="truncate">
+                    <span className="font-bold">RCP: </span>
+                    <span className="font-mono text-[7px] font-semibold">{receiptNo}</span>
+                  </div>
+                  <div className="truncate">
+                    <span className="font-bold">Date: </span>
+                    <span className="font-medium">{paymentDate}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold">Paid: </span>
+                    <span className="font-bold receipt-green-text">₹{formatRs(totalSettled)}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold">Bal: </span>
+                    <span className="font-bold receipt-red-text">₹{formatRs(remainingDue)}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* UNPAID DEMAND SLIP: QR Code to scan & pay */
+              <>
+                <div className="w-18 h-18 p-1 border border-black bg-white flex items-center justify-center">
+                  <img src={qrCodeImg} alt="Payment QR" className="w-full h-full object-contain" />
+                </div>
+                <p className="text-[8px] font-bold text-black leading-tight mt-0.5">
+                  पेमेंट के लिए<br />QR कोड स्कैन करें
+                </p>
+
+                {/* School Seal */}
+                <div className="w-14 h-14 mt-1 flex items-center justify-center">
+                  {stampImg ? (
+                    <img src={stampImg} alt="Stamp" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="w-full h-full border border-black rounded-full flex flex-col items-center justify-center text-[7px] font-bold">
+                      <span>★ SPS ★</span>
+                      <span className="text-[6px]">West Champaran</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -251,11 +439,11 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       {/* Dotted Divider 3 */}
       <hr className="receipt-dotted-rule" />
 
-      {/* 4. Footer: Receiver Signature with more length & clean line */}
-      <div className="flex items-center justify-between text-[10px] font-bold text-black pt-2 pb-1">
+      {/* 4. Footer: Receiver Signature */}
+      <div className="flex items-center justify-between text-[10px] font-bold text-black pt-1 pb-0.5">
         <div className="flex items-center gap-1.5 flex-1">
           <span>Signature of Receiver:</span>
-          <span className="flex-1 border-b border-dotted border-black ml-1"></span>
+          <span className="flex-1 border-b border-dotted border-black"></span>
         </div>
         <div className="ml-4 shrink-0">
           <span>(Signature)</span>

@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { getFeeList } from '../../Api/fees'
 import * as XLSX from 'xlsx'
 import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
+import { downloadInvoiceSlipPDF } from '../../utils/pdf/invoiceSlipPdf'
 
-function FeeList({ onViewInvoice, onPayFee }) {
+function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
   const PAGE_SIZE = 15
   const [feeList, setFeeList] = useState([])
   const [filteredFeeList, setFilteredFeeList] = useState([])
   const [loading, setLoading] = useState(false)
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState('')
   const [error, setError] = useState('')
   const [classFilter, setClassFilter] = useState('')
   const [sectionFilter, setSectionFilter] = useState('')
@@ -15,6 +17,20 @@ function FeeList({ onViewInvoice, onPayFee }) {
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'paid', 'unpaid', 'partial'
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
+
+  const handleDownloadInvoiceDirect = async (billId) => {
+    if (!billId) return
+    setDownloadingInvoiceId(billId)
+    setError('')
+    try {
+      await downloadInvoiceSlipPDF(billId)
+    } catch (err) {
+      console.error('Invoice download failed:', err)
+      setError(`Invoice download failed: ${err.message || 'Unknown error'}. You can also open the Invoice tab to view or print.`)
+    } finally {
+      setDownloadingInvoiceId('')
+    }
+  }
 
   // Apply status filter when statusFilter or feeList changes
   useEffect(() => {
@@ -26,7 +42,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
         const paidAmount = fee.total_paid || fee.paid_amount || 0
         const netPayable = fee.net_payable || fee.balance || (totalFee - paidAmount)
         const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
-        
+
         if (statusFilter === 'paid') {
           return billStatus === 'paid' || netPayable === 0 || netPayable < 0
         } else if (statusFilter === 'unpaid') {
@@ -66,7 +82,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
         section: sectionFilter,
         month: monthFilter,
       });
-      
+
       let feeList = [];
 
       // Handle different response structures - prioritize data extraction
@@ -117,6 +133,7 @@ function FeeList({ onViewInvoice, onPayFee }) {
 
       const header = [
         'Student',
+        'Father Name',
         'Roll',
         'Class',
         'Section',
@@ -124,21 +141,28 @@ function FeeList({ onViewInvoice, onPayFee }) {
         'Tuition',
         'Exam',
         'Annual',
+        'Computer',
+        'Transport',
         'Prev Due',
         'Total Fee',
         'Paid',
-        'Net Payable',
+        'Advance Used',
+        'Due / Adv',
         'Status',
       ]
 
       const rows = filteredFeeList.map((fee) => {
         const totalFee = parseFloat(fee.total_fee) || 0
-        const paidAmount = parseFloat(fee.total_paid || fee.paid_amount) || 0
-        const netPayable = parseFloat(fee.net_payable || fee.balance) || totalFee - paidAmount
+        const paidAmount = fee.direct_paid !== undefined ? (parseFloat(fee.direct_paid) || 0) : (parseFloat(fee.total_paid || fee.paid_amount) || 0)
+        const advanceUsed = parseFloat(fee.advance_used) || 0
+        const netPayable = fee.net_payable !== undefined ? parseFloat(fee.net_payable) : Math.max(0, totalFee - (paidAmount + advanceUsed))
+        const advanceGen = parseFloat(fee.advance_generated) || (paidAmount > totalFee ? paidAmount - totalFee : 0)
+        const dueAdvValue = netPayable > 0 ? netPayable : (advanceGen > 0 ? -advanceGen : 0)
         const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
 
         return [
           fee.student_name || '--',
+          fee.father_name || '--',
           fee.roll_no ?? '--',
           normalizeSchoolClass(fee.class) || '--',
           fee.section || '--',
@@ -146,10 +170,13 @@ function FeeList({ onViewInvoice, onPayFee }) {
           parseFloat(fee.tuition_fee) || 0,
           parseFloat(fee.exam_fee) || 0,
           parseFloat(fee.annual_fee) || 0,
+          parseFloat(fee.computer_fee) || 0,
+          parseFloat(fee.transport_fee) || 0,
           parseFloat(fee.previous_due) || 0,
           totalFee,
           paidAmount,
-          netPayable,
+          advanceUsed,
+          dueAdvValue,
           String(billStatus).charAt(0).toUpperCase() + String(billStatus).slice(1),
         ]
       })
@@ -158,13 +185,20 @@ function FeeList({ onViewInvoice, onPayFee }) {
         tuition: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.tuition_fee) || 0), 0),
         exam: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.exam_fee) || 0), 0),
         annual: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0),
+        computer: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.computer_fee) || 0), 0),
+        transport: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.transport_fee) || 0), 0),
         prevDue: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0),
         totalFee: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0),
-        totalPaid: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_paid || f.paid_amount) || 0), 0),
+        totalPaid: filteredFeeList.reduce((sum, f) => {
+          const pa = f.direct_paid !== undefined ? (parseFloat(f.direct_paid) || 0) : (parseFloat(f.total_paid || f.paid_amount) || 0)
+          return sum + pa
+        }, 0),
+        advanceUsed: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.advance_used) || 0), 0),
         netPayable: filteredFeeList.reduce((sum, f) => {
           const tf = parseFloat(f.total_fee) || 0
-          const pa = parseFloat(f.total_paid || f.paid_amount) || 0
-          const np = parseFloat(f.net_payable || f.balance) || tf - pa
+          const pa = f.direct_paid !== undefined ? (parseFloat(f.direct_paid) || 0) : (parseFloat(f.total_paid || f.paid_amount) || 0)
+          const adv = parseFloat(f.advance_used) || 0
+          const np = f.net_payable !== undefined ? parseFloat(f.net_payable) : Math.max(0, tf - (pa + adv))
           return sum + np
         }, 0),
       }
@@ -175,12 +209,16 @@ function FeeList({ onViewInvoice, onPayFee }) {
         '',
         '',
         '',
+        '',
         totals.tuition,
         totals.exam,
         totals.annual,
+        totals.computer,
+        totals.transport,
         totals.prevDue,
         totals.totalFee,
         totals.totalPaid,
+        totals.advanceUsed,
         totals.netPayable,
         '',
       ])
@@ -320,34 +358,30 @@ function FeeList({ onViewInvoice, onPayFee }) {
               <div className="flex flex-wrap items-center gap-1 sm:gap-2 flex-1">
                 <button
                   onClick={() => setStatusFilter('all')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${
-                    statusFilter === 'all'
+                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${statusFilter === 'all'
                       ? 'bg-[#0f766e] text-white shadow-sm shadow-teal-500/20'
                       : 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/10 border border-teal-200 dark:border-teal-700/50'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-xs">apps</span>
                   <span>All</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${
-                    statusFilter === 'all' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
-                  }`}>
+                  <span className={`px-1 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${statusFilter === 'all' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+                    }`}>
                     {feeList.length}
                   </span>
                 </button>
                 <button
                   onClick={() => setStatusFilter('paid')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
-                    statusFilter === 'paid'
+                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${statusFilter === 'paid'
                       ? 'bg-[#0f766e] text-white shadow-sm'
                       : 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-xs">check_circle</span>
                   <span className="hidden sm:inline">Paid</span>
                   <span className="sm:hidden">P</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${
-                    statusFilter === 'paid' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-emerald-900/20'
-                  }`}>
+                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${statusFilter === 'paid' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-emerald-900/20'
+                    }`}>
                     {feeList.filter(f => {
                       const netPayable = f.net_payable || f.balance || ((f.total_fee || 0) - (f.total_paid || 0))
                       return f.bill_status === 'paid' || netPayable === 0 || netPayable < 0
@@ -356,18 +390,16 @@ function FeeList({ onViewInvoice, onPayFee }) {
                 </button>
                 <button
                   onClick={() => setStatusFilter('unpaid')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
-                    statusFilter === 'unpaid'
+                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${statusFilter === 'unpaid'
                       ? 'bg-[#be123c] text-white shadow-sm'
                       : 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-rose-200 dark:border-rose-700/50'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-xs">cancel</span>
                   <span className="hidden sm:inline">Unpaid</span>
                   <span className="sm:hidden">U</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${
-                    statusFilter === 'unpaid' ? 'bg-white/20' : 'bg-rose-50 dark:bg-rose-900/20'
-                  }`}>
+                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${statusFilter === 'unpaid' ? 'bg-white/20' : 'bg-rose-50 dark:bg-rose-900/20'
+                    }`}>
                     {feeList.filter(f => {
                       const netPayable = f.net_payable || f.balance || ((f.total_fee || 0) - (f.total_paid || 0))
                       return f.bill_status === 'unpaid' && netPayable > 0
@@ -376,18 +408,16 @@ function FeeList({ onViewInvoice, onPayFee }) {
                 </button>
                 <button
                   onClick={() => setStatusFilter('partial')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
-                    statusFilter === 'partial'
+                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${statusFilter === 'partial'
                       ? 'bg-[#b45309] text-white shadow-sm'
                       : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-xs">pending</span>
                   <span className="hidden sm:inline">Partial</span>
                   <span className="sm:hidden">Pt</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${
-                    statusFilter === 'partial' ? 'bg-white/20' : 'bg-amber-50 dark:bg-amber-900/20'
-                  }`}>
+                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${statusFilter === 'partial' ? 'bg-white/20' : 'bg-amber-50 dark:bg-amber-900/20'
+                    }`}>
                     {feeList.filter(f => {
                       const paidAmount = f.total_paid || f.paid_amount || 0
                       const netPayable = f.net_payable || f.balance || ((f.total_fee || 0) - paidAmount)
@@ -429,173 +459,225 @@ function FeeList({ onViewInvoice, onPayFee }) {
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
             <table className="fee-list-table w-full">
-            <thead>
-              <tr className="!bg-[#38bdf8] border-b-2 border-sky-200/60 dark:border-sky-700/50">
-                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-bold !text-white sticky left-0 !bg-[#38bdf8] z-10 border-r border-sky-200/40 dark:border-sky-700/50">Student</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Roll</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden sm:table-cell">Class</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden md:table-cell">Section</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Month</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Tuition</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Exam</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Annual</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Prev Due</th>
-                <th className="fee-total-heading px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white !bg-[#38bdf8]">Total</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Paid</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Due</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Status</th>
-                <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white sticky right-0 !bg-[#38bdf8] border-l border-sky-200/40 dark:border-sky-700/50">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedFeeList.map((fee, index) => {
-                const totalFee = fee.total_fee || 0
-                const paidAmount = fee.total_paid || fee.paid_amount || 0
-                const netPayable = fee.net_payable || fee.balance || (totalFee - paidAmount)
-                const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
-                const isPaid = billStatus === 'paid' || netPayable === 0
-                
-                return (
-                  <tr key={fee.bill_id || fee.student_id || index} className="border-b text-xs sm:text-sm border-cyan-200/30 dark:border-cyan-700/50 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 transition-colors">
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white font-medium sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-cyan-200/30 dark:border-cyan-700/50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
-                      <div>
-                        <div className="font-semibold truncate text-xs sm:text-sm">{fee.student_name || '--'}</div>
-                        {fee.father_name && (
-                          <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{fee.father_name}</div>
+              <thead>
+                <tr className="!bg-[#38bdf8] border-b-2 border-sky-200/60 dark:border-sky-700/50">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-bold !text-white sticky left-0 !bg-[#38bdf8] z-10 border-r border-sky-200/40 dark:border-sky-700/50">Student</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Roll</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden sm:table-cell">Class</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden md:table-cell">Section</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Month</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Tuition</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Exam</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Annual</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden xl:table-cell">Computer</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden xl:table-cell">Transport</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Prev Due</th>
+                  <th className="fee-total-heading px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white !bg-[#38bdf8]">Total</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Paid</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Advance</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Due/Adv</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Status</th>
+                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white sticky right-0 !bg-[#38bdf8] border-l border-sky-200/40 dark:border-sky-700/50">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedFeeList.map((fee, index) => {
+                  const totalFee = fee.total_fee || 0
+                  const paidAmount = fee.direct_paid !== undefined ? (parseFloat(fee.direct_paid) || 0) : (parseFloat(fee.total_paid || fee.paid_amount) || 0)
+                  const advanceUsed = parseFloat(fee.advance_used) || 0
+                  const netPayable = fee.net_payable !== undefined ? parseFloat(fee.net_payable) : Math.max(0, totalFee - (paidAmount + advanceUsed))
+                  const advanceGen = fee.advance_generated || (paidAmount > totalFee ? paidAmount - totalFee : 0)
+                  const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
+                  const isPaid = billStatus === 'paid' || netPayable === 0
+
+                  return (
+                    <tr key={fee.bill_id || fee.student_id || index} className="border-b text-xs sm:text-sm border-cyan-200/30 dark:border-cyan-700/50 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 transition-colors">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white font-medium sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-cyan-200/30 dark:border-cyan-700/50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
+                        <div>
+                          <div className="font-semibold truncate text-xs sm:text-sm">{fee.student_name || '--'}</div>
+                          {fee.father_name && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{fee.father_name}</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white">{fee.roll_no || '--'}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white font-medium hidden sm:table-cell">{fee.class || '--'}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white hidden md:table-cell">{fee.section || '--'}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white font-medium whitespace-nowrap">{fee.month || '--'}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.tuition_fee) || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.exam_fee) || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.annual_fee) || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden xl:table-cell">₹{(parseFloat(fee.computer_fee) || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden xl:table-cell">₹{(parseFloat(fee.transport_fee) || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-orange-600 dark:text-orange-400 font-medium hidden lg:table-cell">₹{(parseFloat(fee.previous_due) || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white font-bold bg-teal-50/80 dark:bg-teal-900/10">
+                        ₹{totalFee.toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
+                        ₹{paidAmount.toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-purple-600 dark:text-purple-400 font-medium hidden lg:table-cell">
+                        ₹{(parseFloat(advanceUsed) || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right font-bold whitespace-nowrap">
+                        {netPayable > 0 ? (
+                          <span className="text-red-600 dark:text-red-400">
+                            ₹{netPayable.toLocaleString('en-IN')}
+                          </span>
+                        ) : advanceGen > 0 ? (
+                          <span className="text-green-600 dark:text-green-400 font-bold">
+                            -₹{advanceGen.toLocaleString('en-IN')}
+                          </span>
+                        ) : (
+                          <span className="text-slate-600 dark:text-slate-400">
+                            ₹0
+                          </span>
                         )}
-                      </div>
+                      </td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center">
+                        {billStatus === 'paid' || isPaid ? (
+                          <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Paid</span>
+                        ) : billStatus === 'partial' ? (
+                          <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Partial</span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Unpaid</span>
+                        )}
+                      </td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center sticky right-0 bg-white dark:bg-slate-800 border-l border-cyan-200/30 dark:border-cyan-700/50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-1 justify-center flex-wrap">
+                          {/* Show Pay button for unpaid or partial */}
+                          {(billStatus === 'unpaid' || billStatus === 'partial' || netPayable > 0) && (
+                            <button
+                              onClick={() => onPayFee && onPayFee({
+                                class: fee.class,
+                                section: fee.section,
+                                roll_number: fee.roll_no,
+                                month: fee.month,
+                                student_name: fee.student_name,
+                                total_fee: totalFee,
+                                paid_amount: paidAmount,
+                                net_payable: netPayable
+                              })}
+                              className="inline-flex min-w-[64px] items-center justify-center px-3 py-1.5 bg-orange-500 hover:bg-orange-500/90 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-orange-500/20"
+                              title="Pay Fee"
+                            >
+                              Pay
+                            </button>
+                          )}
+
+                          {/* View Receipt button for paid or partial */}
+                          {(billStatus === 'paid' || billStatus === 'partial' || netPayable === 0 || netPayable < 0 || paidAmount > 0) && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (onViewReceipt) {
+                                    onViewReceipt(fee)
+                                  } else if (onViewInvoice) {
+                                    onViewInvoice(fee.bill_id)
+                                  }
+                                }}
+                                className="inline-flex min-w-[70px] items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20 cursor-pointer"
+                                title="View / Print Fee Receipt"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                                Receipt
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadInvoiceDirect(fee.bill_id)}
+                                disabled={downloadingInvoiceId === fee.bill_id}
+                                className="inline-flex items-center justify-center p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-xs font-bold transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                                title="Direct Download Fee Receipt PDF"
+                              >
+                                <span className={`material-symbols-outlined text-[14px] ${downloadingInvoiceId === fee.bill_id ? 'animate-spin' : ''}`}>
+                                  {downloadingInvoiceId === fee.bill_id ? 'sync' : 'download'}
+                                </span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              {/* Summary Row */}
+              {filteredFeeList.length > 0 && (
+                <tfoot>
+                  <tr className="bg-teal-50 dark:bg-teal-900/20 border-t-2 border-teal-200 dark:border-teal-700/50 font-bold text-xs sm:text-sm">
+                    <td colSpan={5} className="px-2 sm:px-4 py-2 sm:py-3 text-right text-slate-900 dark:text-white">
+                      Total ({filteredFeeList.length}):
                     </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white">{fee.roll_no || '--'}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white font-medium hidden sm:table-cell">{fee.class || '--'}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white hidden md:table-cell">{fee.section || '--'}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white hidden lg:table-cell">{fee.month || '--'}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.tuition_fee) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.exam_fee) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.annual_fee) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-orange-600 dark:text-orange-400 font-medium hidden lg:table-cell">₹{(parseFloat(fee.previous_due) || 0).toLocaleString('en-IN')}</td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white font-bold bg-teal-50/80 dark:bg-teal-900/10">
-                      ₹{totalFee.toLocaleString('en-IN')}
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.tuition_fee) || 0), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.exam_fee) || 0), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden xl:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.computer_fee) || 0), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden xl:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.transport_fee) || 0), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right bg-teal-100/80 dark:bg-teal-900/20 text-slate-900 dark:text-white font-bold">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0).toLocaleString('en-IN')}
                     </td>
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
-                      ₹{paidAmount.toLocaleString('en-IN')}
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (f.direct_paid !== undefined ? (parseFloat(f.direct_paid) || 0) : (parseFloat(f.total_paid) || 0)), 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-purple-600 dark:text-purple-400 font-bold hidden lg:table-cell">
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.advance_used) || 0), 0).toLocaleString('en-IN')}
                     </td>
                     <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-red-600 dark:text-red-400 font-bold">
-                      ₹{netPayable.toLocaleString('en-IN')}
+                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.net_payable) || 0), 0).toLocaleString('en-IN')}
                     </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center">
-                      {billStatus === 'paid' || isPaid ? (
-                        <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Paid</span>
-                      ) : billStatus === 'partial' ? (
-                        <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Partial</span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Unpaid</span>
-                      )}
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white">
+                      <span className="text-xs">
+                        {filteredFeeList.filter(f => f.bill_status === 'paid' || (f.net_payable || 0) === 0 || (f.net_payable || 0) < 0).length}/{filteredFeeList.length}
+                      </span>
                     </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center sticky right-0 bg-white dark:bg-slate-800 border-l border-cyan-200/30 dark:border-cyan-700/50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
-                      <div className="flex items-center gap-1 justify-center flex-wrap">
-                        {/* Show Pay button for unpaid or partial */}
-                        {(billStatus === 'unpaid' || billStatus === 'partial' || netPayable > 0) && (
-                          <button
-                            onClick={() => onPayFee && onPayFee({
-                              class: fee.class,
-                              section: fee.section,
-                              roll_number: fee.roll_no,
-                              month: fee.month,
-                              student_name: fee.student_name,
-                              total_fee: totalFee,
-                              paid_amount: paidAmount,
-                              net_payable: netPayable
-                            })}
-                            className="inline-flex min-w-[64px] items-center justify-center px-3 py-1.5 bg-orange-500 hover:bg-orange-500/90 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-orange-500/20"
-                            title="Pay Fee"
-                          >
-                            Pay
-                          </button>
-                        )}
-                        
-                        {/* Show Invoice button for paid or partial */}
-                        {(billStatus === 'paid' || billStatus === 'partial' || netPayable === 0 || netPayable < 0 || paidAmount > 0) && (
-                          <button
-                            onClick={() => onViewInvoice && onViewInvoice(fee.bill_id)}
-                            className="inline-flex min-w-[76px] items-center justify-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20"
-                            title="View Invoice"
-                          >
-                            Invoice
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    <td className="px-2 sm:px-3 py-2 sm:py-3 sticky right-0 bg-teal-50 dark:bg-teal-900/20"></td>
                   </tr>
-                )
-              })}
-            </tbody>
-            {/* Summary Row */}
-            {filteredFeeList.length > 0 && (
-              <tfoot>
-                <tr className="bg-teal-50 dark:bg-teal-900/20 border-t-2 border-teal-200 dark:border-teal-700/50 font-bold text-xs sm:text-sm">
-                  <td colSpan={5} className="px-2 sm:px-4 py-2 sm:py-3 text-right text-slate-900 dark:text-white">
-                    Total ({filteredFeeList.length}):
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.tuition_fee) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.exam_fee) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right bg-teal-100/80 dark:bg-teal-900/20 text-slate-900 dark:text-white font-bold">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_paid) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-red-600 dark:text-red-400 font-bold">
-                    ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.net_payable) || 0), 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white">
-                    <span className="text-xs">
-                      {filteredFeeList.filter(f => f.bill_status === 'paid' || (f.net_payable || 0) === 0 || (f.net_payable || 0) < 0).length}/{filteredFeeList.length}
-                    </span>
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-3 sticky right-0 bg-teal-50 dark:bg-teal-900/20"></td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
-        {filteredFeeList.length > PAGE_SIZE && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/30">
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Showing {showingStart}-{showingEnd} of {filteredFeeList.length} records
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={safeCurrentPage === 1}
-                className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                Previous
-              </button>
-              <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                Page {safeCurrentPage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={safeCurrentPage === totalPages}
-                className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                Next
-              </button>
-            </div>
+                </tfoot>
+              )}
+            </table>
           </div>
-        )}
+          {filteredFeeList.length > PAGE_SIZE && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/30">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                Showing {showingStart}-{showingEnd} of {filteredFeeList.length} records
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={safeCurrentPage === 1}
+                  className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                  Page {safeCurrentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

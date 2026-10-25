@@ -4,26 +4,22 @@ import { getClassesWithSections } from '../../Api/classes'
 import { getStudents } from '../../Api/students'
 import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 import { emitToast } from '../../Api/auth'
+import { flushSync } from 'react-dom'
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import schoolLogo from '../../assets/logo.png'
 import BillSlipCard from '../../Components/Fees/BillSlipCard'
+import BillSheetGrid from '../../Components/Fees/BillSheetGrid'
 import html2canvas from 'html2canvas-pro'
+import { downloadInvoiceSlipPDF } from '../../utils/pdf/invoiceSlipPdf'
 
-// Cloudinary URLs for PDF generation
-const PAYMENT_QR_URL = 'https://res.cloudinary.com/dqi5rafqu/image/upload/q_auto/f_auto/v1780169234/high_quality_qr_b64hf7.png'
-const STAMP_CERT_URL = 'https://res.cloudinary.com/dqi5rafqu/image/upload/q_auto/f_auto/v1780169341/stampcert_bf73gb.png'
-
-// Ensure autoTable is registered on jsPDF
-jsPDF.API.autoTable = autoTable
 
 function Bills() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [batchDownloadBills, setBatchDownloadBills] = useState([])
   const [success, setSuccess] = useState('')
-  const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewIndex, setPreviewIndex] = useState(0)
-  const [previewMode, setPreviewMode] = useState('card') // 'card' or 'table'
+  const [actualDbBills, setActualDbBills] = useState([])
+  const [loadingDbBills, setLoadingDbBills] = useState(false)
 
   // Close Month & Auto-Close Engine state
   const getCurrentMonthYYYYMM = () => {
@@ -163,11 +159,76 @@ function Bills() {
     return () => { isMounted = false }
   }, [selectedClass, selectedSection])
 
+  // Fetch Actual Generated Bills from Database whenever Month/Class/Section changes
+  useEffect(() => {
+    let isMounted = true
+    const fetchActualBills = async () => {
+      if (!billingMonth) return
+      setLoadingDbBills(true)
+      try {
+        const downloadRes = await downloadBillsData({
+          month: billingMonth,
+          class: selectedClass === 'All Classes' ? '' : selectedClass,
+          section: selectedSection === 'All Sections' ? '' : selectedSection,
+        })
+        const generatedBills = Array.isArray(downloadRes?.bills)
+          ? downloadRes.bills
+          : (Array.isArray(downloadRes) ? downloadRes : [])
+        if (isMounted) {
+          if (generatedBills.length > 0) {
+            let filtered = generatedBills
+            if (selectedSection !== 'All Sections') {
+              filtered = filtered.filter((b) => {
+                const sec = (b.section || b.student?.section || '').trim().toUpperCase()
+                return sec === selectedSection.trim().toUpperCase()
+              })
+            }
+            setActualDbBills(filtered.map((b) => ({ ...b, isBill: true })))
+          } else {
+            setActualDbBills([])
+          }
+        }
+      } catch (err) {
+        if (isMounted) setActualDbBills([])
+      } finally {
+        if (isMounted) setLoadingDbBills(false)
+      }
+    }
+
+    fetchActualBills()
+    return () => { isMounted = false }
+  }, [billingMonth, selectedClass, selectedSection])
+
   // Calculate Real Bill Preview from Actual Student Records & Fee Structures
   const previewRealBills = useMemo(() => {
     if (!realStudents || realStudents.length === 0) return []
 
-    return realStudents.slice(0, 100).map((student, idx) => {
+    // Sort students by Section (A, B, C...) and Roll Number numerically (1, 2, 3... 10, 11...)
+    const sortedStudents = [...realStudents].sort((a, b) => {
+      const classA = String(a.class || '').trim()
+      const classB = String(b.class || '').trim()
+      if (classA !== classB) {
+        const numA = parseInt(classA.replace(/\D/g, ''), 10)
+        const numB = parseInt(classB.replace(/\D/g, ''), 10)
+        if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB
+        return classA.localeCompare(classB, undefined, { numeric: true, sensitivity: 'base' })
+      }
+
+      const secA = String(a.section || '').trim().toUpperCase()
+      const secB = String(b.section || '').trim().toUpperCase()
+      if (secA !== secB) {
+        return secA.localeCompare(secB, undefined, { numeric: true, sensitivity: 'base' })
+      }
+
+      const rollA = parseInt(String(a.roll_no || '').replace(/\D/g, ''), 10)
+      const rollB = parseInt(String(b.roll_no || '').replace(/\D/g, ''), 10)
+      if (!isNaN(rollA) && !isNaN(rollB) && rollA !== rollB) {
+        return rollA - rollB
+      }
+      return String(a.roll_no || '').localeCompare(String(b.roll_no || ''), undefined, { numeric: true, sensitivity: 'base' })
+    })
+
+    return sortedStudents.slice(0, 100).map((student, idx) => {
       const studentClass = student.class || selectedClass
       const matchingFees = feeStructures.filter((f) => f.class === studentClass)
 
@@ -190,6 +251,7 @@ function Bills() {
 
       return {
         id: student.id,
+        isBill: true,
         bill_number: billNo,
         date: new Date().toISOString(),
         student_name: student.name || 'Student',
@@ -209,6 +271,7 @@ function Bills() {
           total_amount: total,
           advance_used: 0,
           net_payable: total,
+          status: 'unpaid',
         },
         roll: student.roll_no || student.admission_number || '-',
         name: student.name || 'Student',
@@ -232,7 +295,8 @@ function Bills() {
 
   // Exact Template Fallback when no live student is loaded
   const fallbackSampleBill = useMemo(() => ({
-    bill_number: 'REC-1001',
+    isBill: true,
+    bill_number: 'BILL-1001',
     date: new Date().toLocaleDateString('en-GB'),
     student_name: 'Aman Kumar',
     father_name: 'Rajesh Kumar',
@@ -254,149 +318,312 @@ function Bills() {
     calculated_fee: 2900,
     concession: 0,
     net_payable: 2900,
-    paid_amount: 2900,
-    due_amount: 0,
-    remark: 'FEE PAYMENT RECEIVED',
+    paid_amount: 0,
+    due_amount: 2900,
+    remark: 'MONTHLY FEE BILL',
   }), [selectedClass, selectedSection, billingMonth])
+
+  // Primary bills: If actual generated bills exist in DB, use them! Otherwise fall back to preview bills
+  const activeBillsList = useMemo(() => {
+    if (actualDbBills && actualDbBills.length > 0) {
+      return actualDbBills
+    }
+    return previewRealBills
+  }, [actualDbBills, previewRealBills])
 
   // Currently active bill for the live preview card
   const activePreviewBill = useMemo(() => {
-    return previewRealBills[previewIndex] || fallbackSampleBill
-  }, [previewRealBills, previewIndex, fallbackSampleBill])
+    return activeBillsList[previewIndex] || fallbackSampleBill
+  }, [activeBillsList, previewIndex, fallbackSampleBill])
 
   // High-Resolution 100% Exact PDF Downloader using html2canvas
   const [downloadingPdf, setDownloadingPdf] = useState(false)
-  const downloadExactSlipPDF = async (targetBill) => {
-    const billToDownload = targetBill || activePreviewBill
-    const cardElement = document.getElementById('bill-slip-capture-node')
-    if (!cardElement) {
-      generateReceiptPDF([billToDownload])
-      return
+
+  /**
+   * generateBatchBillsPDF - Renders BillSlipCards into an offscreen hidden DOM node
+   * (4 at a time in 2x2 grid), captures with html2canvas, builds multi-page A4 PDF.
+   * This produces a pixel-perfect PDF matching the screen design exactly.
+   */
+  /**
+   * Sort bills strictly by Section (A, B, C...) and Roll Number numerically (1, 2, 3...)
+   */
+  const sortBillsBySectionAndRoll = (billList) => {
+    if (!Array.isArray(billList)) return []
+
+    // 1. Strict de-duplication: each student's bill appears at most once
+    const seen = new Set()
+    const uniqueBills = []
+    for (const b of billList) {
+      if (!b) continue
+      const uid = b.id || b.bill_id || b.receipt_number || b.bill_number || `${b.student_id || b.student?.id || b.name || b.student_name}_${b.roll_no || b.roll}`
+      if (seen.has(uid)) continue
+      seen.add(uid)
+      uniqueBills.push(b)
     }
 
+    return uniqueBills.sort((a, b) => {
+      // 1. Class
+      const classA = String(a.class || a.student?.class || a.students?.class || '').trim()
+      const classB = String(b.class || b.student?.class || b.students?.class || '').trim()
+      if (classA !== classB) {
+        const numA = parseInt(classA.replace(/\D/g, ''), 10)
+        const numB = parseInt(classB.replace(/\D/g, ''), 10)
+        if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB
+        return classA.localeCompare(classB, undefined, { numeric: true, sensitivity: 'base' })
+      }
+
+      // 2. Section: A, B, C...
+      const secA = String(a.section || a.student?.section || a.students?.section || '').trim().toUpperCase()
+      const secB = String(b.section || b.student?.section || b.students?.section || '').trim().toUpperCase()
+      if (secA !== secB) {
+        return secA.localeCompare(secB, undefined, { numeric: true, sensitivity: 'base' })
+      }
+
+      // 3. Roll Number: numerical (1, 2, 3... 10, 11...)
+      const rawRollA = a.roll_no || a.roll || a.student?.roll_no || a.students?.roll_no || ''
+      const rawRollB = b.roll_no || b.roll || b.student?.roll_no || b.students?.roll_no || ''
+      const numRollA = parseInt(String(rawRollA).replace(/\D/g, ''), 10)
+      const numRollB = parseInt(String(rawRollB).replace(/\D/g, ''), 10)
+
+      if (!isNaN(numRollA) && !isNaN(numRollB) && numRollA !== numRollB) {
+        return numRollA - numRollB
+      }
+
+      return String(rawRollA).localeCompare(String(rawRollB), undefined, { numeric: true, sensitivity: 'base' })
+    })
+  }
+
+  const generateBatchBillsPDF = async (bills, fileNamePrefix = 'Star_Public_School_Fee_Bills') => {
+    if (!bills || bills.length === 0) return
+
+    // Ensure bills are sorted strictly by Section (A, B, C...) and Roll Number numerically (1, 2, 3...)
+    const sortedBills = sortBillsBySectionAndRoll(bills)
+
     setDownloadingPdf(true)
+    emitToast({
+      type: 'info',
+      title: 'Generating PDF',
+      message: `Preparing ${sortedBills.length} fee bills for download (6 per A4 page)...`,
+    })
+
     try {
-      emitToast({
-        type: 'info',
-        title: 'Rendering 4-in-1 Bill PDF',
-        message: 'Rendering official fee bill (4 bills on 1 A4 page) in 300 DPI...',
-      })
-
-      const canvas = await html2canvas(cardElement, {
-        scale: 3,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      })
-
-      const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       })
 
-      // A4 portrait: 210mm x 297mm (1 Page with 4 Bills in 2x2 grid)
-      const marginX = 5
-      const marginY = 5
-      const gapX = 4
-      const gapY = 5
+      // A4 dimensions
+      const pageW = 210
+      const pageH = 297
+      const margin = 4
 
-      const cardWidth = 98 // 98 * 2 + 5 * 2 + 4 = 210mm
-      const cardHeight = Math.min(138, (canvas.height * cardWidth) / canvas.width)
+      // Split bills into pages of 6
+      const pages = []
+      for (let i = 0; i < sortedBills.length; i += 6) {
+        pages.push(sortedBills.slice(i, i + 6))
+      }
 
-      // 4 Quadrants (2x2 grid on 1 single A4 page)
-      const positions = [
-        { x: marginX, y: marginY },                                         // Top-Left (Slot 1)
-        { x: marginX + cardWidth + gapX, y: marginY },                      // Top-Right (Slot 2)
-        { x: marginX, y: marginY + cardHeight + gapY },                     // Bottom-Left (Slot 3)
-        { x: marginX + cardWidth + gapX, y: marginY + cardHeight + gapY },  // Bottom-Right (Slot 4)
-      ]
+      for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+        const pageBills = pages[pageIdx].map((b) => ({ ...b, isBill: true }))
 
-      positions.forEach((pos) => {
-        pdf.addImage(imgData, 'PNG', pos.x, pos.y, cardWidth, cardHeight, undefined, 'FAST')
-      })
+        // Flush state update synchronously then wait for DOM to update
+        await new Promise((resolve) => {
+          flushSync(() => {
+            setBatchDownloadBills(pageBills)
+          })
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(resolve, 150)
+            })
+          })
+        })
 
-      const name = (billToDownload?.student_name || 'Student').replace(/\s+/g, '_')
-      const billId = billToDownload?.bill_number || 'Receipt'
-      const fileName = `Fee_Bill_4in1_${name}_${billId}.pdf`
+        const sheetEl = document.getElementById('batch-download-sheet')
+        if (!sheetEl) break
 
+        // Preload all images (logo, QR, stamp) before capturing
+        const images = Array.from(sheetEl.querySelectorAll('img'))
+        if (images.length > 0) {
+          await Promise.all(
+            images.map(
+              (img) =>
+                new Promise((res) => {
+                  if (img.complete && img.naturalWidth > 0) return res()
+                  img.onload = () => res()
+                  img.onerror = () => res()
+                  setTimeout(res, 250)
+                })
+            )
+          )
+        }
+
+        const canvas = await html2canvas(sheetEl, {
+          scale: 2.2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          allowTaint: true,
+          onclone: (clonedDoc) => {
+            const scratchCanvas = document.createElement('canvas')
+            const ctx = scratchCanvas.getContext('2d')
+            const toRgb = (val) => {
+              if (!val || typeof val !== 'string' || !val.includes('oklch')) return val
+              try {
+                ctx.fillStyle = '#000000'
+                ctx.fillStyle = val
+                return ctx.fillStyle
+              } catch (_) {
+                return '#000000'
+              }
+            }
+            const colorProps = [
+              'color',
+              'backgroundColor',
+              'borderColor',
+              'borderTopColor',
+              'borderRightColor',
+              'borderBottomColor',
+              'borderLeftColor',
+              'outlineColor',
+            ]
+            clonedDoc.querySelectorAll('*').forEach((el) => {
+              try {
+                const comp = (clonedDoc.defaultView || window).getComputedStyle(el)
+                colorProps.forEach((prop) => {
+                  const val = comp[prop]
+                  if (val && typeof val === 'string' && val.includes('oklch')) {
+                    el.style[prop] = toRgb(val)
+                  }
+                })
+                if (comp.boxShadow && comp.boxShadow.includes('oklch')) {
+                  el.style.boxShadow = 'none'
+                }
+              } catch (_) { }
+            })
+          },
+        })
+
+        const imgData = canvas.toDataURL('image/png')
+        const maxW = pageW - margin * 2
+        const maxH = pageH - margin * 2
+
+        let finalW = maxW
+        let finalH = (canvas.height * finalW) / canvas.width
+        if (finalH > maxH) {
+          finalH = maxH
+          finalW = (canvas.width * finalH) / canvas.height
+        }
+
+        const xPos = margin + (maxW - finalW) / 2
+        const yPos = margin + (maxH - finalH) / 2
+
+        if (pageIdx > 0) pdf.addPage()
+        pdf.addImage(imgData, 'PNG', xPos, yPos, finalW, finalH, undefined, 'FAST')
+      }
+
+      // Clean up the hidden container
+      setBatchDownloadBills([])
+
+      const classLabel = selectedClass !== 'All Classes' ? `_Class_${selectedClass.replace(/\s+/g, '_')}` : ''
+      const fileName = `${fileNamePrefix}${classLabel}_${billingMonth}.pdf`
       pdf.save(fileName)
+
       emitToast({
         type: 'success',
-        title: 'Download Complete',
-        message: `Saved ${fileName} (4 bills on 1 page) successfully.`,
+        title: 'PDF Downloaded',
+        message: `${fileName} saved — ${bills.length} bills across ${pages.length} page(s).`,
       })
     } catch (err) {
-      console.error('Failed to capture card as canvas:', err)
-      generateReceiptPDF([billToDownload])
+      console.error('Batch PDF generation failed:', err)
+      setBatchDownloadBills([])
+      emitToast({
+        type: 'error',
+        title: 'Download Failed',
+        message: 'Could not generate PDF. Please try again.',
+      })
     } finally {
       setDownloadingPdf(false)
     }
   }
 
-  // 4-in-1 A4 Sheet View Mode State ('sheet' or 'single')
-  const [sheetViewMode, setSheetViewMode] = useState('sheet')
-
-  // High-Resolution 4-in-1 A4 Sheet PDF Downloader (2x2 grid matching photo)
-  const download4In1SheetPDF = async () => {
-    const sheetElement = document.getElementById('four-in-one-a4-sheet')
-    if (!sheetElement) {
-      downloadExactSlipPDF(activePreviewBill)
-      return
-    }
-
+  const downloadExactSlipPDF = async (targetBill) => {
+    const billToDownload = targetBill || activePreviewBill
+    if (!billToDownload) return
     setDownloadingPdf(true)
     try {
-      emitToast({
-        type: 'info',
-        title: 'Rendering 4-in-1 A4 Sheet',
-        message: 'Rendering official 4-receipt A4 sheet in 300 DPI...',
-      })
-
-      const canvas = await html2canvas(sheetElement, {
-        scale: 2.5,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      })
-
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      })
-
-      const pageWidth = 210
-      const pageHeight = 297
-      const margin = 4
-      const maxW = pageWidth - margin * 2 // 202mm
-      const maxH = pageHeight - margin * 2 // 289mm
-
-      let finalWidth = maxW
-      let finalHeight = (canvas.height * finalWidth) / canvas.width
-
-      if (finalHeight > maxH) {
-        finalHeight = maxH
-        finalWidth = (canvas.width * finalHeight) / canvas.height
-      }
-
-      const xPos = margin + (maxW - finalWidth) / 2
-      const yPos = margin + (maxH - finalHeight) / 2
-
-      pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight, undefined, 'FAST')
-      const fileName = `Star_Public_School_Bills_4in1_Sheet_${Date.now()}.pdf`
-      pdf.save(fileName)
-
+      const studentLabel = (billToDownload?.student_name || 'Student').replace(/\s+/g, '_')
+      const fileName = `Fee_Bill_${studentLabel}_${billingMonth}.pdf`
+      await downloadInvoiceSlipPDF({ ...billToDownload, isBill: true }, fileName)
       emitToast({
         type: 'success',
-        title: '4-in-1 Sheet Downloaded',
-        message: `Saved ${fileName} successfully.`,
+        title: 'Bill Downloaded',
+        message: `Official Fee Bill saved for ${billToDownload?.student_name || 'Student'}.`,
       })
     } catch (err) {
-      console.error('Failed to capture 4-in-1 sheet:', err)
-      generateReceiptPDF(previewRealBills)
+      console.error('Single bill download error:', err)
+      emitToast({
+        type: 'error',
+        title: 'Download Failed',
+        message: 'Could not download bill slip. Please try again.',
+      })
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
+
+
+  // High-Resolution 6-in-1 A4 Sheet PDF Downloader (2x3 grid)
+  const download6In1SheetPDF = async () => {
+    setDownloadingPdf(true)
+    try {
+      let billsToExport = []
+      // 1. Try fetching freshest bills from database for the selected criteria
+      try {
+        const downloadRes = await downloadBillsData({
+          month: billingMonth,
+          class: selectedClass === 'All Classes' ? '' : selectedClass,
+          section: selectedSection === 'All Sections' ? '' : selectedSection,
+        })
+        const generatedBills = Array.isArray(downloadRes?.bills)
+          ? downloadRes.bills
+          : (Array.isArray(downloadRes) ? downloadRes : [])
+        if (generatedBills.length > 0) {
+          let filtered = generatedBills
+          if (selectedSection !== 'All Sections') {
+            filtered = filtered.filter((b) => {
+              const sec = (b.section || b.student?.section || '').trim().toUpperCase()
+              return sec === selectedSection.trim().toUpperCase()
+            })
+          }
+          billsToExport = filtered.map((b) => ({ ...b, isBill: true }))
+          setActualDbBills(billsToExport)
+        }
+      } catch (err) {
+        console.warn('Could not fetch actual bills for download, using active bills:', err)
+      }
+
+      // 2. Fallback to currently active bills
+      if (!billsToExport || billsToExport.length === 0) {
+        billsToExport = activeBillsList.length > 0 ? activeBillsList : [activePreviewBill]
+      }
+
+      if (billsToExport && billsToExport.length > 0) {
+        await generateBatchBillsPDF(billsToExport)
+      } else {
+        emitToast({
+          type: 'warning',
+          title: 'No Bills Found',
+          message: `No bills found for ${selectedClass} (${billingMonth}). Please click "Generate Monthly Bills" first.`,
+        })
+      }
+    } catch (err) {
+      console.error('Batch bills download error:', err)
+      emitToast({
+        type: 'error',
+        title: 'Download Failed',
+        message: 'Could not generate bills PDF. Please try again.',
+      })
     } finally {
       setDownloadingPdf(false)
     }
@@ -459,263 +686,9 @@ function Bills() {
     }
   }
 
-  // Helper function to render text as image for PDF
-  const renderTextAsImage = (text, fontSize = 12, fontFamily = 'Arial, sans-serif') => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 200
-    canvas.height = 40
-    const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.fillStyle = '#000000'
-      ctx.font = `bold ${fontSize}px ${fontFamily}`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(text, canvas.width / 2, canvas.height / 2)
-    }
-    return canvas.toDataURL('image/png')
-  }
 
-  // Generate Official Star Public School Receipt PDF (4 Bills per A4 Page)
-  const generateReceiptPDF = (bills) => {
-    if (!bills || bills.length === 0) return
-    const doc = new jsPDF('p', 'mm', 'a4')
-    doc.setLanguage('hi')
 
-    const marginX = 5
-    const marginY = 5
-    const gapX = 4
-    const gapY = 5
-    const billWidth = 98
-    const billHeight = 138
 
-    const formatBillAmount = (amount) => {
-      if (amount === '' || amount === null || amount === undefined) return '-'
-      const numericAmount = Number(amount)
-      if (isNaN(numericAmount) || numericAmount === 0) return '-'
-      return numericAmount.toLocaleString('en-IN')
-    }
-
-    bills.forEach((bill, index) => {
-      const position = index % 4
-      const col = position % 2
-      const row = Math.floor(position / 2)
-
-      if (index !== 0 && position === 0) {
-        doc.addPage()
-      }
-
-      const x = marginX + col * (billWidth + gapX)
-      const y = marginY + row * (billHeight + gapY)
-
-      // 1. Clean Receipt Border
-      doc.setFillColor(255, 255, 255)
-      doc.setDrawColor(0, 0, 0)
-      doc.setLineWidth(0.4)
-      doc.rect(x, y, billWidth, billHeight, 'FD')
-
-      // 2. School Crest / Logo
-      try {
-        doc.addImage(schoolLogo, 'PNG', x + 2.5, y + 2.2, 9.5, 9.5)
-      } catch (e) {
-        // fallback
-      }
-
-      // 3. School Header (Proper 2 lines address & phone number)
-      doc.setTextColor(0, 0, 0)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9.5)
-      doc.text('STAR PUBLIC SCHOOL', x + billWidth / 2, y + 4.5, { align: 'center' })
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(5.8)
-      doc.text('Meghwal mathia Bazar, West Champaran, Bihar - 845106', x + billWidth / 2, y + 7.8, { align: 'center' })
-
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(6.2)
-      doc.text('Mob: 9006457330', x + billWidth / 2, y + 10.8, { align: 'center' })
-
-      doc.setFontSize(6.8)
-      doc.text('FEE RECEIPT', x + billWidth / 2, y + 14.2, { align: 'center' })
-
-      doc.setFont('helvetica', 'italic')
-      doc.setFontSize(5.5)
-      doc.text('Office Copy', x + billWidth - 3, y + 14.2, { align: 'right' })
-
-      // Dotted Divider 1
-      doc.setDrawColor(0, 0, 0)
-      doc.setLineWidth(0.3)
-      doc.setLineDashPattern([0.8, 0.8], 0)
-      doc.line(x + 2, y + 16, x + billWidth - 2, y + 16)
-      doc.setLineDashPattern([], 0)
-
-      // 4. Student Details (Exactly our 6 fields with aligned colons)
-      const billNo = bill.bill_number || bill.invoice_number || bill.bill_id || bill.receipt_no || `REC-${Date.now().toString().slice(-6)}`
-      const billDate = bill.date
-        ? (bill.date.includes('/') || bill.date.includes('-') ? bill.date : new Date(bill.date).toLocaleDateString('en-GB'))
-        : new Date().toLocaleDateString('en-GB')
-      const studentName = bill.student_name || bill.student?.name || bill.name || 'Student'
-      const fatherName = bill.father_name || bill.student?.father_name || bill.student?.father || '-'
-      const className = `${bill.class || bill.student?.class || ''} ${bill.section || bill.student?.section ? `(${bill.section || bill.student?.section})` : ''}`.trim() || '-'
-      const rollNo = bill.roll_no || bill.student?.roll_no || bill.roll || '-'
-
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(6.2)
-      doc.setTextColor(0, 0, 0)
-
-      const col1X = x + 3
-      const col2X = x + billWidth / 2 + 1.5
-
-      doc.text(`Bill No   :  ${billNo}`, col1X, y + 19.5)
-      doc.text(`Date      :  ${billDate}`, col2X, y + 19.5)
-      doc.text(`Student :  ${studentName}`, col1X, y + 23)
-      doc.text(`Father   :  ${fatherName}`, col2X, y + 23)
-      doc.text(`Class    :  ${className}`, col1X, y + 26.5)
-      doc.text(`Roll       :  ${rollNo}`, col2X, y + 26.5)
-
-      // Dotted Divider 2
-      doc.setLineDashPattern([0.8, 0.8], 0)
-      doc.line(x + 2, y + 28.5, x + billWidth - 2, y + 28.5)
-      doc.setLineDashPattern([], 0)
-
-      // 5. Fee Particulars Table
-      const tableStartY = y + 29.5
-      const tableWidth = 62
-      const tableLeftX = x + 2.5
-
-      const getAmount = (keyword) => {
-        if (Array.isArray(bill.items)) {
-          const it = bill.items.find((i) => (i.fee_name || i.name || '').toLowerCase().includes(keyword))
-          if (it) return it.amount
-        }
-        return bill[keyword] ?? ''
-      }
-
-      const tuitionFee = getAmount('tuition')
-      const examFee = getAmount('exam')
-      const annualFee = getAmount('annual')
-      const computerFee = getAmount('computer') || getAmount('lab')
-      const transportFee = getAmount('transport')
-      const previousDue = getAmount('due') || getAmount('previous')
-
-      const detailsData = [
-        ['Tuition Fee', formatBillAmount(tuitionFee)],
-        ['Exam Fee', formatBillAmount(examFee)],
-        ['Annual Fee', formatBillAmount(annualFee)],
-        ['Computer Fee', formatBillAmount(computerFee)],
-        ['Transport Fee', formatBillAmount(transportFee)],
-        ['Previous Due', formatBillAmount(previousDue)],
-      ]
-
-      autoTable(doc, {
-        startY: tableStartY,
-        head: [['PARTICULARS', 'Rs.']],
-        body: detailsData,
-        margin: { left: tableLeftX },
-        tableWidth: tableWidth,
-        columnStyles: {
-          0: { cellWidth: 44 },
-          1: { cellWidth: 18, halign: 'right' },
-        },
-        styles: {
-          fontSize: 6,
-          cellPadding: 1,
-          fontStyle: 'normal',
-          textColor: [0, 0, 0],
-          font: 'helvetica',
-          lineColor: [220, 220, 220],
-          lineWidth: 0.1,
-        },
-        headStyles: {
-          fillColor: [255, 255, 255],
-          textColor: [0, 0, 0],
-          font: 'helvetica',
-          fontStyle: 'bold',
-          fontSize: 6.2,
-          cellPadding: 1.1,
-          lineColor: [0, 0, 0],
-          lineWidth: 0.2,
-        },
-        theme: 'plain',
-      })
-
-      const detailsEndY = doc.lastAutoTable.finalY + 1
-
-      // Summary
-      const summary = bill.summary || {}
-      const totalAmount = summary.total_amount ?? (bill.total ?? '')
-      const advanceAmount = summary.advance_used ?? (bill.advance ?? '')
-      const netPayable = summary.net_payable ?? (bill.netPayable ?? totalAmount)
-
-      autoTable(doc, {
-        startY: detailsEndY,
-        body: [
-          ['Total', formatBillAmount(totalAmount)],
-          ['Advance', formatBillAmount(advanceAmount)],
-          ['Net Payable', formatBillAmount(netPayable)],
-        ],
-        margin: { left: tableLeftX },
-        tableWidth: tableWidth,
-        columnStyles: {
-          0: { cellWidth: 44, fontStyle: 'bold' },
-          1: { cellWidth: 18, halign: 'right', fontStyle: 'bold' },
-        },
-        styles: {
-          fontSize: 6.2,
-          cellPadding: 0.9,
-          textColor: [0, 0, 0],
-          font: 'helvetica',
-        },
-        theme: 'plain',
-      })
-
-      // 6. Right Column: QR Code, Hindi Text, School Stamp
-      const qrSize = 22
-      const qrX = x + tableWidth + 6
-      const qrY = tableStartY + 1
-
-      // QR Code
-      try {
-        doc.addImage(PAYMENT_QR_URL, 'PNG', qrX, qrY, qrSize, qrSize)
-      } catch (e) {
-        // fallback
-      }
-
-      // Hindi scan text
-      try {
-        const hindiImg1 = renderTextAsImage('पेमेंट के लिए', 12, 'Arial, sans-serif')
-        doc.addImage(hindiImg1, 'PNG', qrX - 5, qrY + qrSize + 1, 32, 5)
-        const hindiImg2 = renderTextAsImage('QR कोड स्कैन करें', 12, 'Arial, sans-serif')
-        doc.addImage(hindiImg2, 'PNG', qrX - 5, qrY + qrSize + 5.5, 32, 5)
-      } catch (e) {
-        // fallback
-      }
-
-      // Stamp
-      const stampSize = 20
-      const stampY = qrY + qrSize + 13
-      try {
-        doc.addImage(STAMP_CERT_URL, 'PNG', qrX + 1, stampY, stampSize, stampSize)
-      } catch (e) {
-        // fallback
-      }
-
-      // Dotted Divider 3
-      doc.setLineDashPattern([0.8, 0.8], 0)
-      doc.line(x + 2, y + billHeight - 9, x + billWidth - 2, y + billHeight - 9)
-      doc.setLineDashPattern([], 0)
-
-      // 7. Footer: Receiver Signature
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(6)
-      doc.text('Signature of Receiver: __________________________', x + 3, y + billHeight - 4)
-      doc.text('(Signature)', x + billWidth - 3, y + billHeight - 4, { align: 'right' })
-    })
-
-    const classLabel = selectedClass !== 'All Classes' ? `_Class_${selectedClass}` : ''
-    const fileName = `Star_Public_School_Bills${classLabel}_${Date.now()}.pdf`
-    doc.save(fileName)
-    return fileName
-  }
 
   // Handle Generate Monthly Bills using Real API and Data (NO DUMMY FALLBACK)
   const handleGenerateBills = async () => {
@@ -752,7 +725,12 @@ function Bills() {
           })
           totalSuccessCount += (response?.successCount || 0)
         } catch (clsErr) {
-          console.warn(`Bill generation notice for class ${cls}:`, clsErr.message)
+          const errText = String(clsErr.message || clsErr.error || '').toLowerCase()
+          const rethrowErr = errText.includes('closed')
+            ? new Error('Bill can not generate month is closed')
+            : clsErr
+          rethrowErr.isHandledByInterceptor = true
+          throw rethrowErr
         }
       }
 
@@ -762,51 +740,62 @@ function Bills() {
         const downloadRes = await downloadBillsData({
           month: monthParam,
           class: selectedClass === 'All Classes' ? '' : selectedClass,
+          section: selectedSection === 'All Sections' ? '' : selectedSection,
         })
-
         const generatedBills = Array.isArray(downloadRes?.bills)
           ? downloadRes.bills
           : (Array.isArray(downloadRes) ? downloadRes : [])
-
         if (generatedBills.length > 0) {
-          billsToDownload = generatedBills
+          let filtered = generatedBills
+          if (selectedSection !== 'All Sections') {
+            filtered = filtered.filter((b) => {
+              const sec = (b.section || b.student?.section || '').trim().toUpperCase()
+              return sec === selectedSection.trim().toUpperCase()
+            })
+          }
+          billsToDownload = filtered.map((b) => ({ ...b, isBill: true }))
         }
       } catch (dlErr) {
-        console.warn('Could not fetch bills from download endpoint, using live student data:', dlErr)
+        console.warn('Could not fetch download data, using preview bills:', dlErr)
       }
 
-      // If downloadRes didn't return bills or was empty, use previewRealBills of all students in this class
+      // Fallback to previewRealBills (local computed bills)
       if (!billsToDownload || billsToDownload.length === 0) {
         billsToDownload = previewRealBills
       }
 
-      // AUTOMATICALLY DOWNLOAD BILLS FOR ALL STUDENTS OF THE CLASS (4 ON 1 A4 PAGE)!
+      setLoading(false)
+
+      // Generate PDF with EXACT BillSlipCard visual design (pixel-perfect)
       if (billsToDownload && billsToDownload.length > 0) {
-        generateReceiptPDF(billsToDownload)
-        const successMsg = `Bills generated & PDF downloaded for all ${billsToDownload.length} students in ${selectedClass} (${monthParam}).`
+        setActualDbBills(billsToDownload)
+        const successMsg = `Bills generated for ${billsToDownload.length} students in ${selectedClass} (${monthParam}). Downloading PDF...`
         setSuccess(successMsg)
-        emitToast({
-          type: 'success',
-          title: 'Bills Generated & Downloaded',
-          message: successMsg,
-        })
+        await generateBatchBillsPDF(billsToDownload)
       } else {
-        const successMsg = `Bills processed for active students in ${selectedClass} (${monthParam}).`
-        setSuccess(successMsg)
         emitToast({
           type: 'info',
           title: 'Bills Evaluated',
-          message: successMsg,
+          message: `Bills processed for ${selectedClass} (${monthParam}).`,
         })
       }
     } catch (err) {
-      const errorMsg = err.message || 'Failed to generate monthly bills.'
+      const errText = String(err.message || err.error || '').toLowerCase()
+      const isMonthClosed = errText.includes('closed')
+      const errorMsg = isMonthClosed
+        ? 'Bill can not generate month is closed'
+        : (err.message || 'Failed to generate monthly bills.')
+
       setError(errorMsg)
-      emitToast({
-        type: 'error',
-        title: 'Bill Generation Error',
-        message: errorMsg,
-      })
+      setSuccess('')
+      // Only emit toast if not already handled by axios interceptor
+      if (!err?.isHandledByInterceptor && !err?.response && !err?.status) {
+        emitToast({
+          type: 'error',
+          title: isMonthClosed ? 'Month Closed' : 'Notice',
+          message: errorMsg,
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -814,46 +803,37 @@ function Bills() {
 
   return (
     <div className="space-y-6">
-      {/* ========================================================
-          AUTO-CLOSE MONTH ENGINE BANNER & MANUAL TRIGGER
-          ======================================================== */}
-      <div className="rounded-2xl border border-sky-100 bg-linear-to-r from-sky-50/80 via-white to-blue-50/60 p-5 shadow-2xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="h-11 w-11 shrink-0 rounded-2xl bg-[#132c4e] text-white flex items-center justify-center shadow-xs">
-              <span className="material-symbols-outlined text-[24px]">event_repeat</span>
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h3 className="text-sm font-black text-[#0f1e36]">
-                  Auto-Close Month Engine
-                </h3>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 px-2.5 py-0.5 text-[11px] font-black text-emerald-800">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  ACTIVE · Daily 6:00 PM IST
-                </span>
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800">
-                  Month-End Auto Roll
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                Runs automatically on the <strong>last calendar day of every month at 6:00 PM IST</strong>. It tallies payments, locks the billing cycle, and rolls remaining unpaid balances into previous dues.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowCloseMonthModal(true)}
-              className="h-10 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0f1e36] shadow-2xs flex items-center gap-2 transition cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[17px] text-amber-600">lock_clock</span>
-              Close Month (Manual)
-            </button>
-          </div>
+      {/* ============================================================
+          HIDDEN BATCH DOWNLOAD CONTAINER - always rendered off-screen
+          html2canvas capture target for pixel-perfect PDF export
+          ============================================================ */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: '-9999px',
+          left: '-9999px',
+          width: '792px',
+          zIndex: -9999,
+          pointerEvents: 'none',
+          opacity: 0,
+        }}
+      >
+        <div
+          id="batch-download-sheet"
+          style={{
+            width: '792px',
+            backgroundColor: '#ffffff',
+            padding: '8px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {batchDownloadBills.length > 0 && (
+            <BillSheetGrid bills={batchDownloadBills} />
+          )}
         </div>
       </div>
+
 
       {/* ========================================================
           CANVA BILL GENERATION CARD (Pixel-Perfect Implementation)
@@ -1043,7 +1023,35 @@ function Bills() {
 
           {/* Real Info Banner Bar */}
           <div className="pt-2">
-            {loadingStudents ? (
+            {error ? (
+              <div className="rounded-xl bg-white border border-rose-200 border-l-4 border-l-rose-500 px-5 py-3.5 text-xs sm:text-sm font-bold text-rose-600 shadow-sm flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-rose-600">error</span>
+                  <span>{error}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setError('')}
+                  className="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : success ? (
+              <div className="rounded-xl bg-white border border-emerald-200 border-l-4 border-l-emerald-500 px-5 py-3.5 text-xs sm:text-sm font-bold text-emerald-600 shadow-sm flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
+                  <span>{success}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSuccess('')}
+                  className="text-emerald-500 hover:text-emerald-700 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : loadingStudents ? (
               <div className="rounded-xl bg-[#edf4fc] px-5 py-3.5 text-xs sm:text-sm font-bold text-[#1e3a5f] shadow-2xs flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
                 Fetching active student records from database...
@@ -1075,38 +1083,54 @@ function Bills() {
               Clear Setup
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowCloseMonthModal(true)}
-              className="h-11 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100/80 px-4 text-sm font-bold text-amber-900 shadow-2xs transition flex items-center gap-2 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-amber-700">lock_clock</span>
-              Close Month
-            </button>
+            {/* Close Month Button with attached (i) Info Tooltip */}
+            <div className="relative inline-flex items-center group">
+              <button
+                type="button"
+                onClick={() => setShowCloseMonthModal(true)}
+                className="h-11 rounded-l-xl border border-r-0 border-amber-300 bg-amber-50 hover:bg-amber-100/90 pl-4 pr-2.5 text-sm font-bold text-amber-900 shadow-2xs transition flex items-center gap-2 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px] text-amber-700">lock_clock</span>
+                Close Month
+              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="Auto-Close Month Info"
+                  className="h-11 px-2.5 rounded-r-xl border border-amber-300 bg-amber-50 hover:bg-amber-100/90 text-amber-700 shadow-2xs flex items-center justify-center cursor-help transition"
+                >
+                  <span className="material-symbols-outlined text-[18px]">info</span>
+                </button>
+                {/* Popover / Tooltip on hover */}
+                <div className="absolute bottom-full right-0 mb-2 w-80 p-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                  <div className="flex items-center gap-2 font-black text-amber-300 pb-1.5 border-b border-slate-700/80">
+                    <span className="material-symbols-outlined text-[16px]">event_repeat</span>
+                    Auto-Close Month Engine (ACTIVE)
+                  </div>
+                  <div className="mt-2 space-y-1.5 text-slate-200 text-[11px] leading-relaxed">
+                    <p>
+                      <strong>Auto Schedule:</strong> Runs automatically on the <strong>last calendar day of every month at 6:00 PM IST</strong>.
+                    </p>
+                    <p>
+                      It tallies all collected payments, locks the billing cycle, and automatically rolls remaining unpaid balances into previous dues.
+                    </p>
+                    <p className="text-amber-200/90 pt-1 border-t border-slate-800 text-[10px]">
+                      Click <strong>"Close Month"</strong> anytime to manually close & reconcile a month now.
+                    </p>
+                  </div>
+                  <div className="absolute top-full right-4 -mt-1 border-4 border-transparent border-t-slate-900"></div>
+                </div>
+              </div>
+            </div>
 
             <button
               type="button"
-              onClick={() => {
-                downloadExactSlipPDF(activePreviewBill)
-              }}
+              onClick={download6In1SheetPDF}
               disabled={downloadingPdf}
               className="h-11 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100/80 px-4 text-sm font-bold text-emerald-800 shadow-2xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-              {downloadingPdf ? 'Rendering PDF...' : 'Download Bill PDF'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPreviewIndex(0)
-                setPreviewMode('card')
-                setShowPreviewModal(true)
-              }}
-              className="h-11 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100/80 px-5 text-sm font-bold text-[#002b66] shadow-2xs transition flex items-center gap-2 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-[#002b66]">visibility</span>
-              Preview Bills (Canva)
+              {downloadingPdf ? 'Rendering PDF...' : 'Download Bills (6-in-1 PDF)'}
             </button>
 
             <button
@@ -1128,419 +1152,7 @@ function Bills() {
         </div>
       </div>
 
-      {/* ========================================================
-          LIVE ON-PAGE CANVA BILL SLIP & 4-IN-1 A4 SHEET PREVIEW
-          Exact match to user photo media_1792410413227.png
-          ======================================================== */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-100 gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-xl font-black text-[#002b66]">
-                Official Fee Bill Slip Preview
-              </h3>
-              <span className="rounded-full bg-blue-100 px-3 py-0.5 text-xs font-black text-[#002b66]">
-                Exact Canva Design
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              {sheetViewMode === 'sheet'
-                ? 'Standard 4-in-1 A4 Sheet Layout (2x2 grid ready to print & download)'
-                : 'Single Slip Detail View (Pixel-perfect Canva card template)'}
-            </p>
-          </div>
 
-          {/* Toggle between 4-in-1 Sheet and Single Bill */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-bold border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setSheetViewMode('sheet')}
-                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${sheetViewMode === 'sheet'
-                    ? 'bg-white text-[#002b66] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                  }`}
-              >
-                <span className="material-symbols-outlined text-[15px]">grid_view</span>
-                4-in-1 A4 Sheet
-              </button>
-              <button
-                type="button"
-                onClick={() => setSheetViewMode('single')}
-                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${sheetViewMode === 'single'
-                    ? 'bg-white text-[#002b66] shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                  }`}
-              >
-                <span className="material-symbols-outlined text-[15px]">badge</span>
-                Single Card Slip
-              </button>
-            </div>
-
-            {/* Quick Student Selector when in single mode */}
-            {sheetViewMode === 'single' && previewRealBills.length > 0 && (
-              <div className="relative min-w-[200px]">
-                <select
-                  value={previewIndex}
-                  onChange={(e) => setPreviewIndex(Number(e.target.value))}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-white pl-3 pr-8 text-xs font-bold text-[#002b66] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
-                >
-                  {previewRealBills.map((b, idx) => (
-                    <option key={b.id || idx} value={idx}>
-                      Roll {b.roll}: {b.student_name} ({b.class})
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-                  keyboard_arrow_down
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ================= CONTENT DISPLAY AREA ================= */}
-        {sheetViewMode === 'sheet' ? (
-          /* 4-in-1 A4 SHEET VIEW (Exact 2x2 Sheet matching user blueprint) */
-          <div className="py-6 flex justify-center bg-slate-100/70 rounded-2xl my-5 border border-slate-200 overflow-x-auto">
-            <main id="four-in-one-a4-sheet" className="p-4 bg-white rounded-xl shadow-xl">
-              <div className="bill-grid-sheet">
-                {[0, 1, 2, 3].map((slotIdx) => {
-                  const billForSlot = previewRealBills[slotIdx] || fallbackSampleBill
-                  return (
-                    <BillSlipCard key={slotIdx} bill={billForSlot} />
-                  )
-                })}
-              </div>
-            </main>
-          </div>
-        ) : (
-          /* SINGLE CARD DETAIL VIEW */
-          <div className="py-6 flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl my-5 border border-slate-100 overflow-x-auto">
-            <BillSlipCard bill={activePreviewBill} />
-            {/* Hidden persistent 4-in-1 container for seamless 4-in-1 export */}
-            <div className="sr-only opacity-0 pointer-events-none absolute -left-[9999px]">
-              <main id="four-in-one-a4-sheet" className="p-4 bg-white">
-                <div className="bill-grid-sheet">
-                  {[0, 1, 2, 3].map((slotIdx) => {
-                    const billForSlot = previewRealBills[slotIdx] || fallbackSampleBill
-                    return (
-                      <BillSlipCard key={slotIdx} bill={billForSlot} />
-                    )
-                  })}
-                </div>
-              </main>
-            </div>
-          </div>
-        )}
-
-        {/* Action Bar Directly Under the Card */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-          <span className="text-xs font-bold text-slate-600">
-            {sheetViewMode === 'sheet' ? (
-              <>Showing 4 Receipts on 1 A4 Page · Official Fee Receipt Template</>
-            ) : previewRealBills.length > 0 ? (
-              <>
-                Showing student <strong>{previewIndex + 1}</strong> of <strong>{previewRealBills.length}</strong> (Roll: {previewRealBills[previewIndex]?.roll})
-              </>
-            ) : (
-              <>Official Fee Receipt Template (Ready to Download / Print)</>
-            )}
-          </span>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="h-10 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px]">print</span>
-              Print {sheetViewMode === 'sheet' ? '4-in-1 Sheet' : 'Slip'}
-            </button>
-
-            {sheetViewMode === 'sheet' ? (
-              <button
-                type="button"
-                onClick={download4In1SheetPDF}
-                disabled={downloadingPdf}
-                className="h-10 px-5 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-xs font-black text-emerald-800 shadow-2xs flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[17px] text-emerald-700">download</span>
-                {downloadingPdf ? 'Generating PDF...' : 'Download 4-in-1 Sheet (PDF)'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => downloadExactSlipPDF(activePreviewBill)}
-                disabled={downloadingPdf}
-                className="h-10 px-4 rounded-xl border border-blue-400 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#002b66] shadow-2xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]">download</span>
-                {downloadingPdf ? 'Downloading...' : 'Download Bill (4 on 1 Page)'}
-              </button>
-            )}
-
-            {previewRealBills.length > 1 && (
-              <button
-                type="button"
-                onClick={() => generateReceiptPDF(previewRealBills)}
-                className="h-10 px-4 rounded-xl border border-blue-400 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#002b66] shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                Download All (Batch PDF)
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setShowPreviewModal(true)}
-              className="h-10 px-4 rounded-xl bg-[#002b66] hover:bg-[#08224d] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px]">open_in_full</span>
-              Fullscreen Modal
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================
-          BILL PREVIEW & DOWNLOAD MODAL
-          ======================================================== */}
-      {showPreviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-          <div className="w-full max-w-4xl rounded-3xl bg-white p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto">
-            {/* Modal Header */}
-            <div className="flex flex-wrap items-center justify-between pb-4 border-b border-slate-100 gap-3">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h3 className="text-lg font-black text-[#002b66]">
-                    Official Fee Bill Preview ({billingMonth})
-                  </h3>
-                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-black text-[#002b66]">
-                    Receipt Slip Design
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Real database records for {selectedClass} ({selectedSection}) · Total {previewRealBills.length} Active Students
-                </p>
-              </div>
-
-              {/* View Mode Toggle & Close */}
-              <div className="flex items-center gap-2">
-                <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('card')}
-                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${previewMode === 'card'
-                        ? 'bg-white text-[#002b66] shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                  >
-                    <span className="material-symbols-outlined text-[15px]">badge</span>
-                    Card Slip View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('table')}
-                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${previewMode === 'table'
-                        ? 'bg-white text-[#002b66] shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                  >
-                    <span className="material-symbols-outlined text-[15px]">table_rows</span>
-                    Batch Table
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPreviewModal(false)}
-                  className="h-9 w-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 font-bold flex items-center justify-center transition cursor-pointer ml-1"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="mt-5">
-              {previewRealBills.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <span className="material-symbols-outlined text-4xl text-slate-400 mb-2 block">folder_off</span>
-                  No active student records found for {selectedClass} ({selectedSection}) in the database.
-                </div>
-              ) : previewMode === 'card' ? (
-                /* ================= CARD SLIP VIEW ================= */
-                <div className="space-y-4">
-                  {/* Student Switcher Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
-                        disabled={previewIndex === 0}
-                        className="h-9 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">chevron_left</span>
-                        Previous
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPreviewIndex((prev) => Math.min(previewRealBills.length - 1, prev + 1))}
-                        disabled={previewIndex >= previewRealBills.length - 1}
-                        className="h-9 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition cursor-pointer"
-                      >
-                        Next
-                        <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                      </button>
-
-                      <span className="text-xs font-bold text-slate-600 pl-2">
-                        Student <strong>{previewIndex + 1}</strong> of <strong>{previewRealBills.length}</strong>
-                      </span>
-                    </div>
-
-                    {/* Student Dropdown Selector */}
-                    <div className="relative min-w-[220px]">
-                      <select
-                        value={previewIndex}
-                        onChange={(e) => setPreviewIndex(Number(e.target.value))}
-                        className="w-full h-9 rounded-xl border border-slate-200 bg-white pl-3 pr-8 text-xs font-bold text-[#002b66] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
-                      >
-                        {previewRealBills.map((b, idx) => (
-                          <option key={b.id || idx} value={idx}>
-                            Roll {b.roll}: {b.student_name} ({b.class})
-                          </option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-                        keyboard_arrow_down
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Render the Exact Canva Bill Card */}
-                  <div className="py-2 flex justify-center overflow-x-auto">
-                    <BillSlipCard bill={previewRealBills[previewIndex]} />
-                  </div>
-                </div>
-              ) : (
-                /* ================= BATCH TABLE VIEW ================= */
-                <div className="overflow-x-auto max-h-[460px] rounded-xl border border-slate-200">
-                  <table className="w-full text-xs text-left border-collapse">
-                    <thead className="sticky top-0 bg-slate-50 z-10">
-                      <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
-                        <th className="py-2.5 px-3">Roll</th>
-                        <th className="py-2.5 px-3">Student Name</th>
-                        <th className="py-2.5 px-3">Class</th>
-                        <th className="py-2.5 px-3">Tuition</th>
-                        <th className="py-2.5 px-3">Computer</th>
-                        <th className="py-2.5 px-3">Transport</th>
-                        <th className="py-2.5 px-3">Due</th>
-                        <th className="py-2.5 px-3 font-extrabold text-[#002b66]">Net Payable</th>
-                        <th className="py-2.5 px-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {previewRealBills.map((b, idx) => (
-                        <tr key={b.id || b.roll || idx} className="hover:bg-slate-50/80 transition">
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-700">{b.roll}</td>
-                          <td className="py-2.5 px-3 font-bold text-slate-900">{b.student_name}</td>
-                          <td className="py-2.5 px-3 text-slate-500">{b.class} {b.section ? `(${b.section})` : ''}</td>
-                          <td className="py-2.5 px-3 font-mono">₹{b.tuition || 0}</td>
-                          <td className="py-2.5 px-3 font-mono">₹{b.lab || 0}</td>
-                          <td className="py-2.5 px-3 font-mono">₹{b.transport || 0}</td>
-                          <td className="py-2.5 px-3 font-mono text-rose-600">₹{b.previous_due || 0}</td>
-                          <td className="py-2.5 px-3 font-black text-[#002b66] font-mono">₹{b.total || 0}</td>
-                          <td className="py-2.5 px-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPreviewIndex(idx)
-                                setPreviewMode('card')
-                              }}
-                              className="h-7 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[11px] font-bold text-[#002b66] transition cursor-pointer"
-                            >
-                              View Card
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Bottom Actions */}
-            <div className="mt-6 flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-slate-100">
-              <span className="text-xs text-slate-500 font-medium">
-                Active Enrolled: <strong className="text-slate-800">{previewRealBills.length}</strong> · Due Date: <strong className="text-slate-800">{dueDate}</strong>
-              </span>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPreviewModal(false)}
-                  className="h-10 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Close
-                </button>
-
-                {previewRealBills.length > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.print()
-                      }}
-                      className="h-10 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">print</span>
-                      Print Slip
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const current = previewRealBills[previewIndex] || fallbackSampleBill
-                        downloadExactSlipPDF(current)
-                      }}
-                      disabled={downloadingPdf}
-                      className="h-10 px-4 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-[#002b66] shadow-2xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">download</span>
-                      {downloadingPdf ? 'Downloading...' : 'Download Bill (4 on 1 Page)'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => generateReceiptPDF(previewRealBills)}
-                      className="h-10 px-4 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-xs font-bold text-emerald-800 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                      Download All (Batch PDF)
-                    </button>
-                  </>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPreviewModal(false)
-                    handleGenerateBills()
-                  }}
-                  disabled={previewRealBills.length === 0}
-                  className="h-10 px-5 rounded-xl bg-[#002b66] text-xs font-bold text-white hover:bg-[#08224d] shadow-xs disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                  Confirm & Generate Batch
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================
           MANUAL CLOSE MONTH CONFIRMATION MODAL

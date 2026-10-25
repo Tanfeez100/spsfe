@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { getFeeList } from '../../Api/fees'
 import { CLASS_OPTIONS, SECTION_OPTIONS } from '../../constants/schoolOptions'
+import { downloadInvoiceSlipPDF } from '../../utils/pdf/invoiceSlipPdf'
 
 const MONTHS = [
   { key: '01', label: 'Jan' },
@@ -33,7 +34,7 @@ const extractRows = (payload) => {
   return candidates.find(Array.isArray) || []
 }
 
-const money = (value) => `Rs. ${(Number(value || 0)).toLocaleString('en-IN')}`
+const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`
 
 const initials = (name) =>
   String(name || '--')
@@ -46,24 +47,13 @@ const initials = (name) =>
 
 const getRecordStatus = (total, paid, due, rawStatus) => {
   const status = String(rawStatus || '').toLowerCase()
-  if (status === 'paid') return 'paid'
-  if (status === 'partial') return 'partial'
-  if (status === 'unpaid') return 'due'
-  if (total <= 0) return 'missing'
-  if (due <= 0) return 'paid'
-  if (paid > 0) return 'partial'
-  return 'due'
-}
-
-const getStudentStatus = (student) => {
-  const records = Object.values(student.history || {}).flat()
-  if (records.some((record) => record.status === 'due')) return 'due'
-  if (records.some((record) => record.status === 'partial')) return 'partial'
-  if (records.some((record) => record.status === 'paid')) return 'paid'
+  if (status === 'paid' || due <= 0) return 'paid'
+  if (status === 'partial' || paid > 0) return 'partial'
+  if (status === 'unpaid' || due > 0) return 'due'
   return 'missing'
 }
 
-function FeeDashboard() {
+function FeeDashboard({ onPayStudent }) {
   const schoolName = import.meta.env.VITE_SCHOOL_NAME || 'Star Public School'
   const currentYear = new Date().getFullYear()
   const yearOptions = useMemo(() => [currentYear], [currentYear])
@@ -78,6 +68,19 @@ function FeeDashboard() {
   const [view, setView] = useState('all')
   const [selectedId, setSelectedId] = useState('')
   const [activeYear, setActiveYear] = useState(currentYear)
+  const [downloadingBillId, setDownloadingBillId] = useState('')
+
+  const handleDownloadBillSlip = async (billId) => {
+    if (!billId || billId === '--') return
+    setDownloadingBillId(billId)
+    try {
+      await downloadInvoiceSlipPDF(billId)
+    } catch (err) {
+      console.error('Download slip error:', err)
+    } finally {
+      setDownloadingBillId('')
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -91,11 +94,7 @@ function FeeDashboard() {
           MONTHS.map(async (month) => {
             const monthKey = `${year}-${month.key}`
             try {
-              const response = await getFeeList({
-                class: classFilter,
-                section: sectionFilter,
-                month: monthKey,
-              })
+              const response = await getFeeList(classFilter, sectionFilter, monthKey)
               return extractRows(response).map((row) => ({
                 ...row,
                 month: row.month || monthKey,
@@ -140,7 +139,8 @@ function FeeDashboard() {
       const monthIndex = Math.max(0, Number(String(record.month || '').slice(5, 7)) - 1)
       const total = Number(record.total_fee || record.total_amount || 0)
       const paid = Number(record.total_paid || record.paid_amount || 0)
-      const due = Number(record.net_payable || record.balance || Math.max(0, total - paid))
+      const due = Number(record.net_payable !== undefined ? record.net_payable : (record.balance !== undefined ? record.balance : Math.max(0, total - paid)))
+      const prevDue = Number(record.previous_due || 0)
       const status = getRecordStatus(total, paid, due, record.bill_status)
 
       if (!map.has(id)) {
@@ -153,9 +153,11 @@ function FeeDashboard() {
             amount: 0,
             paidAmount: 0,
             balance: 0,
+            previousDue: 0,
             status: 'missing',
             receiptNo: '--',
             mode: '--',
+            hasBill: false,
           }))
         })
 
@@ -179,9 +181,11 @@ function FeeDashboard() {
           amount: 0,
           paidAmount: 0,
           balance: 0,
+          previousDue: 0,
           status: 'missing',
           receiptNo: '--',
           mode: '--',
+          hasBill: false,
         }))
       }
 
@@ -191,23 +195,64 @@ function FeeDashboard() {
         monthLabel: MONTHS[monthIndex]?.label || record.month || '--',
         amount: total,
         paidAmount: paid,
+        directPaid: Number(record.direct_paid ?? paid),
+        amountSettled: Number(record.amount_settled ?? Math.min(total, paid)),
+        advanceUsed: Number(record.advance_used || 0),
+        advanceGenerated: Number(record.advance_generated || 0),
+        duesSettled: Number(record.dues_settled || 0),
         balance: due,
+        previousDue: prevDue,
         status,
-        receiptNo: record.bill_id || '--',
+        receiptNo: record.bill_id || record.receipt_number || '--',
         mode: record.payment_mode || '--',
+        hasBill: true,
       }
     })
 
     return Array.from(map.values()).map((student) => {
       const allRecords = Object.values(student.history).flat()
-      const total = allRecords.reduce((sum, item) => sum + item.amount, 0)
-      const collected = allRecords.reduce((sum, item) => sum + item.paidAmount, 0)
+      // Filter only real bills generated for this student
+      const validBills = allRecords
+        .filter((r) => r.hasBill)
+        .sort((a, b) => `${a.year}-${a.month}`.localeCompare(`${b.year}-${b.month}`))
+
+      // Actual cash/direct payments received from student across all months
+      // Advance settlements in later months don't add new cash (already collected in earlier months)
+      const collected = validBills.reduce((sum, item) => {
+        const cashPaid = item.directPaid !== undefined ? item.directPaid : item.paidAmount
+        return sum + Number(cashPaid || 0)
+      }, 0)
+
+      // Outstanding balance is strictly the balance of the student's latest generated bill
+      const latestBill = validBills.length > 0 ? validBills[validBills.length - 1] : null
+      const pending = latestBill
+        ? (latestBill.status === 'paid' ? 0 : Number(latestBill.balance || 0))
+        : 0
+
+      // Total genuine fee charged: sum of bill totals excluding previous dues carried forward
+      // (This avoids double counting dues that rolled from month to month)
+      const total = validBills.reduce((sum, item) => {
+        const netMonthFee = Math.max(0, Number(item.amount || 0) - Number(item.previousDue || 0))
+        return sum + netMonthFee
+      }, 0)
+
+      const status =
+        pending === 0 && collected > 0
+          ? 'paid'
+          : collected > 0 && pending > 0
+          ? 'partial'
+          : pending > 0
+          ? 'due'
+          : 'missing'
+
       return {
         ...student,
         total,
         collected,
-        pending: Math.max(0, total - collected),
-        status: getStudentStatus(student),
+        pending,
+        status,
+        latestBill,
+        billsCount: validBills.length,
       }
     })
   }, [records, yearOptions, currentYear])
@@ -225,7 +270,7 @@ function FeeDashboard() {
   }, [students, search, filter])
 
   const selectedStudent = students.find((student) => student.id === selectedId) || null
-  const dueCount = students.filter((student) => student.status !== 'paid').length
+  const dueCount = students.filter((student) => student.pending > 0).length
   const totalCollected = students.reduce((sum, student) => sum + student.collected, 0)
   const totalPending = students.reduce((sum, student) => sum + student.pending, 0)
 
@@ -236,307 +281,567 @@ function FeeDashboard() {
     setView('detail')
   }
 
-  const renderStatus = (status) => (
-    <span className={`fd-status-pill ${status}`}>
-      <span>●</span>
-      {status === 'paid' ? 'Paid Up' : status === 'partial' ? 'Partial' : status === 'due' ? 'Due' : 'No Bill'}
-    </span>
-  )
+  const renderStatus = (status) => {
+    if (status === 'paid') {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          Paid Up
+        </span>
+      )
+    }
+    if (status === 'partial') {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+          Partial
+        </span>
+      )
+    }
+    if (status === 'due') {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+          Due
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
+        No Bill
+      </span>
+    )
+  }
 
   return (
-    <div className="fd-root">
-      <style>{styles}</style>
-
-      <div className="fd-topbar">
-        <div className="fd-brand">
-          <div className="fd-brand-mark">SPS</div>
-          <div className="fd-brand-text">
-            <h1>{schoolName}</h1>
-            <p>Fees Ledger and Records</p>
+    <div className="space-y-6">
+      {/* ========================================================
+          TOP HEADER BAR
+          ======================================================== */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#0f1e36] via-[#132c4e] to-[#1e3a5f] p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center font-black text-xl text-amber-300 shadow-inner">
+            SPS
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight">{schoolName}</h2>
+            <p className="text-xs text-slate-300 font-medium tracking-wide">
+              Student Fee Ledger & Year-Round Payment Records
+            </p>
           </div>
         </div>
 
-        <div className="fd-searchwrap">
-          <span className="material-symbols-outlined">search</span>
+        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xs border border-white/20 rounded-xl px-3.5 py-2 w-full md:w-80">
+          <span className="material-symbols-outlined text-[20px] text-slate-300">search</span>
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Student ka naam ya roll no. search karein..."
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by student name or roll..."
+            className="bg-transparent border-none outline-none text-white text-xs sm:text-sm w-full placeholder:text-slate-300 font-medium"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="text-slate-300 hover:text-white text-xs font-bold"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="fd-layout">
-        <main className="fd-main">
-          {error ? <div className="fd-error">{error}</div> : null}
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">
+          {error}
+        </div>
+      ) : null}
 
-          {view === 'detail' && selectedStudent ? (
-            <>
-              <button type="button" className="fd-back-btn" onClick={() => setView('all')}>
-                <span className="material-symbols-outlined">chevron_left</span>
-                Sabhi Students
-              </button>
+      {/* ========================================================
+          VIEW 1: STUDENT DETAIL VIEW
+          ======================================================== */}
+      {view === 'detail' && selectedStudent ? (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#132c4e] hover:text-[#0f1e36] hover:underline cursor-pointer"
+            onClick={() => setView('all')}
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back to All Students
+          </button>
 
-              <section className="fd-profile-card">
-                <span className="fd-avatar large">{initials(selectedStudent.name)}</span>
-                <div className="fd-profile-info">
-                  <h2>{selectedStudent.name}</h2>
-                  <div className="fd-tags">
-                    <span>Class <b>{selectedStudent.className}-{selectedStudent.section}</b></span>
-                    <span>Roll No. <b>{selectedStudent.roll}</b></span>
-                    <span>Father's Name <b>{selectedStudent.father}</b></span>
-                  </div>
+          {/* Student Profile Card */}
+          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-[#132c4e] text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
+                {initials(selectedStudent.name)}
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#0f1e36]">{selectedStudent.name}</h3>
+                <div className="mt-1 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
+                    Class {selectedStudent.className}-{selectedStudent.section}
+                  </span>
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
+                    Roll No: {selectedStudent.roll}
+                  </span>
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
+                    Father: {selectedStudent.father}
+                  </span>
                 </div>
-                <div className="fd-profile-totals">
-                  <div><span className="fd-label">Total Fee</span><b>{money(selectedStudent.total)}</b></div>
-                  <div><span className="fd-label">Collected</span><b className="green">{money(selectedStudent.collected)}</b></div>
-                  <div><span className="fd-label">Pending</span><b className={selectedStudent.pending > 0 ? 'red' : ''}>{money(selectedStudent.pending)}</b></div>
-                  <div><span className="fd-label">Status</span>{renderStatus(selectedStudent.status)}</div>
-                </div>
-              </section>
+              </div>
+            </div>
 
-              <div className="fd-section-head">
-                <h2>Year-wise Payment History</h2>
-                <span className="fd-hint">Har month ka receipt neeche dekhein</span>
+            {/* Profile Totals */}
+            <div className="flex flex-wrap items-center gap-6 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 w-full md:w-auto justify-between md:justify-end">
+              <div>
+                <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Total Charged
+                </span>
+                <span className="text-lg font-black text-[#0f1e36]">{money(selectedStudent.total)}</span>
+              </div>
+              <div>
+                <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Collected
+                </span>
+                <span className="text-lg font-black text-emerald-600">
+                  {money(selectedStudent.collected)}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Current Dues
+                </span>
+                <span
+                  className={`text-lg font-black ${
+                    selectedStudent.pending > 0 ? 'text-rose-600' : 'text-slate-800'
+                  }`}
+                >
+                  {money(selectedStudent.pending)}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Status
+                </span>
+                {renderStatus(selectedStudent.status)}
+              </div>
+              {onPayStudent && selectedStudent.pending > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onPayStudent(selectedStudent)}
+                  className="rounded-xl bg-[#132c4e] px-4 py-2 text-xs font-bold text-white hover:bg-[#0f1e36] shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">point_of_sale</span>
+                  Collect Dues
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* Month-wise History */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-base font-bold text-[#0f1e36]">Monthly Fee Receipts & Records</h4>
+                <p className="text-xs text-slate-400 font-medium">
+                  Complete breakdown of bills and payments for this student
+                </p>
               </div>
 
-              <div className="fd-year-tabs">
+              {/* Year Selector Tabs */}
+              <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
                 {Object.keys(selectedStudent.history).map((year) => (
                   <button
                     type="button"
                     key={year}
-                    className={`fd-year-tab ${Number(year) === Number(activeYear) ? 'active' : ''}`}
+                    className={`rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
+                      Number(year) === Number(activeYear)
+                        ? 'bg-[#132c4e] text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                     onClick={() => setActiveYear(Number(year))}
                   >
                     {year}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="fd-receipts">
-                {(selectedStudent.history[activeYear] || []).map((record) => (
-                  <article key={`${record.year}-${record.month}`} className="fd-receipt">
-                    <div className="fd-receipt-top">
+            {/* Grid of Receipts */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {(selectedStudent.history[activeYear] || []).map((record) => {
+                if (!record.hasBill) {
+                  return (
+                    <div
+                      key={`${record.year}-${record.month}`}
+                      className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center flex flex-col items-center justify-center min-h-[140px] text-slate-400"
+                    >
+                      <span className="text-sm font-bold text-slate-600">
+                        {record.monthLabel} {record.year}
+                      </span>
+                      <span className="text-xs mt-1">No bill generated</span>
+                    </div>
+                  )
+                }
+
+                return (
+                  <article
+                    key={`${record.year}-${record.month}`}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between space-y-3 relative overflow-hidden"
+                  >
+                    <div className="flex items-start justify-between">
                       <div>
-                        <div className="fd-term">{record.monthLabel}, {record.year}</div>
-                        <div className="fd-rno">Receipt: {record.receiptNo}</div>
+                        <div className="text-sm font-black text-[#0f1e36]">
+                          {record.monthLabel} {record.year}
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-400">
+                          #{record.receiptNo}
+                        </div>
                       </div>
-                      <div className={`fd-stamp ${record.status}`}>
-                        {record.status === 'paid' ? 'PAID' : record.status === 'partial' ? 'PARTIAL' : record.status === 'due' ? 'DUE' : 'NO BILL'}
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          record.status === 'paid'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : record.status === 'partial'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        {record.status === 'paid' ? 'PAID' : record.status === 'partial' ? 'PARTIAL' : 'DUE'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs border-t border-slate-100 pt-2.5">
+                      <div className="flex justify-between text-slate-500 font-medium">
+                        <span>Total Bill:</span>
+                        <b className="text-slate-800">{money(record.amount)}</b>
+                      </div>
+
+                      {record.previousDue > 0 && (
+                        <div className="flex justify-between text-amber-600 font-medium">
+                          <span>Includes Previous Due:</span>
+                          <b>{money(record.previousDue)}</b>
+                        </div>
+                      )}
+
+                      {record.advanceUsed > 0 && (
+                        <div className="flex justify-between text-indigo-600 font-medium">
+                          <span>Paid via Advance:</span>
+                          <b>{money(record.advanceUsed)}</b>
+                        </div>
+                      )}
+
+                      {record.directPaid > 0 && (
+                        <div className="flex justify-between text-slate-600 font-medium">
+                          <span>{record.advanceGenerated > 0 ? 'Amount Handed Over:' : 'Paid in Month:'}</span>
+                          <b className="text-emerald-600">{money(record.directPaid)}</b>
+                        </div>
+                      )}
+
+                      {record.advanceGenerated > 0 && (
+                        <div className="flex justify-between text-indigo-600 font-semibold bg-indigo-50/70 px-2 py-1 rounded-lg">
+                          <span>Advance Saved for Next:</span>
+                          <b>+{money(record.advanceGenerated)}</b>
+                        </div>
+                      )}
+
+                      {record.duesSettled > 0 && (
+                        <div className="flex justify-between text-blue-600 font-medium bg-blue-50/60 px-2 py-0.5 rounded-lg">
+                          <span>Dues Settled in Next Bill:</span>
+                          <b>{money(record.duesSettled)}</b>
+                        </div>
+                      )}
+
+                      {record.directPaid === 0 && record.advanceUsed === 0 && record.paidAmount > 0 && (
+                        <div className="flex justify-between text-slate-500 font-medium">
+                          <span>Paid Amount:</span>
+                          <b className="text-emerald-600">{money(record.paidAmount)}</b>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between font-bold pt-1 border-t border-slate-100">
+                        <span>Bill Balance:</span>
+                        <b className={record.balance > 0 ? 'text-rose-600' : 'text-slate-700'}>
+                          {money(record.balance)}
+                        </b>
                       </div>
                     </div>
-                    <div className="fd-receipt-row"><span>Amount</span><b>{money(record.amount)}</b></div>
-                    <div className="fd-receipt-row"><span>Paid</span><b>{money(record.paidAmount)}</b></div>
-                    {record.status !== 'paid' ? (
-                      <div className="fd-receipt-row"><span>Balance</span><b className="red">{money(record.balance)}</b></div>
-                    ) : null}
-                    <div className="fd-receipt-divider" />
-                    <div className="fd-receipt-row"><span>Month</span><span>{record.monthLabel} {record.year}</span></div>
-                    <div className="fd-receipt-row"><span>Mode</span><span>{record.mode}</span></div>
+
+                    <div className="flex justify-between items-center text-[11px] text-slate-400 pt-2 border-t border-slate-100 font-medium">
+                      <span>Mode: <span className="font-semibold text-slate-600">{record.mode || '--'}</span></span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-500 font-semibold">
+                          {record.monthLabel} {record.year}
+                        </span>
+                        {record.hasBill && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadBillSlip(record.receiptNo)}
+                            disabled={downloadingBillId === record.receiptNo}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold border border-emerald-200 transition cursor-pointer disabled:opacity-50"
+                            title="Direct Download Invoice PDF"
+                          >
+                            <span className={`material-symbols-outlined text-[12px] ${downloadingBillId === record.receiptNo ? 'animate-spin' : ''}`}>
+                              {downloadingBillId === record.receiptNo ? 'sync' : 'download'}
+                            </span>
+                            {downloadingBillId === record.receiptNo ? '...' : 'PDF'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </article>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ========================================================
+            VIEW 2: ALL STUDENTS LEDGER TABLE
+            ======================================================== */
+        <>
+          {/* 4 Metric KPI Cards */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              icon="groups"
+              label="Total Students"
+              value={students.length}
+              subtext="Enrolled in records"
+              theme="blue"
+            />
+            <StatCard
+              icon="account_balance_wallet"
+              label="Total Collected"
+              value={money(totalCollected)}
+              subtext="Actual fee received"
+              theme="good"
+            />
+            <StatCard
+              icon="pending_actions"
+              label="Total Outstanding Dues"
+              value={money(totalPending)}
+              subtext="Current unpaid dues (last bill)"
+              theme="warn"
+            />
+            <StatCard
+              icon="error_outline"
+              label="Students with Dues"
+              value={dueCount}
+              subtext="Pending payment"
+              theme="amber"
+            />
+          </section>
+
+          {/* Filter & Search Bar */}
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-[#0f1e36]">Student Fee Overview</h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Showing accurate student dues from latest generated bill without double-counting
+                </p>
+              </div>
+
+              {/* Status Filter Chips */}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  ['all', 'All Students'],
+                  ['due', 'Dues Pending'],
+                  ['partial', 'Partial Paid'],
+                  ['paid', 'Fully Paid'],
+                ].map(([id, label]) => (
+                  <button
+                    type="button"
+                    key={id}
+                    className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                      filter === id
+                        ? 'bg-[#132c4e] text-white shadow-2xs'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                    onClick={() => setFilter(id)}
+                  >
+                    {label}
+                  </button>
                 ))}
               </div>
-            </>
-          ) : (
-            <>
-              <section className="fd-stats">
-                <Stat label="Total Students" value={students.length} />
-                <Stat label="Total Collected" value={money(totalCollected)} type="good" />
-                <Stat label="Total Pending" value={money(totalPending)} type="warn" />
-                <Stat label="Students with Dues" value={dueCount} />
-              </section>
+            </div>
 
-              <div className="fd-section-block">
-                <div className="fd-section-head">
-                  <h2>All Students - Fee Overview</h2>
-                  <div className="fd-filters">
-                    {[
-                      ['all', 'Sabhi'],
-                      ['paid', 'Paid Up'],
-                      ['partial', 'Partial'],
-                      ['due', 'Due'],
-                    ].map(([id, label]) => (
-                      <button
-                        type="button"
-                        key={id}
-                        className={`fd-chip ${filter === id ? 'active' : ''}`}
-                        onClick={() => setFilter(id)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="fd-class-filters" aria-label="Class and section filters">
-                  <label className="fd-filter-field">
-                    <span>Class</span>
-                    <select value={classFilter} onChange={(event) => setClassFilter(event.target.value)}>
-                      <option value="">All Classes</option>
-                      {CLASS_OPTIONS.map((className) => (
-                        <option key={className} value={className}>
-                          {className}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="fd-filter-field">
-                    <span>Section</span>
-                    <select value={sectionFilter} onChange={(event) => setSectionFilter(event.target.value)}>
-                      <option value="">All Sections</option>
-                      {SECTION_OPTIONS.map((section) => (
-                        <option key={section} value={section}>
-                          {section}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+            {/* Class and Section Dropdowns */}
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">Class:</span>
+                <select
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400"
+                >
+                  <option value="">All Classes</option>
+                  {CLASS_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      Class {c}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <section className="fd-ledger">
-                <table>
-                  <thead>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">Section:</span>
+                <select
+                  value={sectionFilter}
+                  onChange={(e) => setSectionFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400"
+                >
+                  <option value="">All Sections</option>
+                  {SECTION_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      Section {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {(classFilter || sectionFilter || filter !== 'all' || search) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClassFilter('')
+                    setSectionFilter('')
+                    setFilter('all')
+                    setSearch('')
+                  }}
+                  className="text-xs font-bold text-rose-600 hover:text-rose-800 ml-auto cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Ledger Table */}
+          <section className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-2xs">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                    <th className="py-3.5 px-4">STUDENT</th>
+                    <th className="py-3.5 px-4">CLASS</th>
+                    <th className="py-3.5 px-4">TOTAL CHARGED</th>
+                    <th className="py-3.5 px-4">COLLECTED</th>
+                    <th className="py-3.5 px-4">CURRENT DUE</th>
+                    <th className="py-3.5 px-4">STATUS</th>
+                    <th className="py-3.5 px-4 text-right">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {loading ? (
                     <tr>
-                      <th>Student</th>
-                      <th>Class</th>
-                      <th>Total Fee</th>
-                      <th>Collected</th>
-                      <th>Pending</th>
-                      <th>Status</th>
+                      <td colSpan={7} className="py-12 text-center text-sm font-semibold text-slate-400">
+                        Loading student fee records from server...
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={6}>
-                          <div className="fd-table-empty">Koi record nahi mila. Search ya filter change karke dekhein.</div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredStudents.map((student) => (
-                        <tr key={student.id} onClick={() => selectStudent(student.id)}>
-                          <td>
-                            <div className="fd-table-student">
-                              <span className="fd-avatar small">{initials(student.name)}</span>
-                              <span>
-                                <b>{student.name}</b>
-                                <small>Roll {student.roll} | S/o {student.father}</small>
-                              </span>
+                  ) : filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-sm font-semibold text-slate-400">
+                        Koi student record nahi mila. Filters change karke dekhein.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredStudents.map((student) => {
+                      return (
+                        <tr
+                          key={student.id}
+                          onClick={() => selectStudent(student.id)}
+                          className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                        >
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-xl bg-[#dce6f5] text-[#132c4e] flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-[#132c4e] group-hover:text-white transition">
+                                {initials(student.name)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-[#0f1e36]">{student.name}</div>
+                                <div className="text-[11px] text-slate-400 font-medium">
+                                  Roll {student.roll} · S/o {student.father}
+                                </div>
+                              </div>
                             </div>
                           </td>
-                          <td>{student.className}-{student.section}</td>
-                          <td className="fd-amt">{money(student.total)}</td>
-                          <td className="fd-amt green">{money(student.collected)}</td>
-                          <td className={`fd-amt ${student.pending > 0 ? 'red' : ''}`}>{money(student.pending)}</td>
-                          <td>{renderStatus(student.status)}</td>
+
+                          <td className="py-3.5 px-4 font-semibold text-slate-600">
+                            Class {student.className}-{student.section}
+                          </td>
+
+                          <td className="py-3.5 px-4 font-bold text-slate-800">
+                            {money(student.total)}
+                          </td>
+
+                          <td className="py-3.5 px-4 font-extrabold text-emerald-600">
+                            {money(student.collected)}
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`font-black ${
+                                student.pending > 0 ? 'text-rose-600' : 'text-slate-400'
+                              }`}
+                            >
+                              {money(student.pending)}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4">{renderStatus(student.status)}</td>
+
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                selectStudent(student.id)
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#132c4e] hover:bg-[#132c4e] hover:text-white transition shadow-2xs cursor-pointer"
+                            >
+                              Ledger
+                              <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                            </button>
+                          </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </section>
-            </>
-          )}
-        </main>
-      </div>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   )
 }
 
-function Stat({ label, value, type = '' }) {
+function StatCard({ icon, label, value, subtext, theme = '' }) {
+  const iconColors = {
+    blue: 'bg-[#e2ecf8] text-[#2563eb]',
+    good: 'bg-[#dcfce7] text-[#16a34a]',
+    warn: 'bg-[#fee2e2] text-[#dc2626]',
+    amber: 'bg-[#fef3c7] text-[#d97706]',
+  }
+
   return (
-    <div className={`fd-stat-card ${type}`}>
-      <div className="fd-stat-label">{label}</div>
-      <div className="fd-stat-value">{value}</div>
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500">{label}</span>
+        <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${iconColors[theme] || iconColors.blue}`}>
+          <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        </div>
+      </div>
+      <div className="mt-3 text-2xl sm:text-3xl font-black text-[#0f1e36] tracking-tight">
+        {value}
+      </div>
+      <div className="mt-1 text-xs text-slate-400 font-medium">{subtext}</div>
     </div>
   )
 }
-
-const styles = `
-.fd-root{--maroon:#7A2331;--maroon-dark:#511621;--cream:#fff;--cream-line:#E8E2D8;--paper:#fff;--ink:#241C1A;--ink-soft:#6B5F55;--gold:#C89B3C;--gold-soft:#F3E8CC;--green:#1F7A4D;--green-bg:#E6F2EA;--red:#B3261E;--red-bg:#FBEAE8;--amber:#9A6B0C;--amber-bg:#FBF1DC;background:#fff;color:var(--ink);font-family:Inter,Lexend,sans-serif;}
-.fd-topbar{background:linear-gradient(180deg,var(--maroon) 0%,var(--maroon-dark) 100%);color:#fff;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:4px solid var(--gold);border-radius:10px 10px 0 0;}
-.fd-brand{display:flex;align-items:center;gap:14px;}
-.fd-brand-mark{width:44px;height:44px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;font-size:16px;color:var(--gold);background:#fff;}
-.fd-brand-text h1{font-family:Georgia,serif;font-weight:600;font-size:22px;margin:0;}
-.fd-brand-text p{margin:2px 0 0;font-size:12px;color:#E7CFB6;letter-spacing:.6px;text-transform:uppercase;}
-.fd-searchwrap{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:9px 14px;min-width:260px;flex:1;max-width:380px;}
-.fd-searchwrap input{background:transparent;border:none;outline:none;color:#fff;font-size:14px;width:100%;}
-.fd-searchwrap input::placeholder{color:#D9BFA5;}
-.fd-layout{border:1px solid var(--cream-line);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;background:#fff;}
-.fd-avatar{width:36px;height:36px;border-radius:50%;background:var(--maroon);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;font-size:13px;flex-shrink:0;}
-.fd-avatar.small{width:30px;height:30px;font-size:11px;}
-.fd-avatar.large{width:58px;height:58px;font-size:20px;}
-.fd-main{min-width:0;padding:18px 30px 60px;background:#fff;}
-.fd-error{border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:700;margin-bottom:16px;}
-.fd-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;}
-.fd-stat-card{background:#fff;border:1px solid var(--cream-line);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;}
-.fd-stat-card:before{content:"";position:absolute;top:0;left:0;width:4px;height:100%;background:var(--gold);}
-.fd-stat-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-weight:700;}
-.fd-stat-value{font-family:ui-monospace,Menlo,monospace;font-size:22px;font-weight:700;margin-top:6px;color:var(--maroon-dark);}
-.fd-stat-card.good .fd-stat-value{color:var(--green);}
-.fd-stat-card.warn .fd-stat-value{color:var(--red);}
-.fd-section-block{margin-bottom:14px;}
-.fd-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:10px;}
-.fd-section-head h2{font-family:Georgia,serif;font-size:20px;font-weight:600;margin:0;}
-.fd-hint{font-size:12.5px;color:var(--ink-soft);}
-.fd-filters{display:flex;gap:8px;flex-wrap:wrap;}
-.fd-chip{padding:6px 13px;border-radius:20px;font-size:12.5px;font-weight:700;border:1px solid var(--cream-line);background:#fff;cursor:pointer;color:var(--ink-soft);}
-.fd-chip.active{background:var(--maroon);color:#fff;border-color:var(--maroon);}
-.fd-class-filters{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
-.fd-filter-field{display:flex;flex-direction:column;gap:5px;min-width:170px;}
-.fd-filter-field span{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-soft);font-weight:800;}
-.fd-filter-field select{border:1px solid var(--cream-line);background:#fff;color:var(--ink);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;outline:none;min-height:38px;box-shadow:0 6px 16px rgba(36,28,26,.04);}
-.fd-filter-field select:focus{border-color:var(--maroon);box-shadow:0 0 0 3px rgba(122,35,49,.12);}
-.fd-ledger{background:#fff;border:1px solid var(--cream-line);border-radius:10px;overflow:hidden;}
-.fd-ledger table{width:100%;border-collapse:collapse;}
-.fd-ledger thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--ink-soft);padding:12px 18px;background:var(--gold-soft);border-bottom:1px solid var(--cream-line);font-weight:800;}
-.fd-ledger tbody td{height:64px;padding:10px 18px;font-size:13.5px;vertical-align:middle;border-bottom:1px solid var(--cream-line);}
-.fd-ledger tbody tr{cursor:pointer;transition:background .12s ease;}
-.fd-ledger tbody tr:last-child td{border-bottom:none;}
-.fd-ledger tbody tr:hover{background:#FDF8ED;}
-.fd-table-student{display:flex;align-items:center;gap:10px;min-height:44px;}
-.fd-table-student b{display:block;font-weight:800;}
-.fd-table-student small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px;}
-.fd-amt{font-family:ui-monospace,Menlo,monospace;font-weight:700;vertical-align:middle;}
-.green{color:var(--green)!important;}
-.red{color:var(--red)!important;}
-.fd-status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:800;letter-spacing:.3px;white-space:nowrap;}
-.fd-status-pill.paid{background:var(--green-bg);color:var(--green);}
-.fd-status-pill.due{background:var(--red-bg);color:var(--red);}
-.fd-status-pill.partial{background:var(--amber-bg);color:var(--amber);}
-.fd-status-pill.missing{background:#f1f5f9;color:#64748b;}
-.fd-table-empty{padding:34px 20px;text-align:center;color:var(--ink-soft);font-weight:700;}
-.fd-back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--maroon);font-weight:800;font-size:13.5px;cursor:pointer;padding:0;margin-bottom:18px;}
-.fd-profile-card{background:#fff;border:1px solid var(--cream-line);border-radius:12px;padding:22px 24px;display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;}
-.fd-profile-info h2{font-family:Georgia,serif;font-size:22px;margin:0 0 4px;}
-.fd-tags{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft);}
-.fd-tags b{color:var(--ink);}
-.fd-profile-totals{margin-left:auto;display:flex;gap:22px;flex-wrap:wrap;}
-.fd-profile-totals div{text-align:right;}
-.fd-label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-soft);font-weight:800;}
-.fd-profile-totals b{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:17px;display:block;margin-top:3px;}
-.fd-year-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-.fd-year-tab{padding:8px 18px;border-radius:8px 8px 0 0;font-family:Georgia,serif;font-weight:700;font-size:15px;background:var(--gold-soft);color:var(--ink-soft);cursor:pointer;border:1px solid var(--cream-line);border-bottom:none;}
-.fd-year-tab.active{background:#475569;color:#fff;border-color:#475569;box-shadow:0 8px 18px rgba(100,116,139,.18);position:relative;top:1px;}
-.fd-receipts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
-.fd-receipt{background:#fff;border:1px solid var(--cream-line);border-radius:8px;padding:16px 18px 14px;position:relative;}
-.fd-receipt:before{content:"";position:absolute;top:-1px;left:0;right:0;height:6px;background-image:radial-gradient(circle 4px,#fff 4px,transparent 4.5px);background-size:16px 12px;background-position:0 -4px;background-repeat:repeat-x;}
-.fd-receipt-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-.fd-term{font-family:Georgia,serif;font-weight:700;font-size:15.5px;}
-.fd-rno{font-size:11px;color:var(--ink-soft);font-family:ui-monospace,Menlo,monospace;margin-top:2px;}
-.fd-stamp{font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:900;letter-spacing:.8px;border:2px dashed;border-radius:50%;width:64px;height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;transform:rotate(-9deg);}
-.fd-stamp.paid{color:var(--green);border-color:var(--green);}
-.fd-stamp.due{color:var(--red);border-color:var(--red);}
-.fd-stamp.partial{color:var(--amber);border-color:var(--amber);}
-.fd-stamp.missing{color:#64748b;border-color:#cbd5e1;}
-.fd-receipt-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--ink-soft);gap:12px;}
-.fd-receipt-row b{color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-weight:800;}
-.fd-receipt-divider{border-top:1px dashed var(--cream-line);margin:10px 0;}
-.fd-empty{padding:14px 20px;color:var(--ink-soft);font-size:13px;font-weight:700;}
-@media(max-width:880px){.fd-main{padding:20px 14px 36px}.fd-stats{grid-template-columns:repeat(2,1fr)}.fd-profile-totals{margin-left:0;width:100%;justify-content:space-between}.fd-profile-totals div{text-align:left}.fd-topbar{border-radius:10px 10px 0 0}.fd-searchwrap{min-width:100%}}
-@media(max-width:560px){.fd-stats{grid-template-columns:1fr}.fd-ledger{overflow-x:auto}.fd-ledger table{min-width:720px}.fd-receipts{grid-template-columns:1fr}.fd-brand-text h1{font-size:18px}}
-`
 
 export default FeeDashboard

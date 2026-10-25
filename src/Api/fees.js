@@ -195,6 +195,9 @@ export const getAutoCloseCronStatus = async () =>
 export const getStudentDues = async (studentId) =>
   withErrorHandling(() => api.get(`/api/fees/dues/${studentId}`), 'Failed to fetch student dues')
 
+export const getFeeDashboard = async () =>
+  withErrorHandling(() => api.get('/api/fees/dashboard'), 'Failed to fetch fee dashboard data')
+
 export const getStudentFeeDetails = async (classFilter, section, rollNumber, month) => {
   try {
     const classVariants = buildClassVariants(classFilter)
@@ -310,6 +313,7 @@ export default {
   getBillById,
   downloadBillsPDF,
   getFeeList,
+  getFeeDashboard,
   recordFeePayment,
   getInvoiceDetails,
   closeMonth,

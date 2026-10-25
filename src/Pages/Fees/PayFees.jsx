@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { recordFeePayment, getStudentFeeDetails } from '../../Api/fees'
 import { emitToast } from '../../Api/auth'
 import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass, normalizeSchoolSection } from '../../constants/schoolOptions'
+import { downloadInvoiceSlipPDF } from '../../utils/pdf/invoiceSlipPdf'
 
 const normalizeClassInput = (value) => (value ?? '').toString().trim()
 const normalizeSectionInput = (value) => (value ?? '').toString().trim().toUpperCase()
@@ -104,6 +105,14 @@ function PayFees({ initialData, onPaymentComplete }) {
         emitToast('success', response.message || 'Payment processed successfully!', 'Fee Payment')
         setPaymentResponse(response)
         setShowPaymentModal(true)
+
+        // Automatically trigger instant invoice PDF download
+        const billIdForInvoice = response.bill_id || response.payment?.bill_id
+        if (billIdForInvoice) {
+          downloadInvoiceSlipPDF(billIdForInvoice).catch((e) =>
+            console.warn('Auto invoice download notice:', e)
+          )
+        }
         
         // Reset form
         setFormData({
@@ -473,13 +482,37 @@ function PayFees({ initialData, onPaymentComplete }) {
             </div>
 
             {/* Footer */}
-            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadInvoiceSlipPDF(
+                      paymentResponse.bill_id || paymentResponse.payment?.bill_id
+                    )
+                  }
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  Download Invoice (PDF)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+                >
+                  <span className="material-symbols-outlined text-[16px]">print</span>
+                  Print
+                </button>
+              </div>
+
               <button
+                type="button"
                 onClick={() => setShowPaymentModal(false)}
-                className="px-6 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#0f6fd1] transition-colors flex items-center gap-2"
+                className="px-6 py-2 bg-[#132c4e] text-white rounded-xl hover:bg-[#0f1e36] text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-sm"
               >
                 <span className="material-symbols-outlined text-sm">check</span>
-                Close
+                Done
               </button>
             </div>
           </div>
