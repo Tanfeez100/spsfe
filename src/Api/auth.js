@@ -1,31 +1,41 @@
 import axios from "axios";
 
+export const PROD_API_BASE_URL = "https://starpublicschool-2kzu.onrender.com";
+
 const getDefaultApiBaseUrl = () => {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") {
       return "http://localhost:5000";
     }
-    //https://starpublicschool.onrender.com
   }
-  return "https://starpublicschool-2kzu.onrender.com";
+  return PROD_API_BASE_URL;
 };
 
-const normalizeApiBaseUrl = (url) => {
+export const normalizeApiBaseUrl = (url) => {
   const value = String(url || "").replace(/\/+$/, "");
   if (value === "http://localhost:8000" || value === "http://127.0.0.1:8000") {
     return "http://localhost:5000";
   }
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
-      return value && value.startsWith("http://localhost") ? value : "http://localhost:5000";
-    }
+
+  const isLocalHost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+  if (isLocalHost) {
+    return value && value.startsWith("http://localhost") ? value : "http://localhost:5000";
   }
-  return value || getDefaultApiBaseUrl();
+
+  // In production (non-localhost hostname or production build):
+  // Never point to localhost even if .env has it
+  if (!value || value.includes("localhost") || value.includes("127.0.0.1")) {
+    return PROD_API_BASE_URL;
+  }
+
+  return value || PROD_API_BASE_URL;
 };
 
-const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,

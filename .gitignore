@@ -34,3 +34,5 @@ Postman_Collection.json
 *.postman_globals.json
 Postman_*.json
 postman_*.json
+.env.development
+.env.production

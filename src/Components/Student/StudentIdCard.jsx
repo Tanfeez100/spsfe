@@ -5,6 +5,7 @@ import QRCode from 'qrcode'
 import { useDocumentTemplates } from '../../context/DocumentTemplateContext'
 import UniversalIdCard from '../DocumentTemplates/IdCards/UniversalIdCard'
 import UniversalAdmitCard from '../DocumentTemplates/AdmitCards/UniversalAdmitCard'
+import { API_BASE_URL } from '../../Api/auth'
 
 const formatDateToIndian = (dateStr) => {
   if (!dateStr) return '12-12-2012'
@@ -109,7 +110,7 @@ function StudentIdCard({
       extractedPhotoUrl.startsWith('data:') ||
       extractedPhotoUrl.startsWith('blob:')
       ? extractedPhotoUrl
-      : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${extractedPhotoUrl.startsWith('/') ? '' : '/'}${extractedPhotoUrl}`)
+      : `${API_BASE_URL || ''}${extractedPhotoUrl.startsWith('/') ? '' : '/'}${extractedPhotoUrl}`)
     : null
 
   const [imgError, setImgError] = useState(false)

@@ -1,4 +1,4 @@
-import { publicApi, normalizeApiError } from './auth'
+import { publicApi, normalizeApiError, API_BASE_URL, PROD_API_BASE_URL } from './auth'
 
 const withPublicErrorHandling = async (request, fallbackMessage) => {
   try {
@@ -40,12 +40,12 @@ export const getPublicFeePaymentStatus = async (orderId, payload) =>
   )
 
 export const buildPublicReceiptUrl = (billId, mobile) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://starpublicschool.onrender.com'
+  const baseUrl = API_BASE_URL || PROD_API_BASE_URL
   const query = mobile ? `?mobile=${encodeURIComponent(mobile)}` : ''
   return `${baseUrl}/api/public-fees/receipt/${billId}${query}`
 }
 
 export const buildPublicInvoiceUrl = (billId) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://starpublicschool.onrender.com'
+  const baseUrl = API_BASE_URL || PROD_API_BASE_URL
   return `${baseUrl}/api/invoice/public/download/${billId}`
 }
