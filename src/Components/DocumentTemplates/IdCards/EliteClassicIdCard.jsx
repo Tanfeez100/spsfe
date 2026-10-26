@@ -8,13 +8,13 @@ export default function EliteClassicIdCard({
   scale = 1,
   id,
 }) {
-  const studentName = student.Name || student.name || 'Sarah Johnson'
-  const fatherName = student.father_name || student.FatherName || student.fatherName || 'Father Name'
-  const rollNo = (student.Roll || student.roll_no || student.rollNo || '2024115').toString()
-  const rawClass = (student.Class || student.class || '11').toString()
-  const studentSection = (student.Section || student.section || 'A').toString()
-  const admissionNo = student.admission_number || student.admissionNo || student.id || `112210`
-  const dob = student.date_of_birth || student.dob || '05/11/2008'
+  const studentName = student.Name || student.name || '—'
+  const fatherName = student.father_name || student.FatherName || student.fatherName || '—'
+  const rollNo = (student.Roll || student.roll_no || student.rollNo || '—').toString()
+  const rawClass = (student.Class || student.class || '—').toString()
+  const studentSection = (student.Section || student.section || '—').toString()
+  const admissionNo = student.admission_number || student.admissionNo || student.id || '—'
+  const dob = student.date_of_birth || student.dob || '—'
   const mobile = student.mobile || student.Mobile || student.phone || student.contact_no || ''
   const validTill = customization.validTill || '2026-27'
   const schoolName = customization.schoolName || 'STAR PUBLIC SCHOOL'

@@ -32,6 +32,7 @@ function AllLogin() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -134,19 +135,23 @@ function AllLogin() {
               <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                 <label className="block">
                   <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
-                    Email
+                    {selectedRole === 'teacher' ? 'Email or Username' : 'Email'}
                   </span>
                   <div className="relative">
                     <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                      mail
+                      {selectedRole === 'teacher' ? 'person' : 'mail'}
                     </span>
                     <input
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
                       className="gps-input gps-auth-input pl-11"
-                      placeholder="Enter your email"
-                      type="email"
+                      placeholder={
+                        selectedRole === 'teacher'
+                          ? 'Enter teacher email or username'
+                          : 'Enter your email'
+                      }
+                      type={selectedRole === 'teacher' ? 'text' : 'email'}
                       required
                     />
                   </div>
@@ -162,11 +167,22 @@ function AllLogin() {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="gps-input gps-auth-input pl-11"
+                      className="gps-input gps-auth-input pl-11 pr-11"
                       placeholder="Enter your password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      <span className="material-symbols-outlined text-[20px] select-none">
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
                   </div>
                 </label>
 

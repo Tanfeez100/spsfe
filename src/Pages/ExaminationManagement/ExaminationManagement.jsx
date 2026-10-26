@@ -4,7 +4,6 @@ import ExamOverviewTab from './Tabs/ExamOverviewTab'
 import ExamSetupTab from './Tabs/ExamSetupTab'
 import ExamTimetableTab from './Tabs/ExamTimetableTab'
 import ExamSubjectsTab from './Tabs/ExamSubjectsTab'
-import ExamMarksEntryTab from './Tabs/ExamMarksEntryTab'
 import ExamResultsTab from './Tabs/ExamResultsTab'
 import ExamNoticesTab from './Tabs/ExamNoticesTab'
 import ExamReportsTab from './Tabs/ExamReportsTab'
@@ -15,7 +14,6 @@ const EXAMINATION_TABS = [
   { id: 'exam-setup', label: 'Exam Setup', icon: 'settings_suggest' },
   { id: 'timetable', label: 'Timetable', icon: 'calendar_month' },
   { id: 'subjects', label: 'Subjects', icon: 'menu_book' },
-  { id: 'marks-entry', label: 'Marks Entry', icon: 'edit_note' },
   { id: 'results', label: 'Results', icon: 'workspace_premium' },
   { id: 'notices', label: 'Notices', icon: 'campaign' },
   { id: 'reports', label: 'Reports', icon: 'assessment' },
@@ -68,7 +66,7 @@ export default function ExaminationManagement({ initialTab = 'overview' }) {
                 Examination Management
               </h1>
               <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                Centralized evaluation, timetable schedules, marks entry & report cards
+                Centralized evaluation, timetable schedules, subjects & report cards
               </p>
             </div>
           </div>
@@ -132,13 +130,6 @@ export default function ExaminationManagement({ initialTab = 'overview' }) {
 
         {activeTab === 'subjects' && (
           <ExamSubjectsTab
-            activeExam={activeExam}
-            exams={exams}
-          />
-        )}
-
-        {activeTab === 'marks-entry' && (
-          <ExamMarksEntryTab
             activeExam={activeExam}
             exams={exams}
           />

@@ -1,5 +1,19 @@
 export const CLASS_OPTIONS = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
 
+export const FORMATTED_CLASS_OPTIONS = [
+  'Nursery',
+  'LKG',
+  'UKG',
+  'Class 1',
+  'Class 2',
+  'Class 3',
+  'Class 4',
+  'Class 5',
+  'Class 6',
+  'Class 7',
+  'Class 8',
+]
+
 export const SECTION_OPTIONS = ['A', 'B', 'C']
 
 export const normalizeSchoolClass = (value) => {

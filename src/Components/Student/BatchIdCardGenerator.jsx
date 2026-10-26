@@ -8,18 +8,6 @@ import { jsPDF } from 'jspdf'
 import { useDocumentTemplates } from '../../context/DocumentTemplateContext'
 import { DOCUMENT_TEMPLATES } from '../../constants/documentTemplateRegistry'
 
-const SAMPLE_STUDENTS = [
-  { ID: 'SPS-2026-01', Name: 'Ajay Kumar Giri', Class: '1', Section: 'A', Roll: '17', FatherName: 'Mathura Nand Giri', DOB: '12-12-2012', Mobile: '+91 94702 46849', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
-  { ID: 'SPS-2026-02', Name: 'Aarav Sharma', Class: '1', Section: 'A', Roll: '01', FatherName: 'Ramesh Sharma', DOB: '15-05-2013', Mobile: '+91 98765 43210', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
-  { ID: 'SPS-2026-03', Name: 'Ananya Verma', Class: '1', Section: 'A', Roll: '02', FatherName: 'Sanjay Verma', DOB: '20-08-2013', Mobile: '+91 98112 33445', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
-  { ID: 'SPS-2026-04', Name: 'Aryan Kumar', Class: '1', Section: 'A', Roll: '03', FatherName: 'Sunil Kumar', DOB: '11-01-2013', Mobile: '+91 99887 76655', Address: 'Narkatiaganj, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
-  { ID: 'SPS-2026-05', Name: 'Ishita Patel', Class: '1', Section: 'A', Roll: '04', FatherName: 'Manoj Patel', DOB: '04-03-2013', Mobile: '+91 98220 45116', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820112/public/ttmdyrriphttcmvbgqgk.jpg' },
-  { ID: 'SPS-2026-06', Name: 'Kavya Singh', Class: '1', Section: 'A', Roll: '05', FatherName: 'Rajesh Singh', DOB: '22-09-2012', Mobile: '+91 97110 55432', Address: 'Mathia Bazar, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1782612165/public/kqblqhgzpwhrfqxydznq.jpg' },
-  { ID: 'SPS-2026-07', Name: 'Manish Pandey', Class: '1', Section: 'A', Roll: '06', FatherName: 'Dinesh Pandey', DOB: '18-07-2013', Mobile: '+91 94500 12345', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792820054/public/agv4yk9n2ar34dtn3ys9.jpg' },
-  { ID: 'SPS-2026-08', Name: 'Neha Kumari', Class: '1', Section: 'A', Roll: '07', FatherName: 'Vinod Kumar', DOB: '30-11-2012', Mobile: '+91 94702 46849', Address: 'Meghwal Mathia, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1792819975/public/ckubks2jn3ox6h4pthei.jpg' },
-  { ID: 'SPS-2026-09', Name: 'Rohan Gupta', Class: '1', Section: 'A', Roll: '08', FatherName: 'Pradeep Gupta', DOB: '09-02-2013', Mobile: '+91 98765 43210', Address: 'Bettiah, West Champaran', Photo: 'https://res.cloudinary.com/dqi5rafqu/image/upload/f_auto,q_auto,c_fill,g_center,w_318,h_414/v1781517001/public/yiyxgkbz8lqwxmosynbw.jpg' },
-]
-
 // Safe constructor helper for jsPDF across Vite / ESM environments
 const createJsPdf = (options) => {
   const Constructor = typeof jsPDF === 'function'
@@ -107,7 +95,7 @@ function BatchIdCardGenerator({
   // Dynamic student counts for class selector badges from real data
   const classCounts = useMemo(() => {
     const counts = {}
-    const list = effectiveStudents.length > 0 ? effectiveStudents : SAMPLE_STUDENTS
+    const list = effectiveStudents
     list.forEach((s) => {
       const sClass = (s.Class || s.class || '').toString().trim()
       const norm = normalizeSchoolClass(sClass) || sClass
@@ -148,10 +136,10 @@ function BatchIdCardGenerator({
     }
   }, [initialClass, isOpen])
 
-  // Filter students by selected class and section (Strictly Real Data when available)
+  // Filter students by selected class and section (Strictly Real Data)
   const matchingStudents = useMemo(() => {
-    const listToFilter = effectiveStudents.length > 0 ? effectiveStudents : SAMPLE_STUDENTS
-    const filtered = listToFilter.filter((s) => {
+    const listToFilter = effectiveStudents
+    return listToFilter.filter((s) => {
       const sClass = (s.Class || s.class || '').toString().trim()
       const normSClass = normalizeSchoolClass(sClass) || sClass
       const normSelected = normalizeSchoolClass(selectedClass) || selectedClass
@@ -174,17 +162,6 @@ function BatchIdCardGenerator({
 
       return matchClass && matchSection && matchSearch
     })
-
-    // ONLY fallback to SAMPLE_STUDENTS if there are ZERO students in the entire database
-    if (filtered.length === 0 && effectiveStudents.length === 0) {
-      return SAMPLE_STUDENTS.map((s, idx) => ({
-        ...s,
-        Class: selectedClass === 'all' ? '1' : selectedClass,
-        Roll: (idx + 1).toString(),
-      }))
-    }
-
-    return filtered
   }, [effectiveStudents, selectedClass, selectedSection, searchTerm])
 
   // Split students into chunks of 9 (or 6) per A4 page
@@ -808,8 +785,8 @@ function BatchIdCardGenerator({
                             </span>
                           </button>
                           {[
-                            'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-                            ...Object.keys(classCounts).filter((c) => c && !['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(c))
+                            'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8',
+                            ...Object.keys(classCounts).filter((c) => c && !['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8'].includes(c))
                           ].map((c) => {
                             const isSel = selectedClass === c
                             const cLabel = ['Nursery', 'LKG', 'UKG'].includes(c) ? c : c.startsWith('Class') ? c : `Class ${c}`

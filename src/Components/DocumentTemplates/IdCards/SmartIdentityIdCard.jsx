@@ -9,16 +9,16 @@ export default function SmartIdentityIdCard({
   scale = 1,
   id,
 }) {
-  const studentName = student.Name || student.name || 'Student Name'
-  const fatherName = student.father_name || student.FatherName || student.fatherName || 'Father Name'
-  const rollNo = (student.Roll || student.roll_no || student.rollNo || '00').toString()
-  const rawClass = (student.Class || student.class || '').toString()
-  const studentSection = (student.Section || student.section || 'A').toString()
-  const admissionNo = student.admission_number || student.admissionNo || student.id || `SPS-2024-${rollNo.padStart(3, '0')}`
-  const dob = student.date_of_birth || student.dob || '01/01/2012'
-  const studentAddress = student.address || 'Bettiah, West Champaran, Bihar'
+  const studentName = student.Name || student.name || '—'
+  const fatherName = student.father_name || student.FatherName || student.fatherName || '—'
+  const rollNo = (student.Roll || student.roll_no || student.rollNo || '—').toString()
+  const rawClass = (student.Class || student.class || '—').toString()
+  const studentSection = (student.Section || student.section || '—').toString()
+  const admissionNo = student.admission_number || student.admissionNo || student.id || '—'
+  const dob = student.date_of_birth || student.dob || '—'
+  const studentAddress = student.address || ''
   const mobile = student.mobile || student.Mobile || student.phone || student.contact_no || ''
-  const bloodGroup = student.blood_group || 'B+'
+  const bloodGroup = student.blood_group || '—'
   const validTill = customization.validTill || '31/03/2027'
   const schoolName = customization.schoolName || 'STAR PUBLIC SCHOOL'
   const principalSignLabel = customization.principalSignLabel || 'Authorized Officer'

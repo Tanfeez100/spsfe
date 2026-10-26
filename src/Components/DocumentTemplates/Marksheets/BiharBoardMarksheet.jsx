@@ -10,13 +10,13 @@ export default function BiharBoardMarksheet({
   id,
 }) {
   const data = { ...SAMPLE_MARKS_DATA, ...marksData }
-  const studentName = student.Name || student.name || 'Aarav Kumar Sharma'
-  const fatherName = student.father_name || student.FatherName || 'Rajesh Sharma'
-  const motherName = student.mother_name || student.MotherName || 'Sunita Sharma'
-  const rollNo = (student.Roll || student.roll_no || student.rollNo || '12').toString()
-  const rawClass = (student.Class || student.class || '10').toString()
-  const studentSection = (student.Section || student.section || 'A').toString()
-  const admissionNo = student.admission_number || student.admissionNo || student.id || 'SPS-2024-0012'
+  const studentName = student.Name || student.name || '—'
+  const fatherName = student.father_name || student.FatherName || '—'
+  const motherName = student.mother_name || student.MotherName || '—'
+  const rollNo = (student.Roll || student.roll_no || student.rollNo || '—').toString()
+  const rawClass = (student.Class || student.class || '—').toString()
+  const studentSection = (student.Section || student.section || '—').toString()
+  const admissionNo = student.admission_number || student.admissionNo || student.id || '—'
 
   const schoolName = customization.schoolName || 'STAR PUBLIC SCHOOL, WEST CHAMPARAN'
   const boardName = customization.boardName || 'BIHAR SCHOOL EXAMINATION COUNCIL / ACADEMIC BOARD'

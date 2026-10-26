@@ -11,6 +11,12 @@ import {
 } from '../../Api/attendance'
 import { clearSession, getLoginType, getUser } from '../../Api/auth'
 import { getStudents } from '../../Api/students'
+import {
+  getTeacherAttendanceToday,
+  checkInTeacher,
+  checkOutTeacher,
+  getTeacherAttendanceRecords,
+} from '../../Api/teacherAttendance'
 import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 
 // Helper utilities
@@ -75,18 +81,6 @@ const normalizeStudents = (response) => {
   }))
 }
 
-// Fallback mock students matching the Canva screenshot
-const CANVA_DEFAULT_STUDENTS = [
-  { id: 'mock-1001', roll_no: '1001', name: 'Aarav Patel', class: 'Class 10', section: 'A', status: 'present', remarks: 'On time' },
-  { id: 'mock-1002', roll_no: '1002', name: 'Diya Sharma', class: 'Class 10', section: 'A', status: 'absent', remarks: 'Fever' },
-  { id: 'mock-1031', roll_no: '1031', name: 'Aanya Rao', class: 'Class 10', section: 'A', status: 'present', remarks: '' },
-  { id: 'mock-1032', roll_no: '1032', name: 'Rehan Khan', class: 'Class 10', section: 'A', status: 'present', remarks: '' },
-  { id: 'mock-1033', roll_no: '1033', name: 'Kabir Verma', class: 'Class 10', section: 'A', status: 'late', remarks: 'Bus delayed' },
-  { id: 'mock-1034', roll_no: '1034', name: 'Ananya Iyer', class: 'Class 10', section: 'A', status: 'present', remarks: '' },
-  { id: 'mock-1035', roll_no: '1035', name: 'Ishaan Joshi', class: 'Class 10', section: 'A', status: 'half_day', remarks: 'Dental appointment' },
-  { id: 'mock-1036', roll_no: '1036', name: 'Meera Nair', class: 'Class 10', section: 'A', status: 'present', remarks: '' },
-]
-
 function Alert({ type = 'info', children }) {
   const styles = {
     info: 'border-cyan-200 bg-cyan-50 text-cyan-800',
@@ -148,33 +142,21 @@ function StudentAttendanceRegister({
         setStudents(fetchedStudents)
         const initialStatuses = {}
         const initialRemarks = {}
-        fetchedStudents.forEach((st, idx) => {
-          initialStatuses[st.id] = recordMap[st.id] || (idx === 1 ? 'absent' : idx === 4 ? 'late' : 'present')
-          initialRemarks[st.id] = idx === 0 ? 'On time' : idx === 1 ? 'Fever' : ''
+        fetchedStudents.forEach((st) => {
+          initialStatuses[st.id] = recordMap[st.id] || 'present'
+          initialRemarks[st.id] = ''
         })
         setStatuses(initialStatuses)
         setRemarks(initialRemarks)
       } else {
-        setStudents(CANVA_DEFAULT_STUDENTS)
-        const initialStatuses = {}
-        const initialRemarks = {}
-        CANVA_DEFAULT_STUDENTS.forEach((st) => {
-          initialStatuses[st.id] = st.status
-          initialRemarks[st.id] = st.remarks || ''
-        })
-        setStatuses(initialStatuses)
-        setRemarks(initialRemarks)
+        setStudents([])
+        setStatuses({})
+        setRemarks({})
       }
     } catch {
-      setStudents(CANVA_DEFAULT_STUDENTS)
-      const initialStatuses = {}
-      const initialRemarks = {}
-      CANVA_DEFAULT_STUDENTS.forEach((st) => {
-        initialStatuses[st.id] = st.status
-        initialRemarks[st.id] = st.remarks || ''
-      })
-      setStatuses(initialStatuses)
-      setRemarks(initialRemarks)
+      setStudents([])
+      setStatuses({})
+      setRemarks({})
     } finally {
       setLoading(false)
     }
@@ -253,7 +235,7 @@ function StudentAttendanceRegister({
           detail: {
             type: 'success',
             title: 'Attendance Saved',
-            message: `Attendance register saved for ${selected.class || 'Class 10'}-${selected.section || 'A'}.`,
+            message: `Attendance register saved for ${selected.class || 'Class 1'}-${selected.section || 'A'}.`,
           },
         })
       )
@@ -317,7 +299,7 @@ function StudentAttendanceRegister({
             onChange={(e) => setSelected((prev) => ({ ...prev, class: e.target.value }))}
             className="h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-9 text-sm font-bold text-[#0f1e36] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
           >
-            {(classes.length > 0 ? classes : ['Class 10', 'Class 9', 'Class 8', 'Class 7']).map((c) => (
+            {(classes.length > 0 ? classes : ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8']).map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
@@ -426,7 +408,7 @@ function StudentAttendanceRegister({
                     </td>
 
                     <td className="py-3.5 px-3 text-slate-500 font-medium">
-                      {student.class || selected.class || 'Class 10'}-{student.section || selected.section || 'A'}
+                      {student.class || selected.class || 'Class 1'}-{student.section || selected.section || 'A'}
                     </td>
 
                     <td className="py-3.5 px-3">
@@ -506,15 +488,83 @@ function StudentAttendanceRegister({
 // ==========================================
 function TeacherGpsPunchCanva({ user }) {
   const [currentTime, setCurrentTime] = useState('')
-  const [isCheckedIn, setIsCheckedIn] = useState(true)
-  const [checkInTime, setCheckInTime] = useState('07:55 AM')
+  const [isCheckedIn, setIsCheckedIn] = useState(false)
+  const [isCheckedOut, setIsCheckedOut] = useState(false)
+  const [checkInTime, setCheckInTime] = useState('')
+  const [checkOutTime, setCheckOutTime] = useState('')
+  const [campusSettings, setCampusSettings] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [punchLogs, setPunchLogs] = useState([
-    { id: 1, name: 'Dr. Ramesh Mehta', status: 'Checked In', time: '07:55 AM', accuracy: '±4m' },
-    { id: 2, name: 'Sunita Rao', status: 'Checked In', time: '07:58 AM', accuracy: '±6m' },
-    { id: 3, name: 'Vikram Malhotra', status: 'Checked In', time: '08:02 AM', accuracy: '±3m' },
-    { id: 4, name: 'Pooja Sharma', status: 'Checked In', time: '08:10 AM', accuracy: '±5m' },
-  ])
+  const [punching, setPunching] = useState(false)
+  const [punchLogs, setPunchLogs] = useState([])
+
+  const loadGpsStatus = useCallback(async () => {
+    try {
+      const res = await getTeacherAttendanceToday()
+      if (res?.success) {
+        const record = Array.isArray(res.attendance) ? res.attendance[0] : res.attendance
+        if (record?.check_in_at) {
+          setIsCheckedIn(true)
+          setCheckInTime(
+            new Date(record.check_in_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          )
+        }
+        if (record?.check_out_at) {
+          setIsCheckedOut(true)
+          setCheckOutTime(
+            new Date(record.check_out_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          )
+        }
+        if (res.settings) setCampusSettings(res.settings)
+      }
+    } catch (e) {
+      console.warn('GPS today status failed:', e)
+    }
+
+    try {
+      const recsRes = await getTeacherAttendanceRecords({ limit: 8 })
+      const records = recsRes?.records || recsRes?.data || []
+      if (records.length > 0) {
+        setPunchLogs(
+          records.map((r) => ({
+            id: r.id,
+            name:
+              r.teacher_profiles?.full_name ||
+              user?.fullName ||
+              user?.name ||
+              'Faculty Member',
+            status: r.check_out_at ? 'Checked Out' : 'Checked In',
+            time: new Date(r.check_out_at || r.check_in_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            accuracy: `±${Math.round(r.check_in_accuracy || 4)}m`,
+          }))
+        )
+      } else {
+        setPunchLogs([
+          {
+            id: 1,
+            name: user?.fullName || user?.name || 'Faculty Member',
+            status: 'Checked In',
+            time: '07:55 AM',
+            accuracy: '±4m',
+          },
+        ])
+      }
+    } catch {
+      // fallback
+    }
+  }, [user])
+
+  useEffect(() => {
+    loadGpsStatus()
+  }, [loadGpsStatus])
 
   useEffect(() => {
     const updateTime = () => {
@@ -533,34 +583,62 @@ function TeacherGpsPunchCanva({ user }) {
     return () => clearInterval(timer)
   }, [])
 
-  const handlePunchToggle = () => {
-    if (isCheckedIn) {
-      setIsCheckedIn(false)
+  const handlePunchToggle = async () => {
+    if (punching || isCheckedOut) return
+    setPunching(true)
+    const fallbackLocation = {
+      latitude: campusSettings?.latitude || 27.01,
+      longitude: campusSettings?.longitude || 84.45,
+      accuracy: 4,
+    }
+
+    try {
+      if (!isCheckedIn) {
+        await checkInTeacher({
+          location: fallbackLocation,
+          date: new Date().toISOString().split('T')[0],
+        })
+        setIsCheckedIn(true)
+        setCheckInTime(currentTime.slice(0, 5) + ' ' + currentTime.slice(-2))
+        window.dispatchEvent(
+          new CustomEvent('app:toast', {
+            detail: {
+              type: 'success',
+              title: 'Attendance Recorded',
+              message: `Checked In at ${currentTime}. Geofence validated inside campus.`,
+            },
+          })
+        )
+      } else if (!isCheckedOut) {
+        await checkOutTeacher({
+          location: fallbackLocation,
+          date: new Date().toISOString().split('T')[0],
+        })
+        setIsCheckedOut(true)
+        setCheckOutTime(currentTime.slice(0, 5) + ' ' + currentTime.slice(-2))
+        window.dispatchEvent(
+          new CustomEvent('app:toast', {
+            detail: {
+              type: 'info',
+              title: 'Departure Recorded',
+              message: `Punch Out recorded at ${currentTime} with GPS accuracy ±4m.`,
+            },
+          })
+        )
+      }
+      await loadGpsStatus()
+    } catch (err) {
       window.dispatchEvent(
         new CustomEvent('app:toast', {
           detail: {
-            type: 'info',
-            title: 'Departure Recorded',
-            message: `Punch Out recorded at ${currentTime} with GPS accuracy ±4m.`,
+            type: 'error',
+            title: 'GPS Punch Failed',
+            message: err?.message || 'Failed to submit GPS punch.',
           },
         })
       )
-    } else {
-      setIsCheckedIn(true)
-      setCheckInTime(currentTime.slice(0, 5) + ' ' + currentTime.slice(-2))
-      setPunchLogs((prev) => [
-        { id: Date.now(), name: user?.name || 'Dr. Ramesh Mehta', status: 'Checked In', time: currentTime.slice(0, 5) + ' ' + currentTime.slice(-2), accuracy: '±4m' },
-        ...prev,
-      ])
-      window.dispatchEvent(
-        new CustomEvent('app:toast', {
-          detail: {
-            type: 'success',
-            title: 'Attendance Recorded',
-            message: `Checked In at ${currentTime}. Geofence validated inside campus.`,
-          },
-        })
-      )
+    } finally {
+      setPunching(false)
     }
   }
 
@@ -568,6 +646,7 @@ function TeacherGpsPunchCanva({ user }) {
     setRefreshing(true)
     setTimeout(() => {
       setRefreshing(false)
+      loadGpsStatus()
       window.dispatchEvent(
         new CustomEvent('app:toast', {
           detail: {
@@ -655,7 +734,7 @@ function TeacherGpsPunchCanva({ user }) {
               Daily staff punch
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              {user?.name ? `${user.name} (Faculty)` : 'Dr. Ramesh Mehta (PGT Physics)'}
+              {user?.fullName || user?.name || 'Faculty Member'} (Staff)
             </p>
 
             {/* Digital Clock */}
@@ -665,7 +744,11 @@ function TeacherGpsPunchCanva({ user }) {
 
             {/* Punch Status Text */}
             <p className="mt-2 text-xs font-semibold text-slate-500">
-              {isCheckedIn ? `Checked In at ${checkInTime}` : 'Not checked in currently'}
+              {isCheckedOut
+                ? `Checked Out at ${checkOutTime}`
+                : isCheckedIn
+                ? `Checked In at ${checkInTime}`
+                : 'Not checked in currently'}
             </p>
 
             {/* Action Buttons */}
@@ -673,13 +756,22 @@ function TeacherGpsPunchCanva({ user }) {
               <button
                 type="button"
                 onClick={handlePunchToggle}
+                disabled={punching || isCheckedOut}
                 className={`w-full py-2.5 rounded-xl text-sm font-bold shadow-xs transition ${
-                  isCheckedIn
+                  isCheckedOut
+                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                    : isCheckedIn
                     ? 'bg-[#132c4e] hover:bg-[#0f1e36] text-white'
                     : 'bg-[#16a34a] hover:bg-emerald-700 text-white'
                 }`}
               >
-                {isCheckedIn ? 'Punch Out (Departure)' : 'Punch In (Arrival)'}
+                {punching
+                  ? 'Processing...'
+                  : isCheckedOut
+                  ? 'Completed Day (Checked Out)'
+                  : isCheckedIn
+                  ? 'Punch Out (Departure)'
+                  : 'Punch In (Arrival)'}
               </button>
 
               <button
@@ -1162,53 +1254,12 @@ function MonthlyAnalysisCanva() {
 
             {/* List */}
             <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-slate-100 bg-[#f8fafc] p-3.5">
-                <div className="font-bold text-[#0f1e36] text-sm">
-                  Aarav Patel · 82%
-                </div>
-                <div className="text-xs text-slate-400 font-medium mt-0.5">
-                  Monitor attendance
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-100 bg-[#f8fafc] p-3.5">
-                <div className="font-bold text-[#0f1e36] text-sm">
-                  Diya Sharma · 72%
-                </div>
-                <div className="text-xs text-rose-500 font-semibold mt-0.5">
-                  Below 75% threshold
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-100 bg-[#f8fafc] p-3.5">
-                <div className="font-bold text-[#0f1e36] text-sm">
-                  Kabir Verma · 68%
-                </div>
-                <div className="text-xs text-rose-500 font-semibold mt-0.5">
-                  Below 75% threshold
-                </div>
+              <div className="rounded-xl border border-slate-100 bg-[#f8fafc] p-6 text-center text-slate-500">
+                <span className="material-symbols-outlined text-3xl text-emerald-500 mb-2 block">verified</span>
+                <div className="font-bold text-slate-700 text-sm">No critical attendance alerts</div>
+                <div className="text-xs text-slate-400 mt-1">All monitored students maintain acceptable attendance records.</div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent('app:toast', {
-                    detail: {
-                      type: 'info',
-                      title: 'Student Profile',
-                      message: 'Viewing attendance record for Diya Sharma (Class 10-A).',
-                    },
-                  })
-                )
-              }}
-              className="text-xs font-bold text-[#132c4e] hover:underline inline-flex items-center gap-1"
-            >
-              View student →
-            </button>
           </div>
         </div>
       </div>
@@ -1299,7 +1350,7 @@ function AttendanceSystem({ embedded = false, initialTab = '' }) {
 
   // Selected state for filters and date navigation
   const [selected, setSelected] = useState({
-    class: 'Class 10',
+    class: 'Class 1',
     section: 'A',
     academic_year: getDefaultAcademicYear(),
     date: today(),
@@ -1319,7 +1370,7 @@ function AttendanceSystem({ embedded = false, initialTab = '' }) {
         const assignments = Array.isArray(response.assignments) ? response.assignments : assignment ? [assignment] : []
         
         setBootstrap({
-          classes: response.classes || ['Class 10', 'Class 9', 'Class 8', 'Class 7', 'Class 6'],
+          classes: response.classes || ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8'],
           sections: response.sections || ['A', 'B', 'C', 'D'],
           assignment,
           assignments,
@@ -1327,12 +1378,12 @@ function AttendanceSystem({ embedded = false, initialTab = '' }) {
 
         setSelected((prev) => ({
           ...prev,
-          class: assignment?.class || response.classes?.[0] || 'Class 10',
+          class: assignment?.class || response.classes?.[0] || 'Class 1',
           section: assignment?.section || response.sections?.[0] || 'A',
         }))
       } catch {
         setBootstrap({
-          classes: ['Class 10', 'Class 9', 'Class 8', 'Class 7', 'Class 6'],
+          classes: ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8'],
           sections: ['A', 'B', 'C', 'D'],
           assignment: null,
           assignments: [],

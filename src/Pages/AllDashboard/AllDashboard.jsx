@@ -19,6 +19,8 @@ import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolO
 import BatchIdCardGenerator from '../../Components/Student/BatchIdCardGenerator'
 import DocumentManagement from '../DocumentManagement/DocumentManagement'
 import ExaminationManagement from '../ExaminationManagement/ExaminationManagement'
+import TimetableManagement from '../TimetableManagement/TimetableManagement'
+import TeacherDashboardView from './TeacherDashboardView'
 
 function Dashboard({ initialView = 'dashboard' }) {
   const navigate = useNavigate()
@@ -62,7 +64,7 @@ function Dashboard({ initialView = 'dashboard' }) {
       // fallback
     }
     return [
-      { id: 1, title: 'Check Class 10 science lab records', date: 'Oct 16' },
+      { id: 1, title: 'Check Class 8 science lab records', date: 'Oct 16' },
       { id: 2, title: 'Verify fee reconciliation for bus transport', date: 'Oct 18' },
     ]
   })
@@ -87,6 +89,7 @@ function Dashboard({ initialView = 'dashboard' }) {
     '/teacher-attendance': 'teacherAttendance',
     '/marks-upload': 'uploadMarks',
     '/upload-photo': 'uploadPhoto',
+    '/timetable': 'timetable',
     '/result-view': 'result',
   }
 
@@ -200,12 +203,26 @@ function Dashboard({ initialView = 'dashboard' }) {
     }
 
     if (isTeacher) {
-      if (!['/attendance', '/marks-upload'].includes(pathname)) {
-        navigate('/attendance', { replace: true })
+      const teacherAllowedRoutes = [
+        '/dashboard',
+        '/attendance',
+        '/teacher-attendance',
+        '/marks-upload',
+        '/examinations',
+        '/timetable',
+        '/students',
+      ]
+      const isAllowed = teacherAllowedRoutes.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
+      )
+      if (!isAllowed) {
+        navigate('/dashboard', { replace: true })
         return
       }
-      const nextView = pathname === '/marks-upload' ? 'uploadMarks' : 'attendance'
-      if (activeView !== nextView) setActiveView(nextView)
+      if (mappedView && activeView !== mappedView) {
+        setActiveView(mappedView)
+        return
+      }
       return
     }
 
@@ -920,11 +937,15 @@ function Dashboard({ initialView = 'dashboard' }) {
             </div>
           )}
 
+          {isTeacher && activeView === 'dashboard' && (
+            <TeacherDashboardView user={currentUser} />
+          )}
+
           {/* Sub-view router preserving all administrative features */}
           {!isTeacher && (loginType === 'student' || activeView === 'result') && (
             <div className="w-full bg-white rounded-2xl border border-slate-200 p-6 shadow-xs"><ResultView /></div>
           )}
-          {!isTeacher && activeView === 'student' && (
+          {activeView === 'student' && (
             <div className="w-full"><Student /></div>
           )}
           {!isTeacher && activeView === 'idCards' && (
@@ -965,6 +986,9 @@ function Dashboard({ initialView = 'dashboard' }) {
           )}
           {activeView === 'examinationManagement' && (
             <div className="w-full"><ExaminationManagement /></div>
+          )}
+          {activeView === 'timetable' && (
+            <div className="w-full"><TimetableManagement /></div>
           )}
         </div>
 

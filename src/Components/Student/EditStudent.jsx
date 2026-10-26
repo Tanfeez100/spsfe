@@ -52,6 +52,8 @@ function EditStudent({ isOpen = true, onClose, onSuccess, studentData, fullPage 
     class: '',
     roll_no: '',
     section: 'A',
+    academic_year: '',
+    status: 'active',
     mobile: '',
     aadhaar_card: '',
     pen_number: '',
@@ -101,6 +103,8 @@ function EditStudent({ isOpen = true, onClose, onSuccess, studentData, fullPage 
         class: normalizeClassValue(studentData.Class || studentData.class || ''),
         roll_no: studentData.Roll || studentData.roll_no || studentData.roll || '',
         section: normalizeSectionValue(studentData.Section || studentData.section || 'A'),
+        academic_year: studentData.academic_year || studentData.AcademicYear || '',
+        status: studentData.status || studentData.Status || 'active',
         mobile: mob,
         aadhaar_card: normalizeAadhaarValue(
           (studentData.Aadhaar || studentData.aadhaar_card || studentData.aadhaar || '').toString()
@@ -109,13 +113,13 @@ function EditStudent({ isOpen = true, onClose, onSuccess, studentData, fullPage 
           (studentData.PenNumber || studentData.pen_number || studentData.PEN || studentData.pen || '').toString()
         ),
         admission_number: (
-          studentData.AdmissionNo ||
-          studentData.AdmissionNumber ||
           studentData.admission_number ||
+          studentData.AdmissionNumber ||
+          studentData.AdmissionNo ||
           studentData.ScholarNo ||
-          `SPS-2024-${String(studentData.Roll || studentData.roll_no || '081').padStart(4, '0')}`
+          ''
         ).toString(),
-        admission_date: studentData.AdmissionDate || studentData.admission_date || '2024-06-12',
+        admission_date: studentData.admission_date || studentData.AdmissionDate || '',
         date_of_birth: studentData.DateOfBirth || studentData.date_of_birth || '',
         username: studentData.Username || studentData.username || '',
         photo_url: studentData.PhotoUrl || studentData.photo_url || studentData.photo || '',
@@ -197,7 +201,7 @@ function EditStudent({ isOpen = true, onClose, onSuccess, studentData, fullPage 
       return ''
     }
     if (fieldName === 'date_of_birth') {
-      if (!value) return 'Date of birth is required.'
+      if (!value) return ''
       if (Number.isNaN(new Date(value).getTime())) return 'Enter a valid date of birth.'
       return ''
     }
@@ -427,6 +431,13 @@ function EditStudent({ isOpen = true, onClose, onSuccess, studentData, fullPage 
       }
     } catch (err) {
       const errMsg = err?.response?.data?.message || err?.message || 'Failed to update student'
+      const errField = err?.response?.data?.field
+      if (errField) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          [errField]: errMsg,
+        }))
+      }
       setError(errMsg)
       emitToast('error', errMsg, 'Update Error')
     } finally {

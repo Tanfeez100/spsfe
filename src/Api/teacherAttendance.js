@@ -78,6 +78,35 @@ export const reviewTeacherLeaveRequest = async (leaveId, payload) => {
   }
 }
 
+export const checkInTeacher = async (payload = {}) => {
+  try {
+    const response = await api.post('/api/teacher-attendance/check-in', payload)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Check-in failed')
+  }
+}
+
+export const checkOutTeacher = async (payload = {}) => {
+  try {
+    const response = await api.post('/api/teacher-attendance/check-out', payload)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Check-out failed')
+  }
+}
+
+export const getMyAttendanceHistory = async (filters = {}) => {
+  try {
+    const response = await api.get('/api/teacher-attendance/my-history', {
+      params: buildQueryParams(filters),
+    })
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Fetch attendance history failed')
+  }
+}
+
 export default {
   getTeacherAttendanceSettings,
   saveTeacherAttendanceSettings,
@@ -87,4 +116,7 @@ export default {
   reviewCheckoutRequest,
   getTeacherLeaveRequests,
   reviewTeacherLeaveRequest,
+  checkInTeacher,
+  checkOutTeacher,
+  getMyAttendanceHistory,
 }

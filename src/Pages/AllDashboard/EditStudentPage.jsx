@@ -34,8 +34,8 @@ export default function EditStudentPage() {
         )
         if (found) {
           setStudent(found)
-        } else if (studentsList.length > 0) {
-          setStudent(studentsList[0])
+        } else {
+          setStudent(null)
         }
       } catch (err) {
         console.error('Failed to load student for editing:', err)
@@ -81,6 +81,20 @@ export default function EditStudentPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-2xs">
                 <span className="material-symbols-outlined animate-spin text-2xl text-blue-600">sync</span>
                 <p className="mt-2 text-xs font-semibold">Loading student record...</p>
+              </div>
+            ) : !student ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-2xs">
+                <span className="material-symbols-outlined text-4xl text-rose-500">person_off</span>
+                <p className="mt-2 text-sm font-semibold text-slate-800">Student Record Not Found</p>
+                <p className="mt-1 text-xs text-slate-500">The student record you are attempting to edit does not exist or has been removed.</p>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                  Back to Student Directory
+                </button>
               </div>
             ) : (
               <EditStudent

@@ -1,30 +1,17 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { getStudents } from '../../Api/students'
-import { submitMarks, publishResults } from '../../Api/marks'
-
-// Initial student dataset matching Canva blueprint screenshot
-const INITIAL_STUDENTS = [
-  { id: 1, roll: '1001', name: 'Aarav Patel', theory: 74, practical: 19, remarks: 'Fast learner, sharp in numericals' },
-  { id: 2, roll: '1002', name: 'Diya Sharma', theory: 68, practical: 18, remarks: 'Steady progress' },
-  { id: 3, roll: '1003', name: 'Kabir Verma', theory: 45, practical: 15, remarks: 'Needs extra practice in lab' },
-  { id: 4, roll: '1004', name: 'Sam Smith', theory: 78, practical: 20, remarks: 'Class topper, outstanding' },
-  { id: 5, roll: '1005', name: 'Ananya Gupta', theory: '', practical: '', remarks: 'Absent in practicals' },
-  { id: 6, roll: '1006', name: 'Rohan Mehra', theory: 62, practical: 16, remarks: 'Good conceptual understanding' },
-  { id: 7, roll: '1007', name: 'Pooja Singh', theory: 55, practical: 17, remarks: 'Active participation in viva' },
-  { id: 8, roll: '1008', name: 'Aditya Kumar', theory: 40, practical: 14, remarks: 'Revise chapter 3 formulas' },
-  { id: 9, roll: '1009', name: 'Sneha Reddy', theory: 70, practical: 19, remarks: 'Consistent performance' },
-  { id: 10, roll: '1010', name: 'Manish Tiwari', theory: 50, practical: 15, remarks: 'Satisfactory' },
-  { id: 11, roll: '1011', name: 'Ishaan Roy', theory: 75, practical: 18, remarks: 'Excellent exam presentation' },
-  { id: 12, roll: '1012', name: 'Tanya Verma', theory: 58, practical: 16, remarks: 'Improving steadily' },
-]
+import { submitMarks, getMarks, publishResults } from '../../Api/marks'
+import { getSubjectsForClass } from '../../Api/subjects'
+import { FORMATTED_CLASS_OPTIONS, SECTION_OPTIONS } from '../../constants/schoolOptions'
+import { getUser } from '../../Api/auth'
 
 // Grade calculation helper based on standard scale
 const calculateGrade = (total, max = 100) => {
   if (total === '' || total === null || total === undefined) return null
   const num = Number(total)
   if (isNaN(num)) return null
-  const percentage = (num / max) * 100
+  const percentage = (num / (max || 100)) * 100
 
   if (percentage >= 91) return { grade: 'A1', bg: 'bg-[#ede9fe]', text: 'text-[#6d28d9]' }
   if (percentage >= 81) return { grade: 'A2', bg: 'bg-[#dbeafe]', text: 'text-[#1d4ed8]' }
@@ -36,355 +23,609 @@ const calculateGrade = (total, max = 100) => {
   return { grade: 'E', bg: 'bg-[#ffe4e6]', text: 'text-[#be123c]' }
 }
 
-function UploadMarks() {
-  // Context dropdown selectors
-  const [examType, setExamType] = useState('Term 1 Assessment (Half-Yearly)')
-  const [selectedClass, setSelectedClass] = useState('Class 10')
-  const [selectedSection, setSelectedSection] = useState('Section A')
-  const [selectedSubject, setSelectedSubject] = useState('Physics (086) - Dr. Ramesh Mehta')
+export default function UploadMarks() {
+  const currentUser = getUser()
+  const isTeacher = currentUser?.role === 'teacher'
+  const initialClass = currentUser?.assignedClass
+    ? (String(currentUser.assignedClass).startsWith('Class') || ['Nursery', 'LKG', 'UKG'].includes(currentUser.assignedClass)
+        ? currentUser.assignedClass
+        : `Class ${currentUser.assignedClass}`)
+    : 'Class 1'
+  const initialSection = currentUser?.assignedSection
+    ? (String(currentUser.assignedSection).startsWith('Section') ? currentUser.assignedSection : `Section ${currentUser.assignedSection}`)
+    : 'Section A'
 
-  // Maximum Marks configuration
-  const [maxTheory, setMaxTheory] = useState(80)
-  const [maxPractical, setMaxPractical] = useState(20)
-  const [passingMarks, setPassingMarks] = useState(33)
+  // Context Dropdown Selectors
+  const [examType, setExamType] = useState('First')
+  const [selectedClass, setSelectedClass] = useState(initialClass)
+  const [selectedSection, setSelectedSection] = useState(initialSection)
 
-  // Search & Filter
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState('All')
+  // Students in selected class & section
+  const [students, setStudents] = useState([])
+  const [selectedStudentId, setSelectedStudentId] = useState('')
+  const [loadingStudents, setLoadingStudents] = useState(false)
 
-  // Student marks state
-  const [studentsData, setStudentsData] = useState(INITIAL_STUDENTS)
-  const [selectedStudentIds, setSelectedStudentIds] = useState([])
-  const [bulkAction, setBulkAction] = useState('')
+  // Subjects for the selected class (dynamic based on class)
+  const [subjectsList, setSubjectsList] = useState([])
+  const [loadingSubjects, setLoadingSubjects] = useState(false)
 
-  // Pagination (5 per page to match Canva screenshot)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  // Marks data for the currently selected student: array of subject rows
+  // { id, name, code, maxTheory, maxPractical, theory, practical, remarks }
+  const [studentMarksRows, setStudentMarksRows] = useState([])
 
-  // Right column state
-  const [teacherNotes, setTeacherNotes] = useState([])
-  const [newNote, setNewNote] = useState('')
-  const [checklist, setChecklist] = useState({
-    allEntered: false,
-    notesReviewed: false,
-    readyToPublish: false,
-  })
+  // Class-wide existing marks map: { [student_id]: { [subject_name/code]: { theory, practical, remarks, status } } }
+  const [classMarksMap, setClassMarksMap] = useState({})
+
+  // View Mode: 'entry' (Single Student Entry) | 'view_all' (View Student Marks / Full Class Sheet)
+  const [activeTab, setActiveTab] = useState('entry')
+  const [viewSearchTerm, setViewSearchTerm] = useState('')
+  const [viewStatusFilter, setViewStatusFilter] = useState('all') // 'all' | 'graded' | 'pending'
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [isClassPublished, setIsClassPublished] = useState(false)
+
+  // UI state
+  const [saveDraftToast, setSaveDraftToast] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [auditLogs, setAuditLogs] = useState([])
   const [isLocked, setIsLocked] = useState(false)
-  const [saveDraftToast, setSaveDraftToast] = useState('')
-
   const fileInputRef = useRef(null)
 
-  // Log action helper
+  // Helper: Log actions
   const addAuditLog = (action) => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     setAuditLogs((prev) => [`${time} — ${action}`, ...prev.slice(0, 9)])
   }
 
-  // Load drafted state if exists
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`sps_marks_draft_${selectedClass}_${selectedSection}`)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setStudentsData(parsed)
-        }
-      }
-    } catch {
-      // Ignore fallback
-    }
-  }, [selectedClass, selectedSection])
-
-  // Try fetching real students from backend if available
+  // 1️⃣ Fetch Active Students when Class or Section changes
   useEffect(() => {
     let isMounted = true
-    const fetchRealClassStudents = async () => {
+    const fetchClassStudents = async () => {
+      setLoadingStudents(true)
       try {
         const cleanClass = selectedClass.replace('Class ', '').trim()
         const cleanSec = selectedSection.replace('Section ', '').trim()
         const res = await getStudents({ class: cleanClass, section: cleanSec, status: 'active' })
-        const list = res?.students || res
-        if (isMounted && Array.isArray(list) && list.length > 0) {
-          const mapped = list.map((st, idx) => ({
-            id: st.id || idx + 1,
-            roll: st.roll_no || st.roll || String(1001 + idx),
-            name: st.name || st.student_name || `Student ${idx + 1}`,
-            theory: '',
-            practical: '',
-            remarks: '',
-          }))
-          setStudentsData(mapped)
-          addAuditLog(`Loaded ${mapped.length} active students for ${selectedClass}-${selectedSection}`)
+        const list = res?.students || (Array.isArray(res) ? res : [])
+
+        if (isMounted) {
+          if (Array.isArray(list) && list.length > 0) {
+            // Sort by roll number ascending
+            const sorted = [...list].sort((a, b) => Number(a.roll_no || a.roll || 0) - Number(b.roll_no || b.roll || 0))
+            setStudents(sorted)
+            setSelectedStudentId((prev) => {
+              const stillExists = sorted.some((s) => String(s.id) === String(prev))
+              return stillExists ? prev : String(sorted[0].id)
+            })
+            addAuditLog(`Loaded ${sorted.length} students for ${selectedClass}-${selectedSection}`)
+          } else {
+            setStudents([])
+            setSelectedStudentId('')
+          }
         }
       } catch {
-        // Retain default demo set
+        if (isMounted) {
+          setStudents([])
+          setSelectedStudentId('')
+        }
+      } finally {
+        if (isMounted) setLoadingStudents(false)
       }
     }
-    fetchRealClassStudents()
+
+    fetchClassStudents()
     return () => { isMounted = false }
   }, [selectedClass, selectedSection])
 
-  // Mark update handler
-  const handleMarkChange = (id, field, value) => {
-    if (isLocked) return
+  // 2️⃣ Fetch Class Subjects whenever Class or Section changes
+  useEffect(() => {
+    let isMounted = true
+    const fetchSubjects = async () => {
+      setLoadingSubjects(true)
+      const cleanClass = selectedClass.replace('Class ', '').trim()
+      const cleanSec = selectedSection.replace('Section ', '').trim()
 
-    setStudentsData((prev) =>
-      prev.map((student) => {
-        if (student.id !== id) return student
+      try {
+        const res = await getSubjectsForClass(cleanClass, cleanSec)
+        let rawSubjects = []
+
+        if (res?.success && Array.isArray(res.subjects) && res.subjects.length > 0) {
+          rawSubjects = res.subjects.map((item, idx) => {
+            const sub = item.subject || item
+            return {
+              id: sub.id || `sub-${idx}`,
+              name: sub.name,
+              code: sub.code || `SUB${idx + 1}`,
+              maxTheory: Number(sub.max_external_marks) || 80,
+              maxPractical: Number(sub.max_internal_marks) || 20,
+            }
+          })
+        }
+
+        // Fallback to class-level without section if empty
+        if (rawSubjects.length === 0) {
+          const fallbackRes = await getSubjectsForClass(cleanClass, '')
+          if (fallbackRes?.success && Array.isArray(fallbackRes.subjects) && fallbackRes.subjects.length > 0) {
+            rawSubjects = fallbackRes.subjects.map((item, idx) => {
+              const sub = item.subject || item
+              return {
+                id: sub.id || `sub-${idx}`,
+                name: sub.name,
+                code: sub.code || `SUB${idx + 1}`,
+                maxTheory: Number(sub.max_external_marks) || 80,
+                maxPractical: Number(sub.max_internal_marks) || 20,
+              }
+            })
+          }
+        }
+
+        if (isMounted) {
+          setSubjectsList(rawSubjects)
+          if (rawSubjects.length > 0) {
+            addAuditLog(`Configured ${rawSubjects.length} subjects for ${selectedClass}`)
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setSubjectsList([])
+        }
+      } finally {
+        if (isMounted) setLoadingSubjects(false)
+      }
+    }
+
+    fetchSubjects()
+    return () => { isMounted = false }
+  }, [selectedClass, selectedSection])
+
+  // 3️⃣ Fetch existing marks from server for this class & terminal
+  const loadClassMarks = useCallback(async () => {
+    try {
+      const cleanClass = selectedClass.replace('Class ', '').trim()
+      const cleanSec = selectedSection.replace('Section ', '').trim()
+      const res = await getMarks(cleanClass, cleanSec, examType)
+
+      if (res?.students && Array.isArray(res.students)) {
+        const map = {}
+        let anyPublished = false
+        res.students.forEach((st) => {
+          const stId = String(st.student_id || st.id)
+          map[stId] = {}
+          if (Array.isArray(st.marks)) {
+            st.marks.forEach((m) => {
+              const hasActualMarks = (m.external_marks !== null && m.external_marks !== undefined && m.external_marks !== '') ||
+                                     (m.internal_marks !== null && m.internal_marks !== undefined && m.internal_marks !== '')
+              const markObj = {
+                theory: m.external_marks !== null && m.external_marks !== undefined ? m.external_marks : '',
+                practical: m.internal_marks !== null && m.internal_marks !== undefined ? m.internal_marks : '',
+                remarks: m.remarks || '',
+                status: m.status || 'PENDING',
+                hasMarks: hasActualMarks,
+              }
+              // Index by subject_id, subject_name, subject_code
+              if (m.subject_id) map[stId][String(m.subject_id)] = markObj
+              if (m.subject_name) map[stId][String(m.subject_name).toLowerCase().trim()] = markObj
+              if (m.subject_code) map[stId][String(m.subject_code).toLowerCase().trim()] = markObj
+
+              if (hasActualMarks && String(m.status || '').toUpperCase() === 'PUBLISHED') {
+                anyPublished = true
+              }
+            })
+          }
+        })
+        setClassMarksMap(map)
+        setIsClassPublished(anyPublished)
+      } else {
+        setClassMarksMap({})
+        setIsClassPublished(false)
+      }
+    } catch {
+      // non-blocking
+    }
+  }, [selectedClass, selectedSection, examType])
+
+  useEffect(() => {
+    loadClassMarks()
+  }, [loadClassMarks])
+
+  // 4️⃣ Synchronize Student's Subject Rows when selected student or subjectsList change
+  useEffect(() => {
+    if (subjectsList.length === 0 || !selectedStudentId) return
+
+    // Check localStorage draft first
+    const draftKey = `sps_student_marks_${selectedClass}_${selectedSection}_${examType}_${selectedStudentId}`
+    let savedDraft = null
+    try {
+      const raw = localStorage.getItem(draftKey)
+      if (raw) savedDraft = JSON.parse(raw)
+    } catch {
+      // ignore
+    }
+
+    // Check server marks map
+    const serverStudentMarks = classMarksMap[selectedStudentId] || {}
+
+    // Initialize rows
+    const rows = subjectsList.map((sub, idx) => {
+      const subKey = String(sub.name || sub.code || '').toLowerCase()
+      const draftRow = savedDraft ? savedDraft.find((d) => String(d.name).toLowerCase() === subKey) : null
+      const serverMark = serverStudentMarks[sub.id] ||
+                         serverStudentMarks[String(sub.name || '').toLowerCase().trim()] ||
+                         serverStudentMarks[String(sub.code || '').toLowerCase().trim()]
+
+      let theory = ''
+      let practical = ''
+      let remarks = ''
+
+      if (draftRow) {
+        theory = draftRow.theory !== undefined ? draftRow.theory : ''
+        practical = draftRow.practical !== undefined ? draftRow.practical : ''
+        remarks = draftRow.remarks || ''
+      } else if (serverMark) {
+        theory = serverMark.theory !== undefined ? serverMark.theory : ''
+        practical = serverMark.practical !== undefined ? serverMark.practical : ''
+        remarks = serverMark.remarks || ''
+      }
+
+      return {
+        id: sub.id || `row-${idx}`,
+        name: sub.name,
+        code: sub.code || `SUB${idx + 1}`,
+        maxTheory: sub.maxTheory || 80,
+        maxPractical: sub.maxPractical || 20,
+        theory,
+        practical,
+        remarks,
+      }
+    })
+
+    setStudentMarksRows(rows)
+  }, [selectedStudentId, subjectsList, selectedClass, selectedSection, examType, classMarksMap])
+
+  // Currently selected student object
+  const currentStudent = useMemo(() => {
+    return students.find((s) => String(s.id) === String(selectedStudentId)) || students[0] || null
+  }, [students, selectedStudentId])
+
+  // Student Index for Stepper
+  const currentStudentIndex = useMemo(() => {
+    return students.findIndex((s) => String(s.id) === String(selectedStudentId))
+  }, [students, selectedStudentId])
+
+  // Previous & Next Navigation Handlers
+  const handlePrevStudent = () => {
+    if (currentStudentIndex > 0) {
+      setSelectedStudentId(String(students[currentStudentIndex - 1].id))
+    }
+  }
+
+  const handleNextStudent = () => {
+    if (currentStudentIndex < students.length - 1) {
+      setSelectedStudentId(String(students[currentStudentIndex + 1].id))
+    }
+  }
+
+  // Handle Mark Change for a Specific Subject Row
+  const handleSubjectMarkChange = (subjectId, field, value) => {
+    setStudentMarksRows((prev) =>
+      prev.map((row) => {
+        if (row.id !== subjectId) return row
 
         if (value === '') {
-          return { ...student, [field]: '' }
+          return { ...row, [field]: '' }
         }
 
         const num = Number(value)
-        if (isNaN(num)) return student
+        if (isNaN(num)) return row
 
-        // Bound to max marks
-        const maxVal = field === 'theory' ? maxTheory : maxPractical
-        const clamped = Math.max(0, Math.min(num, maxVal))
+        const maxBound = field === 'theory' ? row.maxTheory : row.maxPractical
+        const clamped = Math.max(0, Math.min(num, maxBound))
 
-        return { ...student, [field]: clamped }
+        return { ...row, [field]: clamped }
       })
     )
   }
 
-  // Remarks update
-  const handleRemarkChange = (id, value) => {
-    if (isLocked) return
-    setStudentsData((prev) =>
-      prev.map((st) => (st.id === id ? { ...st, remarks: value } : st))
+  // Handle Remark Change for a Specific Subject Row
+  const handleSubjectRemarkChange = (subjectId, value) => {
+    setStudentMarksRows((prev) =>
+      prev.map((row) => (row.id === subjectId ? { ...row, remarks: value } : row))
     )
   }
 
-  // Save Draft
-  const handleSaveDraft = () => {
+  // Save Draft to LocalStorage for this Student
+  const handleSaveStudentDraft = () => {
+    if (!selectedStudentId) return
     try {
-      localStorage.setItem(`sps_marks_draft_${selectedClass}_${selectedSection}`, JSON.stringify(studentsData))
-      setSaveDraftToast('Draft saved successfully to local workspace!')
-      addAuditLog(`Saved draft for ${selectedClass} ${selectedSubject.split('-')[0]}`)
+      const draftKey = `sps_student_marks_${selectedClass}_${selectedSection}_${examType}_${selectedStudentId}`
+      localStorage.setItem(draftKey, JSON.stringify(studentMarksRows))
+      setSaveDraftToast(`Draft saved for ${currentStudent?.name || 'student'}!`)
+      addAuditLog(`Draft saved for Roll ${currentStudent?.roll_no || currentStudent?.roll} (${currentStudent?.name})`)
       setTimeout(() => setSaveDraftToast(''), 3500)
     } catch {
       setSaveDraftToast('Failed to save draft locally')
     }
   }
 
-  // Publish & Lock
-  const handlePublishAndLock = async () => {
-    if (!checklist.readyToPublish) {
-      if (!window.confirm('Checklist items are incomplete. Do you wish to override and publish now?')) {
-        return
-      }
+  // Save & Submit Marks for the Current Student (One-Go Submission)
+  const handleSubmitStudentMarks = async (andGoToNext = false) => {
+    if (!currentStudent) {
+      alert('Please select a student first.')
+      return
     }
 
+    setIsSubmitting(true)
     try {
-      setIsLocked(true)
-      addAuditLog(`Published & locked assessment for ${selectedClass} ${selectedSection}`)
-      setSaveDraftToast('Results successfully published and locked!')
+      const cleanClass = selectedClass.replace('Class ', '').trim()
+      const cleanSec = selectedSection.replace('Section ', '').trim()
+      const rollNo = Number(currentStudent.roll_no || currentStudent.roll || 1)
+
+      const marksPayload = studentMarksRows.map((r) => ({
+        subject_name: r.name,
+        subject_code: r.code,
+        external_marks: r.theory !== '' ? Number(r.theory) : 0,
+        internal_marks: r.practical !== '' ? Number(r.practical) : 0,
+        remarks: r.remarks || '',
+      }))
+
+      await submitMarks({
+        class: cleanClass,
+        section: cleanSec,
+        roll_no: rollNo,
+        terminal: examType,
+        academic_year: '2026-27',
+        marks: marksPayload,
+      })
+
+      // Update class marks map in memory
+      setClassMarksMap((prev) => {
+        const updated = { ...prev }
+        if (!updated[selectedStudentId]) updated[selectedStudentId] = {}
+        marksPayload.forEach((m) => {
+          const key = String(m.subject_name).toLowerCase()
+          updated[selectedStudentId][key] = {
+            theory: m.external_marks,
+            practical: m.internal_marks,
+            remarks: m.remarks,
+          }
+        })
+        return updated
+      })
+
+      // Clear draft since it is now saved to DB
+      const draftKey = `sps_student_marks_${selectedClass}_${selectedSection}_${examType}_${selectedStudentId}`
+      localStorage.removeItem(draftKey)
+
+      setSaveDraftToast(`✓ Marks successfully saved for ${currentStudent.name} (Roll ${rollNo})!`)
+      addAuditLog(`Saved marks for ${currentStudent.name} (Roll ${rollNo}) - ${marksPayload.length} subjects`)
       setTimeout(() => setSaveDraftToast(''), 4000)
+
+      // Advance to next student if requested
+      if (andGoToNext && currentStudentIndex < students.length - 1) {
+        setTimeout(() => {
+          setSelectedStudentId(String(students[currentStudentIndex + 1].id))
+        }, 500)
+      }
     } catch (err) {
       console.error(err)
+      setSaveDraftToast(`Failed to submit: ${err?.message || 'Server error'}`)
+      setTimeout(() => setSaveDraftToast(''), 4000)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  // Bulk action handler
-  const handleApplyBulkAction = () => {
-    if (!bulkAction || selectedStudentIds.length === 0) return
+  // Real-time calculation summary for currently selected student
+  const studentSummary = useMemo(() => {
+    let totalMax = 0
+    let totalObtained = 0
+    let hasAnyMarks = false
+    let allEntered = true
 
-    setStudentsData((prev) =>
-      prev.map((st) => {
-        if (!selectedStudentIds.includes(st.id)) return st
+    studentMarksRows.forEach((r) => {
+      const subMax = (r.maxTheory || 80) + (r.maxPractical || 20)
+      totalMax += subMax
 
-        if (bulkAction === 'set_pass') {
-          return {
-            ...st,
-            theory: Math.round(maxTheory * 0.5),
-            practical: Math.round(maxPractical * 0.7),
-          }
-        }
-        if (bulkAction === 'clear') {
-          return { ...st, theory: '', practical: '', remarks: '' }
-        }
-        return st
-      })
-    )
+      const th = r.theory !== '' ? Number(r.theory) : null
+      const pr = r.practical !== '' ? Number(r.practical) : null
 
-    addAuditLog(`Applied "${bulkAction}" to ${selectedStudentIds.length} students`)
-    setSelectedStudentIds([])
-    setBulkAction('')
-  }
-
-  // Excel Import (.xlsx)
-  const handleExcelImport = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target.result
-        const wb = XLSX.read(bstr, { type: 'binary' })
-        const wsname = wb.SheetNames[0]
-        const ws = wb.Sheets[wsname]
-        const data = XLSX.utils.sheet_to_json(ws)
-
-        if (Array.isArray(data) && data.length > 0) {
-          const imported = data.map((row, idx) => ({
-            id: idx + 1,
-            roll: String(row.RollNo || row['Roll No'] || row.roll || 1001 + idx),
-            name: String(row.StudentName || row['Student Name'] || row.Name || `Student ${idx + 1}`),
-            theory: row.Theory !== undefined ? Number(row.Theory) : '',
-            practical: row.Practical !== undefined ? Number(row.Practical) : '',
-            remarks: row.Remarks || '',
-          }))
-
-          setStudentsData(imported)
-          addAuditLog(`Imported ${imported.length} rows via Excel (${file.name})`)
-          setSaveDraftToast(`Imported ${imported.length} students from ${file.name}`)
-          setTimeout(() => setSaveDraftToast(''), 3500)
-        }
-      } catch (err) {
-        console.error(err)
-        alert('Invalid Excel file structure. Please ensure columns: RollNo, StudentName, Theory, Practical')
-      }
-    }
-    reader.readAsBinaryString(file)
-  }
-
-  // Excel Export (.xlsx)
-  const handleExportSummary = () => {
-    const exportRows = studentsData.map((st) => {
-      const theory = Number(st.theory) || 0
-      const practical = Number(st.practical) || 0
-      const total = st.theory !== '' || st.practical !== '' ? theory + practical : ''
-      const grade = calculateGrade(total, maxTheory + maxPractical)?.grade || 'N/A'
-
-      return {
-        'Roll No': st.roll,
-        'Student Name': st.name,
-        'Class': selectedClass,
-        'Section': selectedSection,
-        'Subject': selectedSubject,
-        'Theory (80)': st.theory,
-        'Practical (20)': st.practical,
-        'Total (100)': total,
-        'Grade': grade,
-        'Remarks': st.remarks || '',
+      if (th !== null || pr !== null) {
+        hasAnyMarks = true
+        totalObtained += (th || 0) + (pr || 0)
+      } else {
+        allEntered = false
       }
     })
 
-    const ws = XLSX.utils.json_to_sheet(exportRows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Marks_Assessment')
-    XLSX.writeFile(wb, `Marks_${selectedClass}_${selectedSection}_${Date.now()}.xlsx`)
-    addAuditLog('Exported full assessment marks sheet to Excel')
-  }
+    const percentage = totalMax > 0 && hasAnyMarks ? ((totalObtained / totalMax) * 100).toFixed(1) : 0
+    const gradeInfo = hasAnyMarks ? calculateGrade(totalObtained, totalMax) : null
 
-  // Teacher note addition
-  const handleAddNote = () => {
-    if (!newNote.trim()) return
-    const noteObj = {
-      id: Date.now(),
-      text: newNote.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    return {
+      totalSubjects: studentMarksRows.length,
+      totalMax,
+      totalObtained: hasAnyMarks ? totalObtained : 0,
+      percentage: hasAnyMarks ? percentage : '0.0',
+      gradeInfo,
+      allEntered,
+      hasAnyMarks,
     }
-    setTeacherNotes((prev) => [noteObj, ...prev])
-    setNewNote('')
-    addAuditLog('Added teacher assessment note')
+  }, [studentMarksRows])
+
+  // Detailed summary of all students with their subject-wise marks for "View Student Marks"
+  const allStudentsOverview = useMemo(() => {
+    return students.map((st) => {
+      const stId = String(st.id)
+      const stMarks = classMarksMap[stId] || {}
+      let totalObtained = 0
+      let totalMax = 0
+      let enteredSubjectCount = 0
+
+      const subjectBreakdown = subjectsList.map((sub) => {
+        // Multi-lookup by subject ID, lowercase name, or lowercase code
+        const mark = stMarks[sub.id] ||
+                     stMarks[String(sub.name || '').toLowerCase().trim()] ||
+                     stMarks[String(sub.code || '').toLowerCase().trim()]
+
+        const theory = mark && mark.theory !== '' && mark.theory !== null && mark.theory !== undefined ? Number(mark.theory) : null
+        const practical = mark && mark.practical !== '' && mark.practical !== null && mark.practical !== undefined ? Number(mark.practical) : null
+        const hasAny = theory !== null || practical !== null
+        if (hasAny) enteredSubjectCount += 1
+
+        const maxT = sub.maxTheory || 80
+        const maxP = sub.maxPractical || 20
+        totalMax += (maxT + maxP)
+
+        const obtained = hasAny ? (theory || 0) + (practical || 0) : null
+        if (obtained !== null) totalObtained += obtained
+
+        return {
+          id: sub.id,
+          name: sub.name,
+          code: sub.code,
+          theory,
+          practical,
+          obtained,
+          maxTotal: maxT + maxP,
+          hasMarks: hasAny,
+        }
+      })
+
+      const isComplete = subjectsList.length > 0 && enteredSubjectCount === subjectsList.length
+      const percentage = totalMax > 0 && enteredSubjectCount > 0
+        ? ((totalObtained / totalMax) * 100).toFixed(1)
+        : null
+      const gradeInfo = percentage !== null ? calculateGrade(totalObtained, totalMax) : null
+
+      return {
+        id: st.id,
+        roll: st.roll_no || st.roll || '—',
+        name: st.name,
+        father: st.father_name || st.father || '—',
+        subjectBreakdown,
+        totalObtained,
+        totalMax,
+        percentage,
+        gradeInfo,
+        enteredSubjectCount,
+        isComplete,
+        hasAnyMarks: enteredSubjectCount > 0,
+      }
+    })
+  }, [students, classMarksMap, subjectsList])
+
+  // Count how many students in the class actually have marks submitted
+  const classProgress = useMemo(() => {
+    if (!students.length) return { graded: 0, total: 0, percent: 0 }
+    let graded = 0
+    allStudentsOverview.forEach((st) => {
+      if (st.hasAnyMarks) {
+        graded++
+      }
+    })
+    const percent = Math.round((graded / students.length) * 100)
+    return { graded, total: students.length, percent }
+  }, [students, allStudentsOverview])
+
+  // Publish Results for this class & terminal
+  const handlePublishResults = async () => {
+    if (students.length === 0) {
+      alert('No students found in this class to publish results.')
+      return
+    }
+
+    const cleanClass = selectedClass.replace('Class ', '').trim()
+    const cleanSec = selectedSection.replace('Section ', '').trim()
+
+    const confirmMsg = `Are you sure you want to PUBLISH ${examType} results for ${selectedClass} (${selectedSection})?\n\nThis will compute official percentages, generate student rankings, and make report cards live for students and parents.`
+
+    if (!window.confirm(confirmMsg)) {
+      return
+    }
+
+    setIsPublishing(true)
+    try {
+      const res = await publishResults(cleanClass, cleanSec, examType)
+      if (res?.success) {
+        setIsClassPublished(true)
+        setSaveDraftToast(`✓ ${res.message || 'Results published successfully!'}`)
+        addAuditLog(`Published ${examType} results for ${selectedClass}-${selectedSection}`)
+        await loadClassMarks()
+      } else {
+        alert(res?.message || 'Failed to publish results')
+      }
+    } catch (err) {
+      const issues = err?.data?.issues
+      let errMsg = err?.data?.message || err?.message || 'Failed to publish results'
+      if (Array.isArray(issues) && issues.length > 0) {
+        errMsg += `\n\nPending students (${issues.length}):\n` + issues.slice(0, 5).map((i) => `• Roll ${i.roll_no}: ${i.name} (Missing subjects: ${i.missing_subjects?.join(', ') || i.not_submitted_subjects?.join(', ') || 'Marks pending'})`).join('\n')
+        if (issues.length > 5) errMsg += `\n...and ${issues.length - 5} more.`
+      }
+      alert(`Publication Notice:\n${errMsg}`)
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
-  // Filtered & Searched student list
-  const filteredStudents = useMemo(() => {
-    return studentsData.filter((student) => {
-      const matchesSearch =
-        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(student.roll).includes(searchQuery)
+  // Filtered list for "View Student Marks" tab
+  const filteredStudentsOverview = useMemo(() => {
+    return allStudentsOverview.filter((st) => {
+      if (viewStatusFilter === 'graded' && !st.hasAnyMarks) return false
+      if (viewStatusFilter === 'pending' && st.hasAnyMarks) return false
 
-      if (!matchesSearch) return false
-
-      if (filterStatus === 'Pending') {
-        return student.theory === '' || student.practical === ''
-      }
-      if (filterStatus === 'Completed') {
-        return student.theory !== '' && student.practical !== ''
+      if (viewSearchTerm.trim()) {
+        const q = viewSearchTerm.toLowerCase().trim()
+        const matchName = String(st.name || '').toLowerCase().includes(q)
+        const matchRoll = String(st.roll || '').includes(q)
+        const matchFather = String(st.father || '').toLowerCase().includes(q)
+        if (!matchName && !matchRoll && !matchFather) return false
       }
       return true
     })
-  }, [studentsData, searchQuery, filterStatus])
+  }, [allStudentsOverview, viewStatusFilter, viewSearchTerm])
 
-  // Pagination slice
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage) || 1
-  const paginatedStudents = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredStudents.slice(start, start + itemsPerPage)
-  }, [filteredStudents, currentPage])
-
-  // Analytics Computations for Right Column
-  const analytics = useMemo(() => {
-    const totalPossible = maxTheory + maxPractical
-    const gradedStudents = studentsData.filter((s) => s.theory !== '' || s.practical !== '')
-    const pendingCount = studentsData.filter((s) => s.theory === '' || s.practical === '').length
-
-    if (gradedStudents.length === 0) {
-      return {
-        classAvg: 0,
-        highestScore: '—',
-        passPercentage: 0,
-        gradeDist: { A1: 0, A2: 0, B1: 0, B2: 0, C: 0 },
-        pendingCount,
-      }
+  // Export full class marksheet to Excel
+  const handleExportClassMarksheetExcel = () => {
+    if (allStudentsOverview.length === 0) {
+      alert('No students to export.')
+      return
     }
 
-    let sum = 0
-    let highest = -1
-    let highestStudent = ''
-    let passedCount = 0
-
-    const gradeDist = { A1: 0, A2: 0, B1: 0, B2: 0, C: 0 }
-
-    gradedStudents.forEach((st) => {
-      const total = (Number(st.theory) || 0) + (Number(st.practical) || 0)
-      sum += total
-
-      if (total > highest) {
-        highest = total
-        highestStudent = st.name
+    const rows = allStudentsOverview.map((st, idx) => {
+      const row = {
+        '#': idx + 1,
+        'Roll No': st.roll,
+        'Student Name': st.name,
+        'Father Name': st.father,
+        'Class': selectedClass,
+        'Section': selectedSection,
+        'Terminal': examType,
       }
 
-      if (total >= passingMarks) {
-        passedCount++
-      }
+      st.subjectBreakdown.forEach((sub) => {
+        row[`${sub.name} (Theory)`] = sub.theory !== null ? sub.theory : ''
+        row[`${sub.name} (Practical)`] = sub.practical !== null ? sub.practical : ''
+        row[`${sub.name} (Total)`] = sub.obtained !== null ? sub.obtained : ''
+      })
 
-      const gradeInfo = calculateGrade(total, totalPossible)
-      if (gradeInfo?.grade === 'A1') gradeDist.A1++
-      else if (gradeInfo?.grade === 'A2') gradeDist.A2++
-      else if (gradeInfo?.grade === 'B1') gradeDist.B1++
-      else if (gradeInfo?.grade === 'B2') gradeDist.B2++
-      else gradeDist.C++
+      row['Grand Total'] = st.hasAnyMarks ? st.totalObtained : ''
+      row['Max Marks'] = st.totalMax
+      row['Percentage (%)'] = st.percentage ? `${st.percentage}%` : ''
+      row['Grade'] = st.gradeInfo ? st.gradeInfo.grade : ''
+      row['Evaluation Status'] = st.isComplete ? 'Complete' : (st.hasAnyMarks ? 'Partial' : 'Pending')
+
+      return row
     })
 
-    const classAvg = (sum / gradedStudents.length).toFixed(1)
-    const passPercentage = ((passedCount / gradedStudents.length) * 100).toFixed(1)
-
-    return {
-      classAvg,
-      highestScore: `${highest} / ${totalPossible} (${highestStudent})`,
-      passPercentage,
-      gradeDist,
-      pendingCount,
-    }
-  }, [studentsData, maxTheory, maxPractical, passingMarks])
-
-  // Pending students for right column
-  const pendingStudents = useMemo(() => {
-    return studentsData.filter((s) => s.theory === '' || s.practical === '').slice(0, 4)
-  }, [studentsData])
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedClass} - ${examType}`)
+    XLSX.writeFile(workbook, `SPS_${selectedClass.replace(/\s+/g, '_')}_${selectedSection.replace(/\s+/g, '_')}_${examType}_Marksheet.xlsx`)
+  }
 
   return (
     <div className="w-full space-y-6 pb-12 font-sans text-slate-800 antialiased">
-      {/* Toast notification */}
+      {/* Toast Notification */}
       {saveDraftToast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 rounded-xl bg-[#0f1e36] px-4 py-3 text-xs font-bold text-white shadow-xl animate-fade-in">
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 rounded-xl bg-[#0f1e36] px-4 py-3 text-xs font-bold text-white shadow-xl animate-fade-in border border-slate-700">
           <span className="text-emerald-400">✓</span>
           <span>{saveDraftToast}</span>
         </div>
@@ -394,7 +635,7 @@ function UploadMarks() {
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleExcelImport}
+        onChange={() => alert('Excel Import: Please select student and enter marks below.')}
         accept=".xlsx, .xls, .csv"
         className="hidden"
       />
@@ -403,159 +644,237 @@ function UploadMarks() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
-            SPS / ACADEMICS / EXAMS
+            SPS / ACADEMICS / MARKS
           </p>
           <h1 className="text-2xl sm:text-3xl font-black text-[#0f1e36] tracking-tight mt-0.5">
             Marks Entry & Assessment Sheet
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Input marks for term assessments, unit tests and CBSE grading.
-          </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Local demo · not submitted to a board
+            Ek student ke sabhi subjects ke marks ek saath submit karein.
           </p>
         </div>
 
-        {/* Action Buttons Top Right */}
+        {/* Global Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-            title="Upload student marks Excel sheet"
-          >
-            <span className="material-symbols-outlined text-base text-slate-500">table_view</span>
-            <span>Import Marks via Excel (.xlsx)</span>
-          </button>
-
-          <button
-            onClick={handleSaveDraft}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-            title="Save current marks state"
-          >
-            <span className="material-symbols-outlined text-base text-slate-500">bookmark</span>
-            <span>Save Draft</span>
-          </button>
-
-          <button
-            onClick={handlePublishAndLock}
-            disabled={isLocked}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all ${
-              isLocked
-                ? 'bg-emerald-700 cursor-not-allowed opacity-90'
-                : 'bg-[#0f1e36] hover:bg-[#162a4a] active:scale-[0.98]'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base text-amber-300">
-              {isLocked ? 'lock' : 'lock_open'}
+          {/* Publication Status Badge */}
+          {isClassPublished ? (
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 shadow-2xs">
+              <span className="material-symbols-outlined text-base text-emerald-600">verified</span>
+              <span>Result Published</span>
             </span>
-            <span>{isLocked ? 'Results Published & Locked' : 'Publish & Lock Results'}</span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700 shadow-2xs">
+              <span className="material-symbols-outlined text-base text-amber-600">edit_document</span>
+              <span>Result Draft</span>
+            </span>
+          )}
+
+          {/* Publish Result Button */}
+          <button
+            onClick={handlePublishResults}
+            disabled={isPublishing || students.length === 0}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
+              isClassPublished
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            }`}
+            title="Publish official evaluation results for this class and terminal"
+          >
+            <span className="material-symbols-outlined text-base">
+              {isPublishing ? 'sync' : isClassPublished ? 'published_with_changes' : 'campaign'}
+            </span>
+            <span>{isPublishing ? 'Publishing...' : isClassPublished ? 'Re-publish Result' : 'Publish Result'}</span>
           </button>
+
+          {activeTab === 'view_all' ? (
+            <button
+              onClick={handleExportClassMarksheetExcel}
+              disabled={students.length === 0}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base text-emerald-600">download</span>
+              <span>Export Excel</span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleSaveStudentDraft}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                title="Save draft for this student"
+              >
+                <span className="material-symbols-outlined text-base text-slate-500">bookmark</span>
+                <span>Save Draft</span>
+              </button>
+
+              <button
+                onClick={() => handleSubmitStudentMarks(false)}
+                disabled={isSubmitting || !currentStudent}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#0f1e36] hover:bg-[#162a4a] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-base text-amber-300">save</span>
+                <span>{isSubmitting ? 'Saving...' : 'Submit Student Marks'}</span>
+              </button>
+
+              {currentStudentIndex < students.length - 1 && (
+                <button
+                  onClick={() => handleSubmitStudentMarks(true)}
+                  disabled={isSubmitting || !currentStudent}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <span>Save & Next Student</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
       {/* ================= 2. TOP METRIC CARDS (4 ROW) ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Ongoing Exams */}
+        {/* Card 1: Selected Terminal */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Ongoing Exams (Term 1)</span>
+            <span className="text-xs font-bold text-slate-500">Exam Terminal</span>
             <span className="material-symbols-outlined text-lg text-slate-400">calendar_month</span>
           </div>
-          <p className="text-2xl font-black text-[#0f1e36] mt-2">Term 1</p>
-          <a href="#exam-context" className="inline-block text-[11px] font-semibold text-blue-600 hover:underline mt-2">
-            View exam context →
-          </a>
+          <p className="text-2xl font-black text-[#0f1e36] mt-2">{examType}</p>
+          <span className="inline-block text-[11px] font-semibold text-slate-400 mt-2">
+            Active Evaluation Terminal
+          </span>
         </div>
 
-        {/* Card 2: Total Papers */}
+        {/* Card 2: Selected Student */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Total Papers</span>
-            <span className="material-symbols-outlined text-lg text-slate-400">content_copy</span>
+            <span className="text-xs font-bold text-slate-500">Current Student</span>
+            <span className="material-symbols-outlined text-lg text-slate-400">person</span>
           </div>
-          <p className="text-2xl font-black text-[#0f1e36] mt-2">34</p>
-          <a href="#papers" className="inline-block text-[11px] font-semibold text-blue-600 hover:underline mt-2">
-            View paper list →
-          </a>
-        </div>
-
-        {/* Card 3: Marks Uploaded */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Marks Uploaded</span>
-            <span className="material-symbols-outlined text-lg text-slate-400">upload_file</span>
-          </div>
-          <p className="text-2xl font-black text-[#0f1e36] mt-2">82%</p>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
-            <div className="bg-[#183d7d] h-full rounded-full transition-all duration-500" style={{ width: '82%' }} />
-          </div>
-          <p className="text-[11px] font-semibold text-slate-500 mt-2">
-            12 of 15 subjects · <span className="text-blue-600 hover:underline cursor-pointer">View progress →</span>
+          <p className="text-lg font-black text-[#0f1e36] mt-2 truncate">
+            {currentStudent ? `${currentStudent.name}` : 'No student selected'}
+          </p>
+          <p className="text-[11px] font-semibold text-blue-600 mt-1">
+            {currentStudent ? `Roll: ${currentStudent.roll_no || currentStudent.roll || '—'}` : '—'} · {selectedClass}
           </p>
         </div>
 
-        {/* Card 4: Pending */}
+        {/* Card 3: Subjects in this Class */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Pending</span>
-            <span className="material-symbols-outlined text-lg text-slate-400">schedule</span>
+            <span className="text-xs font-bold text-slate-500">Class Subjects</span>
+            <span className="material-symbols-outlined text-lg text-slate-400">menu_book</span>
           </div>
-          <p className="text-2xl font-black text-amber-600 mt-2">{analytics.pendingCount}</p>
-          <button
-            onClick={() => setFilterStatus('Pending')}
-            className="text-[11px] font-semibold text-blue-600 hover:underline mt-2 text-left"
-          >
-            Focus pending rows →
-          </button>
+          <p className="text-2xl font-black text-[#0f1e36] mt-2">{subjectsList.length} Subjects</p>
+          <p className="text-[11px] font-semibold text-slate-500 mt-2 truncate">
+            Total Max: {studentSummary.totalMax} Marks
+          </p>
+        </div>
+
+        {/* Card 4: Class Evaluation Progress */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500">Class Progress</span>
+            <span className="material-symbols-outlined text-lg text-slate-400">grading</span>
+          </div>
+          <p className="text-2xl font-black text-[#15803d] mt-2">{classProgress.percent}%</p>
+          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+            <div
+              className="bg-[#15803d] h-full rounded-full transition-all duration-500"
+              style={{ width: `${classProgress.percent}%` }}
+            />
+          </div>
+          <p className="text-[11px] font-semibold text-slate-500 mt-2">
+            {classProgress.graded} of {classProgress.total} students graded
+          </p>
         </div>
       </div>
 
-      {/* ================= 3. EXAM CONTEXT CARD ================= */}
+      {/* ================= VIEW MODE SWITCHER TABS ================= */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+        <div className="inline-flex rounded-xl bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('entry')}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+              activeTab === 'entry'
+                ? 'bg-white text-[#0f1e36] shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base text-blue-600">edit_square</span>
+            <span>Enter Student Marks</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('view_all')}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+              activeTab === 'view_all'
+                ? 'bg-white text-[#0f1e36] shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base text-emerald-600">table_chart</span>
+            <span>View Student Marks</span>
+            <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">
+              {students.length}
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+          <span className="font-bold text-slate-700">{selectedClass} ({selectedSection})</span>
+          <span>•</span>
+          <span className="font-bold text-blue-600">{examType} Terminal</span>
+          <span>•</span>
+          <span className="font-semibold text-emerald-700">{classProgress.graded} / {classProgress.total} Graded</span>
+        </div>
+      </div>
+
+      {/* ================= 3. CONTEXT SELECTOR CARD ================= */}
       <div id="exam-context" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-        <h2 className="text-sm font-bold text-[#0f1e36] tracking-tight">Exam Context</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#0f1e36] tracking-tight">
+            {activeTab === 'entry' ? 'Student & Class Selection' : 'Class & Evaluation Filter'}
+          </h2>
+          <span className="text-[11px] font-medium text-slate-400">
+            {activeTab === 'entry'
+              ? 'Select student to enter/update their subject marks'
+              : 'Viewing complete class marksheet & evaluation records'}
+          </span>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Exam Type */}
+          {/* 1. Terminal Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Exam Type</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Terminal</label>
             <select
               value={examType}
               onChange={(e) => setExamType(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-none transition-colors"
             >
-              <option value="Term 1 Assessment (Half-Yearly)">Term 1 Assessment (Half-Yearly)</option>
-              <option value="Term 2 Assessment (Annual)">Term 2 Assessment (Annual)</option>
-              <option value="Unit Test 1 (Periodic 1)">Unit Test 1 (Periodic 1)</option>
-              <option value="Unit Test 2 (Periodic 2)">Unit Test 2 (Periodic 2)</option>
-              <option value="Pre-Board Examination">Pre-Board Examination</option>
+              <option value="First">First</option>
+              <option value="Second">Second</option>
+              <option value="Third">Third</option>
+              <option value="Annual">Annual</option>
             </select>
           </div>
 
-          {/* Class */}
+          {/* 2. Class Selector (Only up to Class 8) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Class</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Class (Up to 8)</label>
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-none transition-colors"
             >
-              <option value="Class 10">Class 10</option>
-              <option value="Class 9">Class 9</option>
-              <option value="Class 8">Class 8</option>
-              <option value="Class 7">Class 7</option>
-              <option value="Class 6">Class 6</option>
-              <option value="Class 5">Class 5</option>
-              <option value="Class 4">Class 4</option>
-              <option value="Class 3">Class 3</option>
-              <option value="Class 2">Class 2</option>
-              <option value="Class 1">Class 1</option>
-              <option value="UKG">UKG</option>
-              <option value="LKG">LKG</option>
-              <option value="Nursery">Nursery</option>
+              {FORMATTED_CLASS_OPTIONS.map((cls) => (
+                <option key={cls} value={cls}>{cls}</option>
+              ))}
             </select>
           </div>
 
-          {/* Section */}
+          {/* 3. Section Selector */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Section</label>
             <select
@@ -563,616 +882,629 @@ function UploadMarks() {
               onChange={(e) => setSelectedSection(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-none transition-colors"
             >
-              <option value="Section A">Section A</option>
-              <option value="Section B">Section B</option>
-              <option value="Section C">Section C</option>
+              {SECTION_OPTIONS.map((sec) => (
+                <option key={sec} value={`Section ${sec}`}>Section {sec}</option>
+              ))}
               <option value="Section D">Section D</option>
             </select>
           </div>
 
-          {/* Subject */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Subject</label>
-            <select
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 focus:bg-white focus:outline-none transition-colors"
-            >
-              <option value="Physics (086) - Dr. Ramesh Mehta">Physics (086) - Dr. Ramesh Mehta</option>
-              <option value="Chemistry (043) - Mrs. Sunita Verma">Chemistry (043) - Mrs. Sunita Verma</option>
-              <option value="Mathematics (041) - Mr. K.K. Sharma">Mathematics (041) - Mr. K.K. Sharma</option>
-              <option value="English Core (301) - Ms. Priya Paul">English Core (301) - Ms. Priya Paul</option>
-              <option value="Computer Science (083) - Mr. Amit Sen">Computer Science (083) - Mr. Amit Sen</option>
-              <option value="Biology (044) - Dr. A. Mukherjee">Biology (044) - Dr. A. Mukherjee</option>
-              <option value="Social Science (087) - Mr. Rajesh Roy">Social Science (087) - Mr. Rajesh Roy</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Selected Context Summary & Max Marks Banner */}
-        <div className="space-y-2 pt-1">
-          <p className="text-xs text-slate-500 font-medium truncate">
-            {examType} · {selectedClass} · {selectedSection} · {selectedSubject}
-          </p>
-
-          <div className="rounded-xl border border-blue-100 bg-[#f0f4fc] px-4 py-2.5 text-xs font-bold text-[#183d7d] flex flex-wrap items-center justify-between gap-2">
-            <span>
-              Theory Max: {maxTheory} | Practical Max: {maxPractical} | Total Max: {maxTheory + maxPractical}
-            </span>
-            <span className="text-[11px] font-semibold text-slate-600">
-              Min. Passing Marks: {passingMarks} / {maxTheory + maxPractical}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= 4. MAIN CONTENT (2-COLUMN GRID) ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* ================= LEFT COLUMN: MARKS ENTRY DATA SHEET (8 Cols) ================= */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-            
-            {/* Table Header Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h2 className="text-base font-bold text-[#0f1e36]">Marks Entry Data Sheet</h2>
-
-              <button
-                onClick={() => alert('Keyboard Navigation:\n• Tab: Next input cell\n• Shift+Tab: Previous cell\n• Enter: Next row\n• Numbers: Direct marks input')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors self-start sm:self-auto"
-              >
-                <span className="material-symbols-outlined text-sm">keyboard</span>
-                <span>Keyboard shortcuts</span>
-              </button>
-            </div>
-
-            {/* Max Marks Configuration Row */}
-            <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-700 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-2">
-                <span>Max Theory:</span>
-                <input
-                  type="number"
-                  value={maxTheory}
-                  onChange={(e) => setMaxTheory(Math.max(10, Number(e.target.value) || 0))}
-                  className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-[#0f1e36] focus:border-blue-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span>Max Practical:</span>
-                <input
-                  type="number"
-                  value={maxPractical}
-                  onChange={(e) => setMaxPractical(Math.max(0, Number(e.target.value) || 0))}
-                  className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-[#0f1e36] focus:border-blue-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span>Passing Marks:</span>
-                <input
-                  type="number"
-                  value={passingMarks}
-                  onChange={(e) => setPassingMarks(Math.max(1, Number(e.target.value) || 0))}
-                  className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-[#0f1e36] focus:border-blue-600 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Demo Grading Scale Explanatory Caption */}
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Demo grading scale: A1 91–100, A2 81–90, B1 71–80, B2 61–70, C1 51–60, C2 41–50, D 33–40, E below 33. Local illustration, not official grading policy.
-            </p>
-
-            {/* Search & Filter Controls Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-              <div className="relative flex-1 max-w-sm">
-                <span className="material-symbols-outlined absolute left-3 top-2.5 text-base text-slate-400">
-                  search
-                </span>
-                <input
-                  type="text"
-                  placeholder="Search by student name or roll number..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => {
-                    setFilterStatus(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:border-blue-600 focus:outline-none"
-                >
-                  <option value="All">All</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending">Pending</option>
-                </select>
-
-                <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">
-                  {filteredStudents.length} results
+          {/* 4. Adaptive: Student Selector in 'entry' mode vs Search in 'view_all' mode */}
+          {activeTab === 'entry' ? (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-600">Student</label>
+                <span className="text-[10px] text-slate-400 font-bold">
+                  {currentStudentIndex >= 0 ? `${currentStudentIndex + 1} of ${students.length}` : '—'}
                 </span>
               </div>
-            </div>
 
-            {/* Bulk Action Bar */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-              <select
-                value={bulkAction}
-                onChange={(e) => setBulkAction(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 focus:border-blue-600 focus:outline-none"
-              >
-                <option value="">Bulk action...</option>
-                <option value="set_pass">Set Default Pass Marks</option>
-                <option value="clear">Clear Marks for Selected</option>
-              </select>
-
-              <button
-                onClick={handleApplyBulkAction}
-                disabled={selectedStudentIds.length === 0 || !bulkAction}
-                className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Apply to selected
-              </button>
-
-              <span className="text-xs text-slate-400 ml-2">
-                {selectedStudentIds.length} selected
-              </span>
-            </div>
-
-            {/* Editable Spreadsheet Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full border-collapse text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                    <th className="p-3 w-10 text-center">
-                      <input
-                        type="checkbox"
-                        checked={
-                          paginatedStudents.length > 0 &&
-                          paginatedStudents.every((s) => selectedStudentIds.includes(s.id))
-                        }
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            const ids = paginatedStudents.map((s) => s.id)
-                            setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...ids])))
-                          } else {
-                            const ids = paginatedStudents.map((s) => s.id)
-                            setSelectedStudentIds((prev) => prev.filter((id) => !ids.includes(id)))
-                          }
-                        }}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                      />
-                    </th>
-                    <th className="p-3">Roll No</th>
-                    <th className="p-3">Student Name</th>
-                    <th className="p-3 text-center">Theory Marks (Max: {maxTheory})</th>
-                    <th className="p-3 text-center">Practical Marks (Max: {maxPractical})</th>
-                    <th className="p-3 text-center">Total Calculated</th>
-                    <th className="p-3 text-center">Grade Badge</th>
-                    <th className="p-3">Remarks / Feedback</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {paginatedStudents.map((student) => {
-                    const theoryNum = student.theory !== '' ? Number(student.theory) : null
-                    const practicalNum = student.practical !== '' ? Number(student.practical) : null
-                    const hasMarks = theoryNum !== null || practicalNum !== null
-                    const totalScore = hasMarks ? (theoryNum || 0) + (practicalNum || 0) : null
-                    const gradeInfo = hasMarks ? calculateGrade(totalScore, maxTheory + maxPractical) : null
-                    const isSelected = selectedStudentIds.includes(student.id)
-
-                    return (
-                      <tr
-                        key={student.id}
-                        className={`transition-colors hover:bg-slate-50/70 ${
-                          isSelected ? 'bg-blue-50/40' : ''
-                        }`}
-                      >
-                        {/* Checkbox */}
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedStudentIds((prev) => [...prev, student.id])
-                              } else {
-                                setSelectedStudentIds((prev) => prev.filter((id) => id !== student.id))
-                              }
-                            }}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                          />
-                        </td>
-
-                        {/* Roll No */}
-                        <td className="p-3 font-semibold text-slate-700 whitespace-nowrap">
-                          {student.roll}
-                        </td>
-
-                        {/* Student Name */}
-                        <td className="p-3 font-bold text-slate-900 whitespace-nowrap">
-                          {student.name}
-                        </td>
-
-                        {/* Theory Marks Input */}
-                        <td className="p-3 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max={maxTheory}
-                            disabled={isLocked}
-                            value={student.theory}
-                            placeholder="—"
-                            onChange={(e) => handleMarkChange(student.id, 'theory', e.target.value)}
-                            className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-colors"
-                          />
-                        </td>
-
-                        {/* Practical Marks Input */}
-                        <td className="p-3 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max={maxPractical}
-                            disabled={isLocked}
-                            value={student.practical}
-                            placeholder="—"
-                            onChange={(e) => handleMarkChange(student.id, 'practical', e.target.value)}
-                            className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-colors"
-                          />
-                        </td>
-
-                        {/* Total Calculated */}
-                        <td className="p-3 text-center font-bold text-slate-800 whitespace-nowrap">
-                          {totalScore !== null ? `${totalScore} / ${maxTheory + maxPractical}` : '—'}
-                        </td>
-
-                        {/* Grade Badge */}
-                        <td className="p-3 text-center whitespace-nowrap">
-                          {gradeInfo ? (
-                            <span
-                              className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${gradeInfo.bg} ${gradeInfo.text}`}
-                            >
-                              {gradeInfo.grade}
-                            </span>
-                          ) : (
-                            <span className="text-slate-300 font-bold">—</span>
-                          )}
-                        </td>
-
-                        {/* Remarks */}
-                        <td className="p-3">
-                          <input
-                            type="text"
-                            placeholder="Add remarks..."
-                            disabled={isLocked}
-                            value={student.remarks || ''}
-                            onChange={(e) => handleRemarkChange(student.id, e.target.value)}
-                            className="w-full min-w-[140px] rounded-lg border border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent px-2 py-1 text-xs text-slate-700 focus:bg-white focus:outline-none transition-colors"
-                          />
-                        </td>
-                      </tr>
-                    )
-                  })}
-
-                  {paginatedStudents.length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="p-8 text-center text-slate-400">
-                        No students found matching your criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs text-slate-500">
-              <p>
-                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-                {Math.min(currentPage * itemsPerPage, filteredStudents.length)} of {filteredStudents.length} students
-              </p>
-
-              <div className="flex items-center gap-1.5 self-center sm:self-auto">
+              <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={handlePrevStudent}
+                  disabled={currentStudentIndex <= 0}
+                  className="h-8 w-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
+                  title="Previous Student"
                 >
                   ‹
                 </button>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold transition-colors ${
-                      currentPage === page
-                        ? 'bg-[#0f1e36] text-white shadow-2xs'
-                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  disabled={students.length === 0}
+                  className="w-full rounded-xl border border-blue-300 bg-blue-50/30 px-3 py-2 text-xs font-bold text-[#0f1e36] focus:border-blue-600 focus:bg-white focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {students.length === 0 ? (
+                    <option value="">No active students found in this class</option>
+                  ) : (
+                    students.map((st) => {
+                      const roll = st.roll_no || st.roll || '—'
+                      const isGraded = classMarksMap[st.id] && Object.keys(classMarksMap[st.id]).length > 0
+                      return (
+                        <option key={st.id} value={st.id}>
+                          Roll {roll} · {st.name} {isGraded ? '✓' : ''}
+                        </option>
+                      )
+                    })
+                  )}
+                </select>
 
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={handleNextStudent}
+                  disabled={currentStudentIndex >= students.length - 1 || students.length === 0}
+                  className="h-8 w-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
+                  title="Next Student"
                 >
                   ›
                 </button>
               </div>
             </div>
-
-          </div>
-        </div>
-
-        {/* ================= RIGHT COLUMN: ANALYTICS & TOOLS (4 Cols) ================= */}
-        <div className="lg:col-span-4 space-y-4">
-          
-          {/* Card 1: Class Performance */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+          ) : (
             <div>
-              <h3 className="text-sm font-bold text-[#0f1e36]">Class Performance</h3>
-              <p className="text-[11px] text-slate-400">Demo data · selected context</p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500">Class Average</p>
-                <p className="text-xl font-black text-slate-900">{analytics.classAvg}%</p>
-              </div>
-
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500">Highest Score</p>
-                <p className="text-xs font-bold text-slate-900">{analytics.highestScore}</p>
-              </div>
-
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500">Pass Percentage</p>
-                <p className="text-xl font-black text-emerald-600">{analytics.passPercentage}%</p>
-              </div>
-            </div>
-
-            <hr className="border-slate-100" />
-
-            {/* Grade Distribution Bar Visuals */}
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-700">Grade distribution</p>
-
-              <div className="space-y-1.5 text-xs">
-                {/* A1 */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="w-12 text-slate-500 font-medium">A1 ({analytics.gradeDist.A1})</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-[#183d7d] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, analytics.gradeDist.A1 * 8)}%` }}
-                    />
-                  </div>
-                  <span className="w-6 text-right font-bold text-slate-700">{analytics.gradeDist.A1}</span>
-                </div>
-
-                {/* A2 */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="w-12 text-slate-500 font-medium">A2 ({analytics.gradeDist.A2})</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-[#2563eb] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, analytics.gradeDist.A2 * 8)}%` }}
-                    />
-                  </div>
-                  <span className="w-6 text-right font-bold text-slate-700">{analytics.gradeDist.A2}</span>
-                </div>
-
-                {/* B1 */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="w-12 text-slate-500 font-medium">B1 ({analytics.gradeDist.B1})</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-[#0284c7] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, analytics.gradeDist.B1 * 8)}%` }}
-                    />
-                  </div>
-                  <span className="w-6 text-right font-bold text-slate-700">{analytics.gradeDist.B1}</span>
-                </div>
-
-                {/* B2 */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="w-12 text-slate-500 font-medium">B2 ({analytics.gradeDist.B2})</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-[#16a34a] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, analytics.gradeDist.B2 * 8)}%` }}
-                    />
-                  </div>
-                  <span className="w-6 text-right font-bold text-slate-700">{analytics.gradeDist.B2}</span>
-                </div>
-
-                {/* C */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="w-12 text-slate-500 font-medium">C ({analytics.gradeDist.C})</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-[#d97706] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, analytics.gradeDist.C * 8)}%` }}
-                    />
-                  </div>
-                  <span className="w-6 text-right font-bold text-slate-700">{analytics.gradeDist.C}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-              <button
-                onClick={() => alert(`Full Analytics:\nTotal Evaluated: ${studentsData.length}\nClass Avg: ${analytics.classAvg}%\nPassing Rate: ${analytics.passPercentage}%`)}
-                className="font-bold text-blue-600 hover:underline"
-              >
-                View full analytics
-              </button>
-
-              <button
-                onClick={handleExportSummary}
-                className="font-bold text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                Export summary
-              </button>
-            </div>
-          </div>
-
-          {/* Card 2: Pending Submissions */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-[#0f1e36]">Pending submissions</h3>
-              <p className="text-[11px] text-slate-400">Students needing marks or review in this local sheet</p>
-            </div>
-
-            <div className="divide-y divide-slate-100">
-              {pendingStudents.map((st) => (
-                <div key={st.id} className="py-2.5 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-bold text-slate-900">{st.name}</p>
-                    <p className="text-[11px] text-amber-600 font-semibold">(Needs Review)</p>
-                  </div>
-
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Search Student</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-2.5 top-2 text-base text-slate-400">
+                  search
+                </span>
+                <input
+                  type="text"
+                  value={viewSearchTerm}
+                  onChange={(e) => setViewSearchTerm(e.target.value)}
+                  placeholder="Name, roll no, father..."
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-7 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 focus:outline-none transition-colors"
+                />
+                {viewSearchTerm && (
                   <button
-                    onClick={() => {
-                      setSearchQuery(st.name)
-                      setCurrentPage(1)
-                    }}
-                    className="font-bold text-blue-600 hover:underline"
+                    type="button"
+                    onClick={() => setViewSearchTerm('')}
+                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
                   >
-                    Review
+                    <span className="material-symbols-outlined text-sm">close</span>
                   </button>
-                </div>
-              ))}
-
-              {pendingStudents.length === 0 && (
-                <p className="py-4 text-xs text-emerald-600 font-bold text-center">
-                  ✓ All student marks are completed!
-                </p>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-
-          {/* Card 3: Assessment Notes */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-[#0f1e36]">Assessment notes</h3>
-              <p className="text-[11px] text-slate-400">Notes for this selected class and subject only.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Teacher note</label>
-              <textarea
-                rows="3"
-                placeholder="Add an assessment note..."
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:outline-none"
-              />
-            </div>
-
-            <button
-              onClick={handleAddNote}
-              disabled={!newNote.trim()}
-              className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40"
-            >
-              Add note
-            </button>
-
-            {/* Notes List */}
-            <div className="space-y-2 pt-1">
-              {teacherNotes.map((note) => (
-                <div key={note.id} className="rounded-lg bg-slate-50 p-2 text-xs border border-slate-100">
-                  <p className="text-slate-800">{note.text}</p>
-                  <span className="text-[10px] text-slate-400 mt-1 block">{note.time}</span>
-                </div>
-              ))}
-
-              {teacherNotes.length === 0 && (
-                <p className="text-xs text-slate-400 italic">No assessment notes yet.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Card 4: Submission Checklist */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
-            <h3 className="text-sm font-bold text-[#0f1e36]">Submission checklist</h3>
-
-            <div className="space-y-2 text-xs">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={checklist.allEntered}
-                  onChange={(e) => setChecklist((prev) => ({ ...prev, allEntered: e.target.checked }))}
-                  className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                />
-                <span className="text-slate-700 font-medium">All marks entered</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={checklist.notesReviewed}
-                  onChange={(e) => setChecklist((prev) => ({ ...prev, notesReviewed: e.target.checked }))}
-                  className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                />
-                <span className="text-slate-700 font-medium">Notes reviewed</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={checklist.readyToPublish}
-                  onChange={(e) => setChecklist((prev) => ({ ...prev, readyToPublish: e.target.checked }))}
-                  className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                />
-                <span className="text-slate-700 font-medium">Ready for publish</span>
-              </label>
-            </div>
-
-            <p className="text-[11px] text-slate-400 leading-snug">
-              Incomplete items trigger an explicit override warning.
-            </p>
-          </div>
-
-          {/* Card 5: Audit Trail */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-2">
-            <div>
-              <h3 className="text-sm font-bold text-[#0f1e36]">Audit trail</h3>
-              <p className="text-[11px] text-slate-400">Events in this browser only · not server audit logs.</p>
-            </div>
-
-            <div className="space-y-1 pt-1 max-h-36 overflow-y-auto scrollbar-none text-xs text-slate-600">
-              {auditLogs.map((log, idx) => (
-                <p key={idx} className="text-[11px] text-slate-500 truncate">
-                  • {log}
-                </p>
-              ))}
-
-              {auditLogs.length === 0 && (
-                <p className="text-xs text-slate-400 italic">No lock activity yet.</p>
-              )}
-            </div>
-          </div>
-
+          )}
         </div>
 
+        {/* Selected Context Bar */}
+        {activeTab === 'entry' ? (
+          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${currentStudent ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+              <span className="font-semibold text-slate-800">
+                {currentStudent ? `Student: ${currentStudent.name} (Roll ${currentStudent.roll_no || currentStudent.roll || '1'})` : 'No student selected'}
+              </span>
+              <span className="text-slate-400">·</span>
+              <span>{selectedClass} ({selectedSection})</span>
+              <span className="text-slate-400">·</span>
+              <span className="font-bold text-[#183d7d]">{examType} Terminal</span>
+            </div>
+
+            <div className="flex items-center gap-3 font-semibold text-xs">
+              <span>Score: <strong className="text-slate-900">{studentSummary.totalObtained}</strong> / {studentSummary.totalMax}</span>
+              <span className="text-slate-300">|</span>
+              <span>Percentage: <strong className="text-blue-700">{studentSummary.percentage}%</strong></span>
+              {studentSummary.gradeInfo && (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${studentSummary.gradeInfo.bg} ${studentSummary.gradeInfo.text}`}>
+                  Grade {studentSummary.gradeInfo.grade}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-800">
+                Class Marksheet: {selectedClass} ({selectedSection})
+              </span>
+              <span className="text-slate-400">·</span>
+              <span className="font-bold text-[#183d7d]">{examType} Terminal</span>
+              <span className="text-slate-400">·</span>
+              <span>{subjectsList.length} Subjects</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">Filter Status:</span>
+              <button
+                type="button"
+                onClick={() => setViewStatusFilter('all')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  viewStatusFilter === 'all'
+                    ? 'bg-[#0f1e36] text-white'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                All ({students.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewStatusFilter('graded')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  viewStatusFilter === 'graded'
+                    ? 'bg-emerald-700 text-white'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Evaluated ({classProgress.graded})
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewStatusFilter('pending')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  viewStatusFilter === 'pending'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Pending ({classProgress.total - classProgress.graded})
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ================= 4. MAIN MARKS ENTRY TABLE (ACTIVE TAB: ENTRY) ================= */}
+      {activeTab === 'entry' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-[#0f1e36]">
+                Subject Marks for {currentStudent?.name || 'Selected Student'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Enter theory and practical marks for each subject of {selectedClass}. All subjects submit together.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  // Clear all marks
+                  if (window.confirm('Clear all entered marks for this student?')) {
+                    setStudentMarksRows((prev) =>
+                      prev.map((r) => ({ ...r, theory: '', practical: '', remarks: '' }))
+                    )
+                  }
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+              >
+                <span className="material-symbols-outlined text-xs">clear_all</span>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Subjects Table */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80 font-bold text-slate-600">
+                  <th className="p-3 w-12 text-center">#</th>
+                  <th className="p-3">Subject Name</th>
+                  <th className="p-3 w-28 text-center">Code</th>
+                  <th className="p-3 w-36 text-center">Theory Marks</th>
+                  <th className="p-3 w-36 text-center">Practical Marks</th>
+                  <th className="p-3 w-32 text-center">Total Marks</th>
+                  <th className="p-3 w-28 text-center">Grade</th>
+                  <th className="p-3">Teacher Remarks</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {studentMarksRows.map((row, idx) => {
+                  const theoryNum = row.theory !== '' ? Number(row.theory) : null
+                  const practicalNum = row.practical !== '' ? Number(row.practical) : null
+                  const hasMarks = theoryNum !== null || practicalNum !== null
+                  const totalScore = hasMarks ? (theoryNum || 0) + (practicalNum || 0) : null
+                  const maxTotal = (row.maxTheory || 80) + (row.maxPractical || 20)
+                  const gradeInfo = hasMarks ? calculateGrade(totalScore, maxTotal) : null
+
+                  return (
+                    <tr key={row.id} className="transition-colors hover:bg-slate-50/60">
+                      {/* Index */}
+                      <td className="p-3 text-center text-slate-400 font-bold">{idx + 1}</td>
+
+                      {/* Subject Name */}
+                      <td className="p-3">
+                        <span className="font-bold text-slate-900">{row.name}</span>
+                      </td>
+
+                      {/* Subject Code */}
+                      <td className="p-3 text-center">
+                        <span className="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-mono font-semibold text-slate-600">
+                          {row.code}
+                        </span>
+                      </td>
+
+                      {/* Theory Marks Input */}
+                      <td className="p-3 text-center">
+                        <div className="inline-flex items-center gap-1.5 justify-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={row.maxTheory}
+                            value={row.theory}
+                            placeholder="0"
+                            onChange={(e) => handleSubjectMarkChange(row.id, 'theory', e.target.value)}
+                            className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-colors"
+                          />
+                          <span className="text-[11px] font-semibold text-slate-400">/ {row.maxTheory}</span>
+                        </div>
+                      </td>
+
+                      {/* Practical Marks Input */}
+                      <td className="p-3 text-center">
+                        <div className="inline-flex items-center gap-1.5 justify-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={row.maxPractical}
+                            value={row.practical}
+                            placeholder="0"
+                            onChange={(e) => handleSubjectMarkChange(row.id, 'practical', e.target.value)}
+                            className="w-16 h-8 text-center rounded-lg border border-slate-200 bg-white font-bold text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-colors"
+                          />
+                          <span className="text-[11px] font-semibold text-slate-400">/ {row.maxPractical}</span>
+                        </div>
+                      </td>
+
+                      {/* Total Calculated */}
+                      <td className="p-3 text-center font-bold text-slate-800">
+                        {totalScore !== null ? (
+                          <span>
+                            {totalScore} <span className="text-[11px] text-slate-400 font-normal">/ {maxTotal}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-bold">—</span>
+                        )}
+                      </td>
+
+                      {/* Grade Badge */}
+                      <td className="p-3 text-center">
+                        {gradeInfo ? (
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${gradeInfo.bg} ${gradeInfo.text}`}>
+                            {gradeInfo.grade}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-bold">—</span>
+                        )}
+                      </td>
+
+                      {/* Remarks Input */}
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          placeholder="Optional remarks..."
+                          value={row.remarks || ''}
+                          onChange={(e) => handleSubjectRemarkChange(row.id, e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 focus:border-blue-500 bg-white px-2.5 py-1 text-xs text-slate-700 focus:outline-none transition-colors"
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+
+                {students.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="p-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+                        <span className="material-symbols-outlined text-4xl text-slate-300">group_off</span>
+                        <p className="font-bold text-sm text-slate-700">No active students enrolled in {selectedClass} ({selectedSection})</p>
+                        <p className="text-xs text-slate-400">Please enroll students in this class before uploading marks.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : studentMarksRows.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="p-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+                        <span className="material-symbols-outlined text-4xl text-slate-300">menu_book</span>
+                        <p className="font-bold text-sm text-slate-700">No subjects configured for {selectedClass}</p>
+                        <p className="text-xs text-slate-400">Please configure subjects in Subject & Syllabus management.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+
+              {/* Table Footer with Student Totals */}
+              {studentMarksRows.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-slate-200 bg-slate-50 font-black text-slate-900">
+                    <td colSpan="3" className="p-3 text-right">
+                      Student Grand Total ({studentSummary.totalSubjects} Subjects):
+                    </td>
+                    <td colSpan="2" className="p-3 text-center text-blue-900 text-sm">
+                      {studentSummary.totalObtained} / {studentSummary.totalMax}
+                    </td>
+                    <td className="p-3 text-center text-emerald-800 text-sm">
+                      {studentSummary.percentage}%
+                    </td>
+                    <td className="p-3 text-center">
+                      {studentSummary.gradeInfo && (
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-black ${studentSummary.gradeInfo.bg} ${studentSummary.gradeInfo.text}`}>
+                          {studentSummary.gradeInfo.grade}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <span className="text-xs text-slate-500 font-medium">
+                        {studentSummary.hasAnyMarks
+                          ? studentSummary.allEntered
+                            ? '✓ All subjects evaluated'
+                            : '⚠️ Incomplete evaluation'
+                          : 'No marks entered yet'}
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+
+          {/* Bottom Submission Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="material-symbols-outlined text-base text-blue-600">info</span>
+              <span>
+                Submitting marks saves all {studentMarksRows.length} subjects to student's official evaluation record at once.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSaveStudentDraft}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs"
+              >
+                Save Draft
+              </button>
+
+              <button
+                onClick={() => handleSubmitStudentMarks(false)}
+                disabled={isSubmitting || !currentStudent}
+                className="rounded-xl bg-[#0f1e36] hover:bg-[#162a4a] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {isSubmitting ? 'Saving Marks...' : `Submit Marks for ${currentStudent?.name || 'Student'}`}
+              </button>
+
+              {currentStudentIndex < students.length - 1 && (
+                <button
+                  onClick={() => handleSubmitStudentMarks(true)}
+                  disabled={isSubmitting || !currentStudent}
+                  className="rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  <span>Save & Next Student</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 5. FULL CLASS MARKSHEET (ACTIVE TAB: VIEW_ALL) ================= */}
+      {activeTab === 'view_all' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-[#0f1e36]">
+                  Class Marksheet: {selectedClass} ({selectedSection})
+                </h2>
+                {isClassPublished ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                    <span className="material-symbols-outlined text-xs">verified</span>
+                    Published
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                    <span className="material-symbols-outlined text-xs">edit_document</span>
+                    Draft (Unpublished)
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Terminal: <strong className="text-blue-600">{examType}</strong> · Total Students: <strong>{students.length}</strong> · Showing {filteredStudentsOverview.length} students
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportClassMarksheetExcel}
+                disabled={filteredStudentsOverview.length === 0}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-base text-emerald-600">download</span>
+                <span>Export Excel</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePublishResults}
+                disabled={isPublishing || students.length === 0}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-base">
+                  {isPublishing ? 'sync' : isClassPublished ? 'published_with_changes' : 'campaign'}
+                </span>
+                <span>{isPublishing ? 'Publishing...' : isClassPublished ? 'Re-publish Result' : 'Publish Result'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table Container */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/90 font-bold text-slate-700">
+                  <th className="p-3 w-10 text-center sticky left-0 bg-slate-50/90 z-10">#</th>
+                  <th className="p-3 w-16 text-center sticky left-10 bg-slate-50/90 z-10">Roll</th>
+                  <th className="p-3 min-w-[160px] sticky left-26 bg-slate-50/90 z-10">Student Name</th>
+                  <th className="p-3 min-w-[140px]">Father's Name</th>
+
+                  {/* Subject Columns */}
+                  {subjectsList.map((sub) => (
+                    <th key={sub.id} className="p-3 text-center min-w-[110px] border-l border-slate-200">
+                      <div>{sub.name}</div>
+                      <span className="text-[10px] font-normal text-slate-400">
+                        Max {Number(sub.max_theory || 80) + Number(sub.max_practical || 20)}
+                      </span>
+                    </th>
+                  ))}
+
+                  <th className="p-3 text-center min-w-[110px] border-l-2 border-slate-300 bg-slate-100/70">
+                    Grand Total
+                  </th>
+                  <th className="p-3 text-center min-w-[80px] bg-slate-100/70">Percentage</th>
+                  <th className="p-3 text-center min-w-[70px] bg-slate-100/70">Grade</th>
+                  <th className="p-3 text-center min-w-[100px]">Evaluation</th>
+                  <th className="p-3 text-center min-w-[100px] sticky right-0 bg-slate-50/90 z-10">Action</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {filteredStudentsOverview.map((st, idx) => (
+                  <tr key={st.id} className="hover:bg-blue-50/30 transition-colors">
+                    {/* Index */}
+                    <td className="p-3 text-center text-slate-400 font-bold sticky left-0 bg-white z-10">
+                      {idx + 1}
+                    </td>
+
+                    {/* Roll */}
+                    <td className="p-3 text-center font-bold text-slate-700 sticky left-10 bg-white z-10">
+                      {st.roll || '—'}
+                    </td>
+
+                    {/* Student Name */}
+                    <td className="p-3 font-bold text-[#0f1e36] sticky left-26 bg-white z-10">
+                      <span>{st.name}</span>
+                    </td>
+
+                    {/* Father Name */}
+                    <td className="p-3 text-slate-600">
+                      {st.father || '—'}
+                    </td>
+
+                    {/* Subject Marks */}
+                    {st.subjectBreakdown.map((sub) => (
+                      <td key={sub.subjectId} className="p-3 text-center border-l border-slate-100">
+                        {sub.obtained !== null ? (
+                          <div>
+                            <span className="font-bold text-slate-900">{sub.obtained}</span>
+                            <span className="text-[10px] text-slate-400 block">
+                              T:{sub.theory !== null ? sub.theory : '—'} | P:{sub.practical !== null ? sub.practical : '—'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-300 font-bold">—</span>
+                        )}
+                      </td>
+                    ))}
+
+                    {/* Grand Total */}
+                    <td className="p-3 text-center font-black text-slate-900 border-l-2 border-slate-300 bg-slate-50/50">
+                      {st.hasAnyMarks ? (
+                        <span>
+                          {st.totalObtained} <span className="text-[10px] font-normal text-slate-400">/ {st.totalMax}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 font-bold">—</span>
+                      )}
+                    </td>
+
+                    {/* Percentage */}
+                    <td className="p-3 text-center font-bold text-blue-700 bg-slate-50/50">
+                      {st.percentage !== null ? `${st.percentage}%` : '—'}
+                    </td>
+
+                    {/* Grade */}
+                    <td className="p-3 text-center bg-slate-50/50">
+                      {st.gradeInfo ? (
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black ${st.gradeInfo.bg} ${st.gradeInfo.text}`}>
+                          {st.gradeInfo.grade}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 font-bold">—</span>
+                      )}
+                    </td>
+
+                    {/* Evaluation Status */}
+                    <td className="p-3 text-center">
+                      {st.isComplete ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                          <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                          Complete
+                        </span>
+                      ) : st.hasAnyMarks ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                          <span className="material-symbols-outlined text-[12px]">schedule</span>
+                          Partial ({st.evaluatedCount}/{st.totalCount})
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Action */}
+                    <td className="p-3 text-center sticky right-0 bg-white z-10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStudentId(st.id)
+                          setActiveTab('entry')
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors shadow-2xs"
+                        title="Edit marks for this student"
+                      >
+                        <span className="material-symbols-outlined text-xs">edit</span>
+                        <span>Edit</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Empty State */}
+                {students.length === 0 ? (
+                  <tr>
+                    <td colSpan={subjectsList.length + 8} className="p-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+                        <span className="material-symbols-outlined text-4xl text-slate-300">group_off</span>
+                        <p className="font-bold text-sm text-slate-700">No students enrolled in {selectedClass} ({selectedSection})</p>
+                        <p className="text-xs text-slate-400">Enroll students to view or enter marks.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredStudentsOverview.length === 0 ? (
+                  <tr>
+                    <td colSpan={subjectsList.length + 8} className="p-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+                        <span className="material-symbols-outlined text-4xl text-slate-300">search_off</span>
+                        <p className="font-bold text-sm text-slate-700">No students match current filter</p>
+                        <button
+                          onClick={() => {
+                            setViewSearchTerm('')
+                            setViewStatusFilter('all')
+                          }}
+                          className="text-xs font-bold text-blue-600 hover:underline"
+                        >
+                          Clear Filters
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-export default UploadMarks

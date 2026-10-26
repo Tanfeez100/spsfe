@@ -11,87 +11,6 @@ import {
 import { getClassesWithSections } from '../../Api/classes'
 import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 
-// Mock fallback matching Canva screenshot when DB is loading or empty
-const SAMPLE_FACULTY = [
-  {
-    id: 't1',
-    fullName: 'Dr. Ramesh Mehta',
-    designation: 'PGT Senior Physics & HOD Science',
-    department: 'Science',
-    employeeId: 'TCH-102',
-    weeklyLoad: '24 Periods / week',
-    assignedClasses: 'Class 11-A, 11-B, 12-A, 12-B',
-    experience: '8 Years at SPS',
-    status: 'present',
-    mobile: '+91 98200 11223',
-    email: 'ramesh.mehta@starpublicschool.com',
-  },
-  {
-    id: 't2',
-    fullName: 'Sunita Rao',
-    designation: 'TGT Mathematics',
-    department: 'Mathematics',
-    employeeId: 'TCH-118',
-    weeklyLoad: '26 Periods / week',
-    assignedClasses: 'Class 9-A, 9-B, 10-A, 10-B, 11-A',
-    experience: '6 Years at SPS',
-    status: 'present',
-    mobile: '+91 98111 22334',
-    email: 'sunita.rao@starpublicschool.com',
-  },
-  {
-    id: 't3',
-    fullName: 'Vikram Das',
-    designation: 'PGT Chemistry',
-    department: 'Science',
-    employeeId: 'TCH-109',
-    weeklyLoad: '22 Periods / week',
-    assignedClasses: 'Class 11-A, 11-B, 12-A, 12-B',
-    experience: '10 Years at SPS',
-    status: 'on_leave',
-    mobile: '+91 97222 33445',
-    email: 'vikram.das@starpublicschool.com',
-  },
-  {
-    id: 't4',
-    fullName: 'Meera Joshi',
-    designation: 'TGT English',
-    department: 'Languages',
-    employeeId: 'TCH-123',
-    weeklyLoad: '25 Periods / week',
-    assignedClasses: 'Class 6-A, 7-A, 8-A, 9-A',
-    experience: '5 Years at SPS',
-    status: 'present',
-    mobile: '+91 98333 44556',
-    email: 'meera.joshi@starpublicschool.com',
-  },
-  {
-    id: 't5',
-    fullName: 'Arvind Singh',
-    designation: 'PGT Social Science',
-    department: 'Social Science',
-    employeeId: 'TCH-127',
-    weeklyLoad: '23 Periods / week',
-    assignedClasses: 'Class 9-A, 9-B, 10-A, 10-B',
-    experience: '7 Years at SPS',
-    status: 'present',
-    mobile: '+91 98444 55667',
-    email: 'arvind.singh@starpublicschool.com',
-  },
-  {
-    id: 't6',
-    fullName: 'Neha Agarwal',
-    designation: 'PGT Accountancy',
-    department: 'Commerce',
-    employeeId: 'TCH-131',
-    weeklyLoad: '24 Periods / week',
-    assignedClasses: 'Class 11-C, 12-C',
-    experience: '4 Years at SPS',
-    status: 'present',
-    mobile: '+91 98555 66778',
-    email: 'neha.agarwal@starpublicschool.com',
-  },
-]
 
 const toTeacherRow = (teacher) => {
   const assignments = Array.isArray(teacher?.assignments)
@@ -203,10 +122,10 @@ function TeacherManagement() {
       if (rawList.length > 0) {
         setTeachers(rawList.map(toTeacherRow))
       } else {
-        setTeachers(SAMPLE_FACULTY)
+        setTeachers([])
       }
     } catch {
-      setTeachers(SAMPLE_FACULTY)
+      setTeachers([])
     } finally {
       setLoading(false)
     }
@@ -537,8 +456,15 @@ function TeacherManagement() {
 
       {/* 4. FACULTY GRID CARDS VIEW (Matching Canva layout exactly) */}
       {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredTeachers.map((teacher, idx) => {
+        filteredTeachers.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-12 text-center text-slate-500 shadow-2xs">
+            <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">school</span>
+            <p className="font-bold text-sm text-slate-700">No faculty members found</p>
+            <p className="text-xs text-slate-400 mt-1">Register new faculty members to display their profiles here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredTeachers.map((teacher, idx) => {
             const initials = getInitials(teacher.fullName)
             const isLeave = teacher.status === 'on_leave'
 
@@ -649,8 +575,9 @@ function TeacherManagement() {
                 </div>
               </div>
             )
-          })}
-        </div>
+            })}
+          </div>
+        )
       )}
 
       {/* 5. TABLE VIEW MODE (Fallback option for power users) */}
@@ -670,31 +597,39 @@ function TeacherManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredTeachers.map((teacher, idx) => (
-                  <tr key={teacher.id || idx} className="hover:bg-slate-50/80">
-                    <td className="py-3.5 px-4">
-                      <p className="font-bold text-[#0f1e36] text-xs">{teacher.fullName}</p>
-                      <p className="text-[10px] text-slate-400">{teacher.designation}</p>
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-700">{teacher.employeeId}</td>
-                    <td className="py-3.5 px-4 text-slate-700">{teacher.department}</td>
-                    <td className="py-3.5 px-4 text-slate-700">{teacher.assignedClasses}</td>
-                    <td className="py-3.5 px-4 text-slate-700">{teacher.weeklyLoad}</td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${teacher.status === 'on_leave' ? 'bg-[#fef3c7] text-[#d97706]' : 'bg-[#dcfce7] text-[#16a34a]'}`}>
-                        {teacher.status === 'on_leave' ? 'On Leave' : 'Present'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => setAssigningTeacher(teacher)}
-                        className="text-xs font-semibold text-[#1e40af] hover:underline"
-                      >
-                        Timetable / Assign
-                      </button>
+                {filteredTeachers.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="py-12 text-center text-slate-400">
+                      No faculty records found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredTeachers.map((teacher, idx) => (
+                    <tr key={teacher.id || idx} className="hover:bg-slate-50/80">
+                      <td className="py-3.5 px-4">
+                        <p className="font-bold text-[#0f1e36] text-xs">{teacher.fullName}</p>
+                        <p className="text-[10px] text-slate-400">{teacher.designation}</p>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">{teacher.employeeId}</td>
+                      <td className="py-3.5 px-4 text-slate-700">{teacher.department}</td>
+                      <td className="py-3.5 px-4 text-slate-700">{teacher.assignedClasses}</td>
+                      <td className="py-3.5 px-4 text-slate-700">{teacher.weeklyLoad}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${teacher.status === 'on_leave' ? 'bg-[#fef3c7] text-[#d97706]' : 'bg-[#dcfce7] text-[#16a34a]'}`}>
+                          {teacher.status === 'on_leave' ? 'On Leave' : 'Present'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={() => setAssigningTeacher(teacher)}
+                          className="text-xs font-semibold text-[#1e40af] hover:underline"
+                        >
+                          Timetable / Assign
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -117,13 +117,16 @@ export default function DocumentManagement() {
     })
   }, [realStudents, selectedClass, selectedSection, studentSearchTerm])
 
-  // Current selected student
+  // Current selected student (Strictly Real Data from DB)
   const currentStudent = useMemo(() => {
-    if (previewUseRealData && filteredStudents.length > 0) {
+    if (filteredStudents.length > 0) {
       return filteredStudents.find((s) => s.id === selectedStudentId) || filteredStudents[0]
     }
-    return SAMPLE_STUDENT_DATA
-  }, [previewUseRealData, filteredStudents, selectedStudentId])
+    if (realStudents.length > 0) {
+      return realStudents[0]
+    }
+    return {}
+  }, [filteredStudents, selectedStudentId, realStudents])
 
   // Current active template ID for category
   const activeTemplateId = getActiveTemplateId(activeCategory)
@@ -541,22 +544,11 @@ export default function DocumentManagement() {
 
               {/* Data Mode Toggle & Zoom Controls */}
               <div className="flex items-center gap-2">
-                {/* Real Data vs Sample Data Switcher */}
-                <button
-                  type="button"
-                  onClick={() => setPreviewUseRealData(!previewUseRealData)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                    previewUseRealData
-                      ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
-                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                  }`}
-                  title="Toggle between real student database record and sample data"
-                >
-                  <span className="material-symbols-outlined text-[15px]">
-                    {previewUseRealData ? 'database' : 'description'}
-                  </span>
-                  <span>{previewUseRealData ? 'Real Student Data' : 'Sample Data'}</span>
-                </button>
+                {/* Live Real Data Indicator */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold shadow-2xs">
+                  <span className="material-symbols-outlined text-[15px] text-emerald-600">database</span>
+                  <span>Database Student Record</span>
+                </div>
 
                 {/* Studio Zoom Controls */}
                 <div className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 text-xs font-bold">
@@ -644,18 +636,9 @@ export default function DocumentManagement() {
                   ))}
                 </div>
 
-                {/* Real Data vs Sample Data Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setPreviewUseRealData(!previewUseRealData)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
-                    previewUseRealData
-                      ? 'bg-blue-600 text-white border-blue-700'
-                      : 'bg-slate-100 text-slate-600 border-slate-300'
-                  }`}
-                >
-                  {previewUseRealData ? 'Real Student' : 'Sample Data'}
-                </button>
+                <div className="px-3 py-1 text-xs font-bold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800">
+                  Database Record
+                </div>
 
                 <button
                   type="button"

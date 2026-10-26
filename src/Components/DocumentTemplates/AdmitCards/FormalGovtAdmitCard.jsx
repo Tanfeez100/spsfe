@@ -9,14 +9,14 @@ export default function FormalGovtAdmitCard({
   customization = {},
   id,
 }) {
-  const studentName = student.Name || student.name || 'Student Name'
-  const fatherName = student.father_name || student.FatherName || student.fatherName || 'Father Name'
-  const motherName = student.mother_name || student.MotherName || 'Mother Name'
-  const rollNo = (student.Roll || student.roll_no || student.rollNo || '00').toString()
-  const rawClass = (student.Class || student.class || '10').toString()
-  const studentSection = (student.Section || student.section || 'A').toString()
-  const admissionNo = student.admission_number || student.admissionNo || student.id || `SPS-2024-${rollNo.padStart(3, '0')}`
-  const dob = student.date_of_birth || student.dob || '01/01/2012'
+  const studentName = student.Name || student.name || '—'
+  const fatherName = student.father_name || student.FatherName || student.fatherName || '—'
+  const motherName = student.mother_name || student.MotherName || '—'
+  const rollNo = (student.Roll || student.roll_no || student.rollNo || '—').toString()
+  const rawClass = (student.Class || student.class || '—').toString()
+  const studentSection = (student.Section || student.section || '—').toString()
+  const admissionNo = student.admission_number || student.admissionNo || student.id || '—'
+  const dob = student.date_of_birth || student.dob || '—'
   const photo = student.PhotoUrl || student.photoUrl || student.photo_url || student.photo || student.image || null
 
   const schoolName = customization.schoolName || 'STAR PUBLIC SCHOOL'

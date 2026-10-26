@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { getExamSubjectsApi, saveExamSubjectApi } from '../../../Api/examinations'
 import { emitToast } from '../../../Api/auth'
 
-const ALL_CLASSES = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Nursery', 'LKG', 'UKG']
+const ALL_CLASSES = ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8']
 
 export default function ExamSubjectsTab({ activeExam, exams = [] }) {
   const [selectedExamId, setSelectedExamId] = useState(activeExam?.id || exams[0]?.id || '')

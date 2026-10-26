@@ -7,7 +7,7 @@ import {
 } from '../../../Api/examinations'
 import { emitToast, getUser } from '../../../Api/auth'
 
-const ALL_CLASSES = ['All', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Nursery', 'LKG', 'UKG']
+const ALL_CLASSES = ['All', 'Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8']
 const NOTICE_TYPES = [
   { value: 'announcement', label: 'General Announcement' },
   { value: 'timetable', label: 'Date Sheet / Timetable Release' },

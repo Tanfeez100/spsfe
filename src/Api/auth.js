@@ -50,24 +50,60 @@ export const publicApi = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
+const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
+const SEVEN_DAYS_MS = SEVEN_DAYS_SECONDS * 1000;
+
+export const setAuthCookie = (name, value, maxAgeSeconds = SEVEN_DAYS_SECONDS) => {
+  if (typeof document === "undefined") return;
+  const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+  document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAgeSeconds}; path=/; SameSite=Lax${isSecure ? "; Secure" : ""}`;
+};
+
+export const getAuthCookie = (name) => {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+export const removeAuthCookie = (name) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; max-age=0; path=/; SameSite=Lax`;
+};
+
 const AUTH_KEYS = [
   "access_token",
   "refresh_token",
   "user",
   "session",
   "loginType",
+  "sps_session_expires_at",
+  "sps_session_created_at",
 ];
 
 const getAuthStorage = () => {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.sessionStorage;
+  try {
+    return window.localStorage;
+  } catch {
+    return window.sessionStorage;
+  }
 };
 
-const clearLegacySharedSession = () => {
-  if (typeof window === "undefined") return;
-  AUTH_KEYS.forEach((key) => window.localStorage.removeItem(key));
+export const isSessionExpired = () => {
+  try {
+    const storage = getAuthStorage();
+    const expiresAt =
+      storage?.getItem("sps_session_expires_at") ||
+      getAuthCookie("sps_session_expires_at");
+    if (!expiresAt) return false;
+    const expiryTime = Number(expiresAt);
+    if (Number.isNaN(expiryTime) || expiryTime <= 0) return false;
+    return Date.now() > expiryTime;
+  } catch {
+    return false;
+  }
 };
 
 const processQueue = (error, token = null) => {
@@ -231,11 +267,27 @@ export const buildQueryParams = (filters = {}) => {
 };
 
 export const getLoginType = () => {
-  return getAuthStorage()?.getItem("loginType") || "all";
+  const storage = getAuthStorage();
+  return storage?.getItem("loginType") || getAuthCookie("sps_login_type") || "all";
 };
 
 export const getUser = () => {
-  const userStr = getAuthStorage()?.getItem("user");
+  if (isSessionExpired()) {
+    clearSession();
+    return null;
+  }
+
+  const storage = getAuthStorage();
+  let userStr = storage?.getItem("user");
+  if (!userStr) {
+    userStr = getAuthCookie("sps_user");
+    if (userStr && storage) {
+      try {
+        storage.setItem("user", userStr);
+      } catch {}
+    }
+  }
+
   if (!userStr) {
     return null;
   }
@@ -248,11 +300,26 @@ export const getUser = () => {
 };
 
 export const getAccessToken = () => {
-  return getAuthStorage()?.getItem("access_token");
+  if (isSessionExpired()) {
+    clearSession();
+    return null;
+  }
+
+  const storage = getAuthStorage();
+  let token = storage?.getItem("access_token");
+  if (!token) {
+    token = getAuthCookie("sps_access_token");
+    if (token && storage) {
+      try {
+        storage.setItem("access_token", token);
+      } catch {}
+    }
+  }
+  return token || null;
 };
 
 export const getRefreshToken = () => {
-  return getAuthStorage()?.getItem("refresh_token");
+  return getAuthStorage()?.getItem("refresh_token") || null;
 };
 
 export const setSession = (sessionData, loginType = "all") => {
@@ -267,30 +334,55 @@ export const setSession = (sessionData, loginType = "all") => {
   }
 
   const storage = getAuthStorage();
-  if (!storage) return;
+  const expiresAt = Date.now() + SEVEN_DAYS_MS;
+  const createdAt = Date.now();
 
-  clearLegacySharedSession();
-
-  storage.setItem("access_token", accessToken);
-  if (refreshToken) {
-    storage.setItem("refresh_token", refreshToken);
+  if (storage) {
+    try {
+      storage.setItem("access_token", accessToken);
+      if (refreshToken) {
+        storage.setItem("refresh_token", refreshToken);
+      }
+      storage.setItem(
+        "session",
+        JSON.stringify({
+          access_token: accessToken,
+          refresh_token: refreshToken || "",
+        }),
+      );
+      storage.setItem("user", JSON.stringify(user));
+      storage.setItem("loginType", loginType);
+      storage.setItem("sps_session_expires_at", String(expiresAt));
+      storage.setItem("sps_session_created_at", String(createdAt));
+    } catch (e) {
+      console.warn("Storage save error:", e);
+    }
   }
 
-  storage.setItem(
-    "session",
-    JSON.stringify({
-      access_token: accessToken,
-      refresh_token: refreshToken || "",
-    }),
-  );
-  storage.setItem("user", JSON.stringify(user));
-  storage.setItem("loginType", loginType);
+  // Dual persistence in cookies: 7 days
+  setAuthCookie("sps_access_token", accessToken, SEVEN_DAYS_SECONDS);
+  setAuthCookie("sps_login_type", loginType, SEVEN_DAYS_SECONDS);
+  setAuthCookie("sps_session_expires_at", String(expiresAt), SEVEN_DAYS_SECONDS);
+  try {
+    setAuthCookie("sps_user", JSON.stringify(user), SEVEN_DAYS_SECONDS);
+  } catch {}
 };
 
 export const clearSession = () => {
-  const storage = getAuthStorage();
-  AUTH_KEYS.forEach((key) => storage?.removeItem(key));
-  clearLegacySharedSession();
+  try {
+    const localStorageRef = window.localStorage;
+    AUTH_KEYS.forEach((key) => localStorageRef?.removeItem(key));
+  } catch {}
+
+  try {
+    const sessionStorageRef = window.sessionStorage;
+    AUTH_KEYS.forEach((key) => sessionStorageRef?.removeItem(key));
+  } catch {}
+
+  removeAuthCookie("sps_access_token");
+  removeAuthCookie("sps_user");
+  removeAuthCookie("sps_login_type");
+  removeAuthCookie("sps_session_expires_at");
 };
 
 export const refreshAccessToken = async () => {
@@ -317,13 +409,13 @@ export const refreshAccessToken = async () => {
 
     const storage = getAuthStorage();
     storage?.setItem("access_token", newAccessToken);
+    setAuthCookie("sps_access_token", newAccessToken, SEVEN_DAYS_SECONDS);
     if (newRefreshToken) {
       storage?.setItem("refresh_token", newRefreshToken);
     }
 
     return newAccessToken;
   } catch (error) {
-    clearSession();
     throw normalizeApiError(error, "Session refresh failed");
   }
 };
@@ -476,6 +568,8 @@ api.interceptors.request.use(
   (error) => Promise.reject(normalizeApiError(error)),
 );
 
+let isRedirectingToLogin = false;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -483,10 +577,13 @@ api.interceptors.response.use(
     const status = error?.response?.status;
     const isAuthRequest =
       originalRequest?.url?.includes("/api/auth/login") ||
+      originalRequest?.url?.includes("/api/student-auth/login") ||
       originalRequest?.url?.includes("/api/auth/refresh") ||
       originalRequest?.url?.includes("/api/auth/logout");
 
-    if (status === 401 && !originalRequest._retry && !isAuthRequest) {
+    // Only attempt refresh if refreshToken exists and this wasn't an auth endpoint
+    const refreshToken = getRefreshToken();
+    if (status === 401 && !originalRequest._retry && !isAuthRequest && refreshToken) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -510,18 +607,20 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        clearSession();
-        if (
-          window.location.pathname !== "/login" &&
-          window.location.pathname !== "/student-login"
-        ) {
-          window.location.href = "/login";
+        if (isSessionExpired()) {
+          clearSession();
+          if (
+            !isRedirectingToLogin &&
+            window.location.pathname !== "/login" &&
+            window.location.pathname !== "/student-login"
+          ) {
+            isRedirectingToLogin = true;
+            emitToast("error", "Session expired (7 days). Please login again.", "Session Expired");
+            setTimeout(() => {
+              window.location.href = "/login";
+            }, 600);
+          }
         }
-        emitToast(
-          "error",
-          "Session expired. Please login again.",
-          "Session Expired",
-        );
         return Promise.reject(normalizeApiError(refreshError));
       } finally {
         isRefreshing = false;
@@ -529,28 +628,45 @@ api.interceptors.response.use(
     }
 
     const normalizedError = normalizeApiError(error);
-    if ([400, 401, 405, 409, 500].includes(normalizedError.status)) {
+    if ([400, 401, 403, 405, 409, 500].includes(normalizedError.status)) {
       const msg = String(normalizedError.message || "").toLowerCase();
       let statusTitle = "Notice";
       if (msg.includes("closed")) {
         statusTitle = "Month Closed";
       } else if (normalizedError.status === 401) {
-        statusTitle = "Session Expired";
+        statusTitle = isAuthRequest ? "Login Failed" : "Session Expired";
+      } else if (normalizedError.status === 403) {
+        statusTitle = "Permission Denied";
       } else if (normalizedError.status === 409) {
         statusTitle = "Conflict";
       } else if (normalizedError.status >= 500) {
         statusTitle = "Server Error";
       }
-      emitToast("error", normalizedError.message, statusTitle);
+      
+      // Don't spam repeated session expired toasts if it was an internal non-auth call
+      if (!isAuthRequest && normalizedError.status === 401) {
+        if (isSessionExpired()) {
+          emitToast("error", "Session expired (7 days). Please login again.", "Session Expired");
+        }
+      } else {
+        emitToast("error", normalizedError.message, statusTitle);
+      }
     }
 
+    // Only redirect to login if the 7-day session is genuinely expired or token is missing
     if (normalizedError.status === 401 && !isAuthRequest) {
-      clearSession();
-      if (
-        window.location.pathname !== "/login" &&
-        window.location.pathname !== "/student-login"
-      ) {
-        window.location.href = "/login";
+      if (isSessionExpired() || !getAccessToken()) {
+        clearSession();
+        if (
+          !isRedirectingToLogin &&
+          window.location.pathname !== "/login" &&
+          window.location.pathname !== "/student-login"
+        ) {
+          isRedirectingToLogin = true;
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 600);
+        }
       }
     }
 

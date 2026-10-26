@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { clearSession, getLoginType, getUser, logout } from '../Api/auth'
+import schoolLogo from '../assets/logo.png'
 
 // 1. Dashboard: 4 squares outline
 function DashboardIcon({ className = 'w-5 h-5' }) {
@@ -140,83 +141,140 @@ function ExaminationIcon({ className = 'w-5 h-5' }) {
   )
 }
 
-// Exact list of navigation tabs in exact order
-const NAV_ITEMS = [
+// 13. Timetable: Calendar with clock
+function TimetableIcon({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="12" cy="15" r="2.5" />
+      <polyline points="12 14 12 15 13.2 15" />
+    </svg>
+  )
+}
+
+// Feature-based Grouped Navigation Architecture
+const NAV_GROUPS = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/dashboard',
-    Icon: DashboardIcon,
+    id: 'overview',
+    title: 'OVERVIEW',
+    items: [
+      {
+        id: 'dashboard',
+        label: 'Dashboard',
+        path: '/dashboard',
+        Icon: DashboardIcon,
+      },
+    ],
   },
   {
-    id: 'student',
-    label: 'Student',
-    path: '/students',
-    Icon: StudentIcon,
+    id: 'academics',
+    title: 'ACADEMICS & ROUTINE',
+    items: [
+      {
+        id: 'timetable',
+        label: 'Timetable',
+        path: '/timetable',
+        Icon: TimetableIcon,
+      },
+      {
+        id: 'examinationManagement',
+        label: 'Examination',
+        path: '/examinations',
+        Icon: ExaminationIcon,
+      },
+      {
+        id: 'uploadMarks',
+        label: 'Marks Upload',
+        path: '/marks-upload',
+        Icon: MarksUploadIcon,
+      },
+      {
+        id: 'subject',
+        label: 'Subject & Syllabus',
+        path: '/subjects',
+        Icon: SubjectIcon,
+        adminOnly: true,
+      },
+    ],
   },
   {
-    id: 'idCards',
-    label: 'ID / Admit Cards',
-    path: '/id-cards',
-    Icon: IdCardIcon,
+    id: 'students',
+    title: 'STUDENTS & RECORDS',
+    items: [
+      {
+        id: 'student',
+        label: 'Student Directory',
+        path: '/students',
+        Icon: StudentIcon,
+      },
+      {
+        id: 'classPromotion',
+        label: 'Class Promotion',
+        path: '/class-promotion',
+        Icon: ClassPromotionIcon,
+        adminOnly: true,
+      },
+      {
+        id: 'uploadPhoto',
+        label: 'Upload Photos',
+        path: '/upload-photo',
+        Icon: UploadPhotoIcon,
+        adminOnly: true,
+      },
+    ],
   },
   {
-    id: 'documentManagement',
-    label: 'Document Management',
-    path: '/document-management',
-    Icon: DocumentManagementIcon,
-    adminOnly: true,
+    id: 'operations',
+    title: 'DAILY OPERATIONS',
+    items: [
+      {
+        id: 'attendance',
+        label: 'Attendance & GPS',
+        path: '/attendance',
+        Icon: AttendanceIcon,
+      },
+      {
+        id: 'teachers',
+        label: 'Faculty & Teachers',
+        path: '/teachers',
+        Icon: TeacherIcon,
+        adminOnly: true,
+      },
+    ],
   },
   {
-    id: 'classPromotion',
-    label: 'Class Promotion',
-    path: '/class-promotion',
-    Icon: ClassPromotionIcon,
-    adminOnly: true,
-  },
-  {
-    id: 'examinationManagement',
-    label: 'Examination',
-    path: '/examinations',
-    Icon: ExaminationIcon,
-  },
-  {
-    id: 'subject',
-    label: 'Subject',
-    path: '/subjects',
-    Icon: SubjectIcon,
-  },
-  {
-    id: 'teachers',
-    label: 'Teacher',
-    path: '/teachers',
-    Icon: TeacherIcon,
-  },
-  {
-    id: 'fees',
-    label: 'Fees',
-    path: '/fees',
-    Icon: FeesIcon,
-  },
-  {
-    id: 'attendance',
-    label: 'Attendance',
-    path: '/attendance',
-    Icon: AttendanceIcon,
-  },
-  {
-    id: 'uploadMarks',
-    label: 'Marks Upload',
-    path: '/marks-upload',
-    Icon: MarksUploadIcon,
-  },
-  {
-    id: 'uploadPhoto',
-    label: 'Upload Photo',
-    path: '/upload-photo',
-    Icon: UploadPhotoIcon,
+    id: 'finance',
+    title: 'ADMIN & FINANCE',
+    items: [
+      {
+        id: 'fees',
+        label: 'Fee Management',
+        path: '/fees',
+        Icon: FeesIcon,
+        adminOnly: true,
+      },
+      {
+        id: 'idCards',
+        label: 'ID / Admit Cards',
+        path: '/id-cards',
+        Icon: IdCardIcon,
+        adminOnly: true,
+      },
+      {
+        id: 'documentManagement',
+        label: 'Document Management',
+        path: '/document-management',
+        Icon: DocumentManagementIcon,
+        adminOnly: true,
+      },
+    ],
   },
 ]
+
+const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items)
 
 const viewPathMap = {
   dashboard: '/dashboard',
@@ -231,6 +289,7 @@ const viewPathMap = {
   attendance: '/attendance',
   uploadMarks: '/marks-upload',
   uploadPhoto: '/upload-photo',
+  timetable: '/timetable',
   result: '/result-view',
 }
 
@@ -277,13 +336,36 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
 
   const role = user?.role || 'admin'
   const isTeacher = role === 'teacher'
+  const teacherAllowedIds = ['dashboard', 'attendance', 'uploadMarks', 'examinationManagement', 'student', 'timetable']
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (isTeacher && (item.adminOnly || ['fees', 'classPromotion', 'uploadPhoto'].includes(item.id))) {
-      return false
+  const visibleGroups = NAV_GROUPS.map((group) => {
+    const visibleItems = group.items.filter((item) => {
+      if (isTeacher) {
+        return teacherAllowedIds.includes(item.id)
+      }
+      return true
+    })
+    return {
+      ...group,
+      items: visibleItems,
     }
-    return true
-  })
+  }).filter((group) => group.items.length > 0)
+
+  const displayName = isTeacher
+    ? user?.fullName || user?.name || user?.email?.split('@')[0] || 'Teacher'
+    : user?.name || user?.fullName || 'Principal Sharma'
+
+  const displayRole = isTeacher
+    ? (user?.assignedClass ? `Class Teacher (${user.assignedClass}-${user.assignedSection || 'A'})` : 'Faculty Member')
+    : 'Super Admin'
+
+  const userInitials = displayName
+    .trim()
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || (isTeacher ? 'TC' : 'PS')
 
   return (
     <>
@@ -295,119 +377,128 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
         />
       )}
 
-      {/* Original Dark Navy Blue Sidebar (#0f1e36) */}
+      {/* Enhanced High-Visibility Sidebar with Clear Contrast and Group Dividers */}
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-50 flex h-full ${
-          isCollapsed ? 'w-20' : 'w-64'
-        } shrink-0 flex-col justify-between bg-[#0f1e36] text-[#8ea4c4] transition-all duration-300 ease-out select-none lg:static ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed bottom-0 left-0 top-0 z-50 flex h-full ${isCollapsed ? 'w-20' : 'w-68'
+          } shrink-0 flex-col justify-between bg-[#0b172b] border-r border-[#1a2f4e] text-slate-200 shadow-2xl transition-all duration-300 ease-out select-none lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
-        <div className="flex h-full flex-col justify-between overflow-y-auto px-4 py-5 scrollbar-none">
-          
-          <div className="space-y-5">
+        <div className="flex h-full flex-col justify-between overflow-y-auto px-3.5 py-5 scrollbar-none">
+
+          <div className="space-y-6">
             {/* Top Brand Header */}
             <div
-              className={`flex items-center gap-3 cursor-pointer group ${
-                isCollapsed ? 'justify-center' : 'px-2'
-              }`}
+              className={`flex items-center gap-3 cursor-pointer group ${isCollapsed ? 'justify-center' : 'px-2'
+                }`}
               onClick={() => handleNavigate('dashboard', '/dashboard')}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/30 bg-[#162a4a] text-amber-300 shadow-sm transition-transform group-hover:scale-105">
-                <span className="text-lg">✦</span>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md border border-white/20 transition-transform group-hover:scale-105 overflow-hidden">
+                <img
+                  src={schoolLogo}
+                  alt="Star Public School"
+                  className="h-full w-full object-contain"
+                />
               </div>
               {!isCollapsed && (
                 <div className="min-w-0 flex-1 overflow-hidden">
-                  <h1 className="text-sm font-bold text-white leading-tight truncate">
+                  <h1 className="text-[15px] font-extrabold text-white leading-tight truncate tracking-tight">
                     Star Public School
                   </h1>
-                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#7d93b2] mt-0.5">
-                    ADMIN CONSOLE
-                  </p>
+                  <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-blue-900/50 border border-blue-500/30">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-blue-200">
+                      {isTeacher ? 'Teacher Portal' : 'Admin Console'}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Navigation Header */}
-            <div>
-              {!isCollapsed && (
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#556d8e] mb-2 px-3">
-                  NAVIGATION
-                </p>
-              )}
+            {/* Grouped Feature Navigation with High-Visibility Labels */}
+            <div className="space-y-4">
+              {visibleGroups.map((group, groupIdx) => (
+                <div key={group.id} className="space-y-1.5">
+                  {!isCollapsed ? (
+                    <div className="flex items-center gap-2 px-2.5 pt-2 pb-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400/80"></span>
+                      <p className="text-[11px] font-extrabold uppercase tracking-wider text-blue-200">
+                        {group.title}
+                      </p>
+                      <div className="h-px flex-1 bg-gradient-to-r from-blue-500/25 to-transparent"></div>
+                    </div>
+                  ) : groupIdx > 0 ? (
+                    <div className="my-2.5 border-t border-[#1d3559]" />
+                  ) : null}
 
-              {/* Exact 9 Tabs List */}
-              <div className="space-y-1">
-                {visibleNavItems.map((item) => {
-                  const isActive = currentActive === item.id || currentPath === item.path
-                  const { Icon } = item
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const isActive = currentActive === item.id || currentPath === item.path
+                      const { Icon } = item
 
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleNavigate(item.id, item.path)}
-                      className={`group flex w-full items-center rounded-xl text-xs font-semibold transition-all ${
-                        isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
-                      } ${
-                        isActive
-                          ? 'bg-[#dce6f5] text-[#0f1e36] font-bold shadow-sm'
-                          : 'text-[#8ea4c4] hover:bg-[#162a4a] hover:text-white'
-                      }`}
-                      title={item.label}
-                    >
-                      <div
-                        className={`shrink-0 transition-colors ${
-                          isActive ? 'text-[#0f1e36]' : 'text-[#7d93b2] group-hover:text-white'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5 stroke-[1.9]" />
-                      </div>
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleNavigate(item.id, item.path)}
+                          className={`group flex w-full items-center rounded-xl text-[13px] font-semibold transition-all duration-150 ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-2.5 gap-3'
+                            } ${isActive
+                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/40 font-bold'
+                              : 'text-slate-200 hover:bg-[#162a4a] hover:text-white'
+                            }`}
+                          title={item.label}
+                        >
+                          <div
+                            className={`shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-blue-300 group-hover:text-amber-300'
+                              }`}
+                          >
+                            <Icon className="w-5 h-5 stroke-[2]" />
+                          </div>
 
-                      {!isCollapsed && (
-                        <span className="truncate text-left text-[13px] tracking-tight">
-                          {item.label}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+                          {!isCollapsed && (
+                            <span className="truncate text-left tracking-tight">
+                              {item.label}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
 
           </div>
 
-          {/* Bottom Footer Section: Principal Sharma Profile & Controls */}
-          <div className="pt-4 border-t border-[#1e3455] space-y-3">
+          {/* Bottom Footer Section: Dynamic User Profile & Controls */}
+          <div className="pt-4 border-t border-[#1d3559] space-y-3">
             <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : 'px-2'}`}>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#0f1e36] font-extrabold text-xs shadow-xs">
-                PS
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-extrabold text-sm shadow-md">
+                {userInitials}
               </div>
               {!isCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white truncate leading-tight">
-                    Principal Sharma
+                  <p className="text-[13px] font-bold text-white truncate leading-tight">
+                    {displayName}
                   </p>
-                  <p className="text-[10px] text-[#7d93b2] truncate mt-0.5">
-                    Super Admin
+                  <p className="text-[11px] font-medium text-blue-300 truncate mt-0.5">
+                    {displayRole}
                   </p>
                 </div>
               )}
               {!isCollapsed && (
                 <button
                   onClick={handleLogout}
-                  className="p-1.5 text-[#7d93b2] hover:text-rose-400 transition-colors rounded-lg hover:bg-[#162a4a]"
+                  className="p-2 text-slate-300 hover:text-rose-400 transition-colors rounded-xl hover:bg-[#162a4a]"
                   title="Logout"
                 >
-                  <span className="material-symbols-outlined text-base leading-none">logout</span>
+                  <span className="material-symbols-outlined text-lg leading-none">logout</span>
                 </button>
               )}
             </div>
 
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`flex w-full items-center text-xs font-medium text-[#7d93b2] hover:text-white transition-colors ${
-                isCollapsed ? 'justify-center p-2' : 'px-2 py-1.5 gap-2'
-              }`}
+              className={`flex w-full items-center text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#162a4a] rounded-lg transition-colors ${isCollapsed ? 'justify-center p-2' : 'px-2.5 py-2 gap-2'
+                }`}
             >
               <span className="material-symbols-outlined text-sm">
                 {isCollapsed ? 'menu_open' : 'keyboard_double_arrow_left'}

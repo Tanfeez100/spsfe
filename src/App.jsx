@@ -205,13 +205,35 @@ function App() {
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route
             element={
-              <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <Layout />
               </ProtectedRoute>
             }
           >
             <Route path="/students/add" element={<AddStudentPage />} />
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
+            <Route path="/class-promotion" element={<Dashboard initialView="classPromotion" />} />
+            <Route path="/document-management" element={<Dashboard initialView="documentManagement" />} />
+            <Route path="/teachers" element={<Dashboard />} />
+            <Route path="/subjects" element={<Dashboard />} />
+            <Route path="/upload-photo" element={<Dashboard />} />
+          </Route>
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'accountant']}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/fees" element={<Dashboard />} />
+          </Route>
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/students/id-cards" element={<IdCardGeneratorPage />} />
             <Route path="/students/admit-cards" element={<IdCardGeneratorPage />} />
           </Route>
@@ -226,26 +248,14 @@ function App() {
             <Route path="/students" element={<Dashboard />} />
             <Route path="/id-cards" element={<Dashboard initialView="idCards" />} />
             <Route path="/leave-rejoin" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/subjects" element={<Dashboard />} />
-            <Route path="/teachers" element={<Dashboard />} />
             <Route path="/teacher-attendance" element={<Dashboard />} />
-            <Route path="/fees" element={<Dashboard />} />
             <Route path="/attendance" element={<Dashboard />} />
             <Route path="/marks-upload" element={<Dashboard />} />
-            <Route path="/upload-photo" element={<Dashboard />} />
             <Route path="/result-view" element={<Dashboard />} />
             <Route path="/examinations" element={<Dashboard initialView="examinationManagement" />} />
             <Route path="/examinations/:tab" element={<Dashboard initialView="examinationManagement" />} />
-          </Route>
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/class-promotion" element={<Dashboard initialView="classPromotion" />} />
-            <Route path="/document-management" element={<Dashboard initialView="documentManagement" />} />
+            <Route path="/timetable" element={<Dashboard initialView="timetable" />} />
+            <Route path="/timetable/:tab" element={<Dashboard initialView="timetable" />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,102 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStudents, deleteStudent, leaveStudent, rejoinStudent } from '../../Api/students'
-import { emitToast } from '../../Api/auth'
+import { emitToast, getUser } from '../../Api/auth'
 import { CLASS_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 import EditStudent from './EditStudent'
 
-// Mock fallback matching Canva screenshot when DB is loading or empty
-const SAMPLE_STUDENTS = [
-  {
-    ID: 's1',
-    Name: 'Aarav Patel',
-    Roll: 1001,
-    Class: '10',
-    Section: 'A',
-    Father: 'Rajesh Patel',
-    Mobile: '+91 98765 43210',
-    AdmissionNo: 'ADM-2026-081',
-    FeeStatus: 'Cleared',
-    Gender: 'Male',
-    Address: 'Plot 42, Civil Lines, Kanpur',
-  },
-  {
-    ID: 's2',
-    Name: 'Diya Sharma',
-    Roll: 1002,
-    Class: '10',
-    Section: 'A',
-    Father: 'Sunil Sharma',
-    Mobile: '+91 98112 33445',
-    AdmissionNo: 'ADM-2026-092',
-    FeeStatus: '₹3,200 Due',
-    Gender: 'Female',
-    Address: '12-B, Mall Road, Kanpur',
-  },
-  {
-    ID: 's3',
-    Name: 'Kabir Verma',
-    Roll: 1003,
-    Class: '10',
-    Section: 'B',
-    Father: 'Manoj Verma',
-    Mobile: '+91 99887 76655',
-    AdmissionNo: 'ADM-2026-105',
-    FeeStatus: 'Partial',
-    Gender: 'Male',
-    Address: '88, Swaroop Nagar, Kanpur',
-  },
-  {
-    ID: 's4',
-    Name: 'Anaya Mehta',
-    Roll: 1004,
-    Class: '9',
-    Section: 'A',
-    Father: 'Rohit Mehta',
-    Mobile: '+91 98220 45116',
-    AdmissionNo: 'ADM-2026-118',
-    FeeStatus: 'Cleared',
-    Gender: 'Female',
-    Address: '104, Sharda Nagar, Kanpur',
-  },
-  {
-    ID: 's5',
-    Name: 'Rohan Gupta',
-    Roll: 1005,
-    Class: '10',
-    Section: 'B',
-    Father: 'Alok Gupta',
-    Mobile: '+91 97110 55432',
-    AdmissionNo: 'ADM-2026-124',
-    FeeStatus: 'Cleared',
-    Gender: 'Male',
-    Address: '15, Govind Nagar, Kanpur',
-  },
-  {
-    ID: 's6',
-    Name: 'Sneha Singh',
-    Roll: 1006,
-    Class: '9',
-    Section: 'B',
-    Father: 'Vijay Singh',
-    Mobile: '+91 94500 12345',
-    AdmissionNo: 'ADM-2026-130',
-    FeeStatus: '₹2,500 Due',
-    Gender: 'Female',
-    Address: '56, Kakadeo, Kanpur',
-  },
-]
 
 function AllStudentDetails() {
   const navigate = useNavigate()
+  const currentUser = getUser()
+  const isTeacher = currentUser?.role === 'teacher'
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [count, setCount] = useState(0)
 
   // Filters
-  const [classFilter, setClassFilter] = useState('')
-  const [sectionFilter, setSectionFilter] = useState('')
+  const [classFilter, setClassFilter] = useState(currentUser?.assignedClass || '')
+  const [sectionFilter, setSectionFilter] = useState(currentUser?.assignedSection || '')
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -207,20 +128,15 @@ function AllStudentDetails() {
           : Array.isArray(response)
             ? response
             : []
-        if (studentsList.length > 0) {
-          setStudents(studentsList)
-          setCount(response.count || studentsList.length)
-        } else {
-          setStudents(SAMPLE_STUDENTS)
-          setCount(1245)
-        }
+        setStudents(studentsList)
+        setCount(response.count || studentsList.length)
       } else {
-        setStudents(SAMPLE_STUDENTS)
-        setCount(1245)
+        setStudents([])
+        setCount(0)
       }
     } catch {
-      setStudents(SAMPLE_STUDENTS)
-      setCount(1245)
+      setStudents([])
+      setCount(0)
     } finally {
       setLoading(false)
     }
@@ -232,7 +148,7 @@ function AllStudentDetails() {
 
   // Dynamic KPI Stats
   const stats = useMemo(() => {
-    const total = count || students.length || 1245
+    const total = count || students.length || 0
     let boys = 0
     let girls = 0
     students.forEach((s) => {
@@ -240,23 +156,21 @@ function AllStudentDetails() {
       if (g.startsWith('f')) girls += 1
       else boys += 1
     })
-    if (boys === 0 && girls === 0) {
-      boys = 640
-      girls = 605
-    }
+    const boysRatio = total > 0 ? ((boys / total) * 100).toFixed(1) + '%' : '0%'
+    const girlsRatio = total > 0 ? ((girls / total) * 100).toFixed(1) + '%' : '0%'
     return {
       total: total.toLocaleString(),
-      newAdmissions: 142,
-      boys: boys,
-      boysRatio: '51.4%',
-      girls: girls,
-      girlsRatio: '48.6%',
+      newAdmissions: total,
+      boys,
+      boysRatio,
+      girls,
+      girlsRatio,
     }
   }, [students, count])
 
   // Filter students
   const filteredStudents = useMemo(() => {
-    const listToFilter = students.length > 0 ? students : SAMPLE_STUDENTS
+    const listToFilter = students
     return listToFilter.filter((student) => {
       const resolvedClass = getStudentClass(student)
       const resolvedSection = getStudentSection(student)
@@ -420,13 +334,15 @@ function AllStudentDetails() {
 
         {/* Action Buttons Row matching Canva */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={() => navigate('/students/add')}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#132c4e] px-4 py-2.5 text-xs font-bold text-white shadow-2xs hover:bg-[#0e223e] transition-colors"
-          >
-            <span className="material-symbols-outlined text-base">add</span>
-            <span>New admission</span>
-          </button>
+          {!isTeacher && (
+            <button
+              onClick={() => navigate('/students/add')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#132c4e] px-4 py-2.5 text-xs font-bold text-white shadow-2xs hover:bg-[#0e223e] transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">add</span>
+              <span>New admission</span>
+            </button>
+          )}
 
           <button
             onClick={handleExportCSV}
@@ -749,26 +665,30 @@ function AllStudentDetails() {
                             <span>View</span>
                           </button>
 
-                          <button
-                            onClick={() => {
-                              setSelectedStudent(student)
-                              setIsEditModalOpen(true)
-                            }}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-amber-600 transition-colors"
-                            title="Edit Record"
-                          >
-                            <span className="material-symbols-outlined text-sm">edit</span>
-                            <span>Edit</span>
-                          </button>
+                          {!isTeacher && (
+                            <button
+                              onClick={() => {
+                                setSelectedStudent(student)
+                                setIsEditModalOpen(true)
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-amber-600 transition-colors"
+                              title="Edit Record"
+                            >
+                              <span className="material-symbols-outlined text-sm">edit</span>
+                              <span>Edit</span>
+                            </button>
+                          )}
 
-                          <button
-                            onClick={() => navigate('/fees')}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-emerald-700 transition-colors"
-                            title="Collect Fee"
-                          >
-                            <span className="material-symbols-outlined text-sm">payments</span>
-                            <span>Fee</span>
-                          </button>
+                          {!isTeacher && (
+                            <button
+                              onClick={() => navigate('/fees')}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-emerald-700 transition-colors"
+                              title="Collect Fee"
+                            >
+                              <span className="material-symbols-outlined text-sm">payments</span>
+                              <span>Fee</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

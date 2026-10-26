@@ -17,6 +17,9 @@ const ALL_SCHOOL_CLASSES = [
   'Class 3',
   'Class 4',
   'Class 5',
+  'Class 6',
+  'Class 7',
+  'Class 8',
 ]
 
 const EXAM_TYPES = [

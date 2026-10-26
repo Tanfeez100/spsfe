@@ -74,13 +74,6 @@ export default function ExamOverviewTab({ onNavigateTab, onSelectExam }) {
             Timetable
           </button>
           <button
-            onClick={() => onNavigateTab('marks-entry')}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-          >
-            <span className="material-symbols-outlined text-sm">edit_note</span>
-            Enter Marks
-          </button>
-          <button
             onClick={() => onNavigateTab('results')}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
           >
@@ -217,11 +210,11 @@ export default function ExamOverviewTab({ onNavigateTab, onSelectExam }) {
                       <button
                         onClick={() => {
                           if (onSelectExam) onSelectExam(exam)
-                          onNavigateTab('marks-entry')
+                          onNavigateTab('results')
                         }}
                         className="rounded-lg bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
                       >
-                        Marks Entry
+                        Results
                       </button>
                     </div>
                   </div>

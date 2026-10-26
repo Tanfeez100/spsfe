@@ -14,6 +14,7 @@ function StudentLogin() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const updateForm = (event) => {
     const { name, value } = event.target
@@ -126,15 +127,28 @@ function StudentLogin() {
 
           <label className="block">
             <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">Password</span>
-            <input
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={updateForm}
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-cyan-400"
-              placeholder="Password"
-              required
-            />
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={updateForm}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 pl-3 pr-10 py-2.5 text-white outline-none focus:border-cyan-400"
+                placeholder="Password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-slate-400 hover:text-slate-200 transition-colors focus:outline-none"
+                title={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <span className="material-symbols-outlined text-[20px] select-none">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
           </label>
 
           <button

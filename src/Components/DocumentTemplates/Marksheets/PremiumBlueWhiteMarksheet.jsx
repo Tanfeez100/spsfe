@@ -11,15 +11,15 @@ export default function PremiumBlueWhiteMarksheet({
   id,
 }) {
   const data = { ...SAMPLE_MARKS_DATA, ...marksData }
-  const studentName = student.Name || student.name || 'Aarav Kumar Sharma'
-  const fatherName = student.father_name || student.FatherName || student.fatherName || 'Rajesh Sharma'
-  const motherName = student.mother_name || student.MotherName || student.motherName || 'Sunita Sharma'
-  const rollNo = (student.Roll || student.roll_no || student.rollNo || '12').toString()
-  const rawClass = (student.Class || student.class || '10').toString()
-  const studentSection = (student.Section || student.section || 'A').toString()
-  const admissionNo = student.admission_number || student.admissionNo || student.id || 'SPS-2024-0012'
-  const dob = student.date_of_birth || student.dob || '15/08/2011'
-  const bloodGroup = student.blood_group || 'B+'
+  const studentName = student.Name || student.name || '—'
+  const fatherName = student.father_name || student.FatherName || student.fatherName || '—'
+  const motherName = student.mother_name || student.MotherName || student.motherName || '—'
+  const rollNo = (student.Roll || student.roll_no || student.rollNo || '—').toString()
+  const rawClass = (student.Class || student.class || '—').toString()
+  const studentSection = (student.Section || student.section || '—').toString()
+  const admissionNo = student.admission_number || student.admissionNo || student.id || '—'
+  const dob = student.date_of_birth || student.dob || '—'
+  const bloodGroup = student.blood_group || '—'
 
   const schoolName = customization.schoolName || 'STAR PUBLIC SCHOOL'
   const session = customization.session || data.session || '2026-2027'

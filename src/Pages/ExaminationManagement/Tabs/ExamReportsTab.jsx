@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { getReportsApi } from '../../../Api/examinations'
 import { emitToast } from '../../../Api/auth'
 
-const ALL_CLASSES = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Nursery', 'LKG', 'UKG']
+const ALL_CLASSES = ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8']
 const REPORT_TYPES = [
   { value: 'class_summary', label: '1. Class-wise Result Summary' },
   { value: 'marks_register', label: '2. Student-wise Marks Register' },

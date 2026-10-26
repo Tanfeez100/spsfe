@@ -385,7 +385,6 @@ function Home() {
                 <option>Nursery to UKG</option>
                 <option>Class 1 to 5</option>
                 <option>Class 6 to 8</option>
-                <option>Class 9 and above</option>
               </select>
               <input className="gps-site-input" placeholder="Phone No.*" inputMode="tel" />
               <button type="button" className="gps-site-button w-full justify-center">
