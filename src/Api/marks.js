@@ -71,6 +71,34 @@ export const getStudentResultPublic = async ({ classValue, roll, terminal, secti
   }
 }
 
+// Get cached PDF URL if available
+export const getCachedResultPdfApi = async ({ session, className, section, roll, terminal }) => {
+  try {
+    const params = buildQueryParams({
+      session,
+      class: className,
+      section,
+      roll,
+      terminal: normalizeTerminal(terminal),
+    })
+    const response = await publicApi.get('/api/marks/result/cached-pdf', { params })
+    return response.data
+  } catch {
+    return { success: false, exists: false }
+  }
+}
+
+// Upload and cache result PDF in Cloudinary/Backend
+export const uploadCachedResultPdfApi = async (data) => {
+  try {
+    const response = await publicApi.post('/api/marks/result/cached-pdf', data)
+    return response.data
+  } catch (error) {
+    console.warn('Failed to upload cached PDF in background:', error)
+    return null
+  }
+}
+
 // Publish results for a class
 export const publishResults = async (classValue, section, terminal) => {
   try {
@@ -85,5 +113,12 @@ export const publishResults = async (classValue, section, terminal) => {
   }
 }
 
-export default { submitMarks, getMarks, getStudentResultPublic, publishResults }
+export default {
+  submitMarks,
+  getMarks,
+  getStudentResultPublic,
+  publishResults,
+  getCachedResultPdfApi,
+  uploadCachedResultPdfApi,
+}
 

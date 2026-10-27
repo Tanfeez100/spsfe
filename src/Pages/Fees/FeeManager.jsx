@@ -94,6 +94,7 @@ function FeeManager() {
     { id: 'structure', label: 'Fee Structure', icon: 'tune' },
     { id: 'list', label: 'All Records', icon: 'table_view' },
     { id: 'ledger', label: 'Student Ledger', icon: 'menu_book' },
+    { id: 'migration', label: 'Fee Migration', icon: 'drive_folder_upload' },
   ]
 
   return (
@@ -132,6 +133,20 @@ function FeeManager() {
           >
             <span className="material-symbols-outlined text-[18px]">receipt_long</span>
             Generate Bills
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('migration')}
+            className={`flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-bold shadow-2xs transition cursor-pointer ${
+              activeTab === 'migration'
+                ? 'bg-amber-600 text-white'
+                : 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+            }`}
+            title="Setup opening balance migration from Excel for first time setup"
+          >
+            <span className="material-symbols-outlined text-[18px]">drive_folder_upload</span>
+            Fee Migration Setup
           </button>
         </div>
       </div>
@@ -552,6 +567,7 @@ function FeeManager() {
           }}
         />
       )}
+      {activeTab === 'migration' && <OpeningBalanceMigration />}
 
 
       {/* ========================================================

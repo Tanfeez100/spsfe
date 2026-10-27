@@ -60,19 +60,44 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
     })
   }
 
+  const studentUsesTransport = Boolean(
+    bill.uses_transport ||
+    bill.student?.uses_transport ||
+    String(bill.uses_transport || '').toLowerCase() === 'true' ||
+    String(bill.student?.uses_transport || '').toLowerCase() === 'true'
+  )
+  const studentTransportCharge = Number(bill.transport_charge || bill.student?.transport_charge || bill.transport_fee || 0)
+
+  let effectiveTransport = itemsMap.transport
+  if ((effectiveTransport === undefined || effectiveTransport === '' || Number(effectiveTransport) === 0) && studentUsesTransport && studentTransportCharge > 0) {
+    effectiveTransport = studentTransportCharge
+  }
+
   const tuitionFee = itemsMap.tuition ?? (bill.tuition !== undefined && bill.tuition !== '' ? bill.tuition : '')
   const examFee = itemsMap.exam ?? (bill.exam !== undefined && bill.exam !== '' ? bill.exam : '')
   const annualFee = itemsMap.annual ?? (bill.annual !== undefined && bill.annual !== '' ? bill.annual : '')
   const computerFee = itemsMap.computer ?? (bill.computer !== undefined && bill.computer !== '' ? bill.computer : '')
-  const transportFee = itemsMap.transport ?? (bill.transport !== undefined && bill.transport !== '' ? bill.transport : '')
+  const transportFee = effectiveTransport ?? (bill.transport !== undefined && bill.transport !== '' ? bill.transport : '')
   const previousDue = itemsMap.due ?? (bill.previous_due !== undefined && bill.previous_due !== '' ? bill.previous_due : (bill.due !== undefined && bill.due !== '' ? bill.due : ''))
 
   const summary = bill.summary || {}
-  const calculatedTotal = Array.isArray(bill.items)
-    ? bill.items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
+  const itemsSum = Array.isArray(bill.items)
+    ? bill.items.reduce((s, it) => {
+        const n = (it.fee_name || it.name || '').toLowerCase()
+        let itAmt = Number(it.amount) || 0
+        if (n.includes('transport') && itAmt === 0 && studentUsesTransport && studentTransportCharge > 0) {
+          itAmt = studentTransportCharge
+        }
+        return s + itAmt
+      }, 0)
+    : 0
+
+  const calculatedTotal = itemsSum > 0
+    ? itemsSum
     : (Number(bill.total) || Number(bill.amount) || Number(bill.total_fee) || 0)
 
-  const totalAmount = Number(summary.total_amount ?? (calculatedTotal || (bill.total !== undefined ? bill.total : 0)))
+  const rawSummaryTotal = Number(summary.total_amount ?? (bill.total !== undefined ? bill.total : 0))
+  const totalAmount = Math.max(rawSummaryTotal, calculatedTotal)
 
   // Payment details for receipt
   const paymentsList = Array.isArray(bill.payments) ? bill.payments : []
@@ -199,10 +224,10 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
       {/* Dotted Divider 1 */}
       <hr className="receipt-dotted-rule" />
 
-      {/* 2. Original Student Details (Exactly our 6 fields with aligned colons) */}
-      <div className="grid grid-cols-2 gap-x-2 text-[10.5px] leading-tight text-black">
-        {/* Left Column */}
-        <div className="space-y-0.5">
+      {/* 2. Original Student Details (Col 1 = Bill No, Student, Father | Col 2 = Date, Class, Roll) */}
+      <div className="grid grid-cols-[1.18fr_0.82fr] gap-x-2 text-[10.5px] leading-tight text-black">
+        {/* Left Column: Bill No, Student, Father */}
+        <div className="space-y-0.5 min-w-0">
           <div className="flex">
             <span className="w-16 font-bold shrink-0">{!isExplicitBill && isPaid ? 'Receipt No' : 'Bill No'}</span>
             <span className="w-2.5 font-bold text-center">:</span>
@@ -214,29 +239,29 @@ const BillSlipCard = forwardRef(function BillSlipCard({ bill = {}, isPrint = fal
             <span className="font-semibold truncate">{studentName}</span>
           </div>
           <div className="flex">
-            <span className="w-16 font-bold shrink-0">Class</span>
+            <span className="w-16 font-bold shrink-0">Father</span>
+            <span className="w-2.5 font-bold text-center">:</span>
+            <span className="font-semibold truncate">{fatherName}</span>
+          </div>
+        </div>
+
+        {/* Right Column: Date, Class, Roll */}
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex">
+            <span className="w-12 font-bold shrink-0">Date</span>
+            <span className="w-2.5 font-bold text-center">:</span>
+            <span className="font-semibold truncate">{billDate}</span>
+          </div>
+          <div className="flex">
+            <span className="w-12 font-bold shrink-0">Class</span>
             <span className="w-2.5 font-bold text-center">:</span>
             <span className="font-semibold truncate">
               {className}
               {sectionName ? ` (${sectionName})` : ''}
             </span>
           </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-0.5">
           <div className="flex">
-            <span className="w-14 font-bold shrink-0">Date</span>
-            <span className="w-2.5 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{billDate}</span>
-          </div>
-          <div className="flex">
-            <span className="w-14 font-bold shrink-0">Father</span>
-            <span className="w-2.5 font-bold text-center">:</span>
-            <span className="font-semibold truncate">{fatherName}</span>
-          </div>
-          <div className="flex">
-            <span className="w-14 font-bold shrink-0">Roll</span>
+            <span className="w-12 font-bold shrink-0">Roll</span>
             <span className="w-2.5 font-bold text-center">:</span>
             <span className="font-semibold truncate">{rollNo}</span>
           </div>

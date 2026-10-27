@@ -304,6 +304,28 @@ export const downloadInvoicePDF = async (billId) =>
     'Failed to download invoice PDF'
   )
 
+export const getCachedBillPdfApi = async (billId) => {
+  try {
+    const res = await api.get(`/api/fees/cached-pdf/${encodeURIComponent(billId)}`)
+    return res.data
+  } catch {
+    return null
+  }
+}
+
+export const uploadCachedBillPdfApi = async (billId, { pdfBase64, filename }) => {
+  try {
+    const res = await api.post(`/api/fees/cached-pdf/${encodeURIComponent(billId)}`, {
+      pdfBase64,
+      filename,
+    })
+    return res.data
+  } catch (err) {
+    console.warn('Background bill PDF upload to cache server failed:', err)
+    return null
+  }
+}
+
 export default {
   createFeeStructure,
   getFeeStructures,
@@ -326,5 +348,8 @@ export default {
   generateBillsForAllClasses,
   downloadBillsData,
   migrateOpeningBalance,
+  getCachedBillPdfApi,
+  uploadCachedBillPdfApi,
 }
+
 

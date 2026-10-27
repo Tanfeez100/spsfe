@@ -95,7 +95,7 @@ function OpeningBalanceMigration() {
 
   const user = getUser()
   const loginType = getLoginType()
-  const isAdmin = loginType === 'all' && user?.role === 'admin'
+  const isAdmin = user?.role !== 'teacher' && user?.role !== 'student'
 
   useEffect(() => {
     try {
@@ -354,6 +354,90 @@ function OpeningBalanceMigration() {
       setParseError(error?.message || 'Failed to parse uploaded file. Please upload a valid Excel file.')
     } finally {
       event.target.value = ''
+    }
+  }
+
+  const handleDownloadSampleExcel = () => {
+    try {
+      const sampleData = [
+        { class: '1', section: 'A', roll_no: 1, student_name: 'Rahul Kumar', pending_due: 1200, advance: 0, current_month_total: 0 },
+        { class: '1', section: 'A', roll_no: 2, student_name: 'Pooja Sharma', pending_due: 0, advance: 500, current_month_total: 0 },
+        { class: '1', section: 'B', roll_no: 1, student_name: 'Amit Patel', pending_due: 850, advance: 0, current_month_total: 0 },
+        { class: '2', section: 'A', roll_no: 1, student_name: 'Neha Singh', pending_due: 0, advance: 0, current_month_total: 0 },
+        { class: '2', section: 'A', roll_no: 2, student_name: 'Vikas Yadav', pending_due: 1500, advance: 0, current_month_total: 0 },
+        { class: '3', section: 'A', roll_no: 1, student_name: 'Anjali Verma', pending_due: 600, advance: 0, current_month_total: 0 },
+      ]
+
+      const ws = XLSX.utils.json_to_sheet(sampleData)
+      ws['!cols'] = [
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 22 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 22 },
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Sample_Fee_Migration')
+      XLSX.writeFile(wb, 'sample_fee_opening_balance_template.xlsx')
+      emitToast('success', 'Sample Excel template downloaded successfully!', 'Template Ready')
+    } catch (err) {
+      console.error('Failed to generate sample Excel:', err)
+      const link = document.createElement('a')
+      link.href = '/sample_fee_opening_balance.xlsx'
+      link.download = 'sample_fee_opening_balance.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
+
+  const handleDownloadActiveStudentsTemplate = () => {
+    if (!students || students.length === 0) {
+      emitToast('warning', 'No active students found in the database.', 'Warning')
+      return
+    }
+
+    try {
+      const sortedStudents = [...students].sort((a, b) => {
+        const classCmp = String(a.class || '').localeCompare(String(b.class || ''), undefined, { numeric: true })
+        if (classCmp !== 0) return classCmp
+        const secCmp = String(a.section || '').localeCompare(String(b.section || ''))
+        if (secCmp !== 0) return secCmp
+        return Number(a.roll_no || 0) - Number(b.roll_no || 0)
+      })
+
+      const rosterData = sortedStudents.map((s) => ({
+        class: s.class || '',
+        section: s.section || '',
+        roll_no: s.roll_no || '',
+        student_name: s.name || '',
+        pending_due: 0,
+        advance: 0,
+        current_month_total: 0,
+      }))
+
+      const ws = XLSX.utils.json_to_sheet(rosterData)
+      ws['!cols'] = [
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 25 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 22 },
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Active_Students_Balances')
+      const fileName = `active_students_fee_template_${migrationMonth || 'current'}.xlsx`
+      XLSX.writeFile(wb, fileName)
+      emitToast('success', `Exported template with ${rosterData.length} students from database!`, 'Roster Exported')
+    } catch (err) {
+      console.error('Failed to export students template:', err)
+      emitToast('error', 'Failed to generate pre-filled template.', 'Error')
     }
   }
 
@@ -621,6 +705,44 @@ function OpeningBalanceMigration() {
                 {column}
               </span>
             ))}
+          </div>
+
+          {/* Download Sample Templates Card */}
+          <div className="mb-4 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-blue-600 dark:text-blue-400">table_chart</span>
+                  Download Sample Excel Templates
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Download a sample template with dummy examples, or export all current active students ready to fill dues.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleDownloadSampleExcel}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs transition cursor-pointer"
+                  title="Download blank sample Excel template with realistic dummy examples"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">download</span>
+                  Sample Excel (.xlsx)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadActiveStudentsTemplate}
+                  disabled={loadingStudents || students.length === 0}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#132c4e] hover:bg-[#0f1e36] text-white text-xs font-bold shadow-2xs transition disabled:opacity-50 cursor-pointer"
+                  title="Export active students from database pre-filled with class, section, roll number and name"
+                >
+                  <span className="material-symbols-outlined text-[16px]">group</span>
+                  Pre-filled Students ({students.length})
+                </button>
+              </div>
+            </div>
           </div>
 
           <input

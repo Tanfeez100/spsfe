@@ -722,6 +722,7 @@ function Bills() {
             include_exam_fee: feeHeads.annualExam,
             include_annual_fee: feeHeads.tuition,
             include_computer_fee: feeHeads.computerLab,
+            include_transport_fee: feeHeads.transport,
           })
           totalSuccessCount += (response?.successCount || 0)
         } catch (clsErr) {

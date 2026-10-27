@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import jsPDF from 'jspdf'
-import { getStudentResultPublic } from '../../Api/marks'
+import { getStudentResultPublic, uploadCachedResultPdfApi } from '../../Api/marks'
 import schoolLogo from '../../assets/logo.png'
 import stampcert from '../../assets/stampcert.png'
 import SEO from '../../Components/SEO/SEO'
@@ -28,6 +28,19 @@ const normalizeTerminalLabel = (value) => {
   const normalized = String(value || '').trim()
   if (!normalized) return ''
   return TERMINAL_ALIAS_MAP[normalized.toLowerCase()] || normalized
+}
+
+const formatTerminalExamTitle = (terminal) => {
+  const norm = String(terminal || '').trim().toLowerCase()
+  if (norm === 'first') return 'FIRST TERMINAL EXAMINATION'
+  if (norm === 'second') return 'SECOND TERMINAL EXAMINATION'
+  if (norm === 'third') return 'THIRD TERMINAL EXAMINATION'
+  if (norm === 'annual' || norm === 'final') return 'ANNUAL EXAMINATION'
+
+  if (norm.includes('examination')) {
+    return String(terminal).toUpperCase()
+  }
+  return `${String(terminal).toUpperCase()} EXAMINATION`
 }
 
 const getCumulativeTerminals = (terminalValue) => {
@@ -479,6 +492,28 @@ function Results() {
     `${new Date().getFullYear()}-${String(new Date().getFullYear() + 1).slice(-2)}`
   )
 
+  const isAnnualExam = useMemo(() => {
+    const t = String(data?.terminal || params.terminal || '').trim().toLowerCase()
+    return t === 'annual' || t === 'final'
+  }, [data?.terminal, params.terminal])
+
+  const sessionDisplay = useMemo(() => {
+    const raw = String(sessionLabel || '').trim()
+    if (isAnnualExam) {
+      return {
+        label: 'Academic Session',
+        text: raw,
+      }
+    }
+    // Single calendar year for exams conducted within one year (e.g. 2026)
+    const match = raw.match(/\b(20\d\d)\b/)
+    const singleYear = match ? match[1] : (raw.split(/[-/]/)[0] || raw)
+    return {
+      label: 'Academic Year',
+      text: singleYear,
+    }
+  }, [sessionLabel, isAnnualExam])
+
   const downloadFileName = useMemo(() => {
     const safeName = String(student?.name || 'student')
       .trim()
@@ -567,94 +602,97 @@ function Results() {
       throw new Error('Result card not found.')
     }
 
-    const { default: html2canvas } = await import('html2canvas')
-    const exportCaptureWidth = 920
-    const initialCaptureWidth = exportCaptureWidth
-    const exportHost = document.createElement('div')
-    exportHost.className = 'pdf-export-host'
-    exportHost.style.width = `${initialCaptureWidth}px`
-    exportHost.style.minWidth = `${initialCaptureWidth}px`
+    // Use modern html2canvas-pro for full Tailwind CSS v4 support, crisp font antialiasing, and exact color fidelity
+    const { default: html2canvas } = await import('html2canvas-pro')
 
-    const clonedCard = sourceCard.cloneNode(true)
-    clonedCard.classList.add('pdf-export-mode', 'pdf-capture-mode')
-    clonedCard.style.width = `${initialCaptureWidth}px`
-    clonedCard.style.minWidth = `${initialCaptureWidth}px`
-    clonedCard.style.maxWidth = `${initialCaptureWidth}px`
-    clonedCard.style.margin = '0'
-    exportHost.appendChild(clonedCard)
-    document.body.appendChild(exportHost)
+    await waitForCaptureAssets(sourceCard)
+
+    // Check if on-screen card is already at full desktop dimensions (>= 850px)
+    const isDesktopView = sourceCard.offsetWidth >= 850
+
+    let targetElement = sourceCard
+    let cleanup = null
+
+    if (!isDesktopView) {
+      // For mobile/tablet, clone into an offscreen desktop container to preserve exact 920px proportions
+      const container = document.createElement('div')
+      container.style.position = 'fixed'
+      container.style.top = '0'
+      container.style.left = '-10000px'
+      container.style.width = '920px'
+      container.style.minWidth = '920px'
+      container.style.maxWidth = '920px'
+      container.style.zIndex = '-9999'
+      container.style.backgroundColor = '#ffffff'
+      container.style.overflow = 'visible'
+
+      const clone = sourceCard.cloneNode(true)
+      clone.style.width = '920px'
+      clone.style.minWidth = '920px'
+      clone.style.maxWidth = '920px'
+      clone.style.margin = '0'
+
+      const origImgs = sourceCard.querySelectorAll('img')
+      const cloneImgs = clone.querySelectorAll('img')
+      origImgs.forEach((orig, idx) => {
+        if (cloneImgs[idx]) {
+          cloneImgs[idx].src = orig.currentSrc || orig.src
+        }
+      })
+
+      container.appendChild(clone)
+      document.body.appendChild(container)
+      await waitForCaptureAssets(clone)
+
+      targetElement = clone
+      cleanup = () => {
+        if (document.body.contains(container)) {
+          document.body.removeChild(container)
+        }
+      }
+    }
 
     try {
-      await waitForCaptureAssets(clonedCard)
+      const captureWidth = targetElement.offsetWidth || 920
+      const captureHeight = targetElement.offsetHeight || targetElement.scrollHeight
 
-      const measuredRect = clonedCard.getBoundingClientRect()
-      const captureWidth = Math.max(
-        Math.ceil(measuredRect.width || 0),
-        Math.ceil(clonedCard.scrollWidth || 0),
-        Math.ceil(clonedCard.offsetWidth || 0),
-        1
-      )
-      const captureHeight = Math.max(
-        Math.ceil(clonedCard.scrollHeight || 0),
-        Math.ceil(clonedCard.offsetHeight || 0),
-        Math.ceil(measuredRect.height || 0),
-        1
-      )
-      exportHost.style.width = `${captureWidth}px`
-      exportHost.style.minWidth = `${captureWidth}px`
-      exportHost.style.height = `${captureHeight}px`
-
-      const captureScale = 4
-      const captureViewportWidth = Math.max(
-        Math.round(window.innerWidth || 0),
-        Math.round(document.documentElement?.clientWidth || 0),
-        captureWidth,
-        1
-      )
-      const captureViewportHeight = Math.max(
-        Math.round(window.innerHeight || 0),
-        captureHeight,
-        1
-      )
-      const canvas = await html2canvas(clonedCard, {
-        scale: captureScale,
+      const canvas = await html2canvas(targetElement, {
+        scale: 3, // Crisp 300 DPI print quality
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
         width: captureWidth,
         height: captureHeight,
-        windowWidth: captureViewportWidth,
-        windowHeight: captureViewportHeight,
-        scrollX: 0,
-        scrollY: 0,
+        windowWidth: 1200, // Enforce desktop viewport so Tailwind 'sm:' media queries are always applied
       })
 
-      if (!canvas.width || !canvas.height) {
+      if (!canvas || !canvas.width || !canvas.height) {
         throw new Error('Unable to capture result card.')
       }
 
       return canvas
     } finally {
-      document.body.removeChild(exportHost)
+      if (cleanup) cleanup()
     }
   }
 
   const createHighQualityPdfBlob = async () => {
     const canvas = await createResultCardCanvas()
+    const imgData = canvas.toDataURL('image/png', 1.0)
 
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',
       format: 'a4',
-      compress: false,
+      compress: true,
     })
 
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
-    const renderSidePadding = 10
-    const renderTopPadding = 10
-    const renderBottomPadding = 10
+    const renderSidePadding = 12
+    const renderTopPadding = 12
+    const renderBottomPadding = 12
     const renderWidthLimit = pageWidth - (renderSidePadding * 2)
     const renderHeightLimit = pageHeight - renderTopPadding - renderBottomPadding
     const fitScale = Math.min(renderWidthLimit / canvas.width, renderHeightLimit / canvas.height)
@@ -663,7 +701,7 @@ function Results() {
     const renderX = (pageWidth - renderWidth) / 2
     const renderY = (pageHeight - renderHeight) / 2
 
-    doc.addImage(canvas, 'PNG', renderX, renderY, renderWidth, renderHeight, undefined, 'SLOW')
+    doc.addImage(imgData, 'PNG', renderX, renderY, renderWidth, renderHeight, undefined, 'FAST')
 
     return doc.output('blob')
   }
@@ -701,11 +739,57 @@ function Results() {
   const handleDownloadPdf = async () => {
     if (!data || pdfBusy) return
 
+    // ⚡ 1. Check if we already have a cached PDF from Cloudinary / Storage
+    const cachedUrl = data?.cached_pdf_url
+    if (cachedUrl) {
+      try {
+        fireToast('info', 'Fast Download', 'Downloading pre-cached PDF from CDN...')
+        let response = await fetch(cachedUrl)
+        if (!response.ok && data?.cached_pdf_local) {
+          const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+          const serverBase = apiBase.replace(/\/api\/?$/, '')
+          response = await fetch(`${serverBase}${data.cached_pdf_local}`)
+        }
+        if (response.ok) {
+          const blob = await response.blob()
+          triggerBlobDownload(blob, `${downloadFileName}.pdf`)
+          fireToast('success', 'Download', 'Instant PDF downloaded.')
+          return
+        }
+      } catch (err) {
+        console.warn('Direct cached PDF fetch failed, falling back to local render:', err)
+      }
+    }
+
+    // ⚡ 2. First-time download: Render crisp 300 DPI PDF
     setPdfBusy(true)
     try {
       const pdfBlob = await createHighQualityPdfBlob()
       triggerBlobDownload(pdfBlob, `${downloadFileName}.pdf`)
       fireToast('success', 'Download', 'High-quality PDF downloaded.')
+
+      // ⚡ 3. Background Caching: Upload to Cloudinary for all subsequent downloads
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        try {
+          const base64data = reader.result
+          const uploadRes = await uploadCachedResultPdfApi({
+            session: sessionDisplay.text || params.session || '2026-27',
+            className: student?.class || params.classValue,
+            section: student?.section || params.section || 'A',
+            roll: student?.roll_no || params.roll,
+            terminal: data?.terminal || params.terminal,
+            student_id: student?.id,
+            pdfBase64: base64data,
+          })
+          if (uploadRes?.data?.url) {
+            data.cached_pdf_url = uploadRes.data.url
+          }
+        } catch (uploadErr) {
+          console.warn('Background PDF cache upload skipped:', uploadErr)
+        }
+      }
+      reader.readAsDataURL(pdfBlob)
     } catch (err) {
       console.error('PDF download failed:', err)
       const message = err?.message ? `Unable to download PDF. ${err.message}` : 'Unable to download PDF.'
@@ -844,7 +928,7 @@ function Results() {
                         <div
                           className="result-logo-ring flex h-[92px] w-[92px] items-center justify-center rounded-full p-1.5 sm:h-[132px] sm:w-[132px]"
                         >
-                          <img src={schoolLogo} alt="School logo" loading="lazy" decoding="async" className="h-full w-full rounded-full bg-white object-contain p-1" />
+                          <img src={schoolLogo} alt="School logo" loading="eager" decoding="sync" className="h-full w-full rounded-full bg-white object-contain p-1" />
                         </div>
                       </div>
 
@@ -858,14 +942,24 @@ function Results() {
                         <p className="mx-auto mt-2 max-w-[660px] text-[10px] font-semibold text-[#061b66] sm:mt-2.5 sm:text-[14px]">
                           {SCHOOL_ADDRESS}
                         </p>
-                        <div className="mt-4 space-y-1">
-                          <p className="text-[14px] font-black uppercase tracking-[0.08em] text-[#061b66] sm:text-[25px]">
-                            {data.terminal} Examination Result
+                        <div className="mt-2.5 flex flex-col items-center justify-center space-y-1">
+                          <p className="text-[12px] font-extrabold uppercase tracking-[0.03em] text-[#061b66] sm:text-[16px]">
+                            {formatTerminalExamTitle(data.terminal)}
                           </p>
-                          <p className="text-[12px] font-bold text-[#061b66] sm:text-[18px]">
-                            Academic Session : {sessionLabel}
+                          <p className="text-[11px] font-bold text-[#061b66] sm:text-[13px]">
+                            {sessionDisplay.label} : {sessionDisplay.text}
                           </p>
-                          <div className="result-title-rule mx-auto mt-2" />
+
+                          {/* Official Report Card Title with Non-overlapping Separation Lines */}
+                          <div className="pt-1.5 flex items-center justify-center gap-2.5 w-full max-w-[340px]">
+                            <span className="h-[1.5px] flex-1 bg-[#061b66]" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#061b66] bg-[#f0f4ff] px-3.5 py-0.5 text-[10px] font-black uppercase tracking-[0.09em] text-[#061b66] sm:text-[12px]">
+                              <span className="text-[8px] text-[#061b66]">◆</span>
+                              Report Card
+                              <span className="text-[8px] text-[#061b66]">◆</span>
+                            </span>
+                            <span className="h-[1.5px] flex-1 bg-[#061b66]" />
+                          </div>
                         </div>
                       </div>
 
@@ -1073,8 +1167,8 @@ function Results() {
                               <img
                                 src={stampcert}
                                 alt="Temporary principal sign and stamp placeholder"
-                                loading="lazy"
-                                decoding="async"
+                                loading="eager"
+                                decoding="sync"
                                 className="h-[86px] w-[86px] rounded-full border border-[#9bb0d3] bg-[#f8fbff] p-1.5 object-cover opacity-90 sm:h-[118px] sm:w-[118px]"
                               />
                             </div>

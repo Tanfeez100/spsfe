@@ -22,14 +22,20 @@ const ALL_SCHOOL_CLASSES = [
   'Class 8',
 ]
 
-const EXAM_TYPES = [
+const STANDARD_TERMS = [
+  { value: 'First Terminal Examination', label: 'First Terminal Examination (Term 1)', short: '1st Terminal' },
+  { value: 'Second Terminal Examination', label: 'Second Terminal Examination (Term 2)', short: '2nd Terminal' },
+  { value: 'Third Terminal Examination', label: 'Third Terminal Examination (Term 3)', short: '3rd Terminal' },
+  { value: 'Annual Examination', label: 'Annual Examination (Final / Term 4)', short: 'Annual Exam' },
+]
+
+const OTHER_EXAM_TYPES = [
   'Unit Test',
   'Monthly Test',
-  'Half-Yearly Examination',
-  'Annual Examination',
   'Periodic Assessment',
-  'Term Assessment',
-  'Other',
+  'Pre-Board Examination',
+  'Half-Yearly Examination',
+  'Custom / Other',
 ]
 
 export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
@@ -43,14 +49,15 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingExam, setEditingExam] = useState(null)
+  const [customTypeInput, setCustomTypeInput] = useState('')
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
+    name: 'First Terminal Examination 2026-27',
     academic_session: '2026-27',
-    exam_type: 'Half-Yearly Examination',
+    exam_type: 'First Terminal Examination',
     start_date: '',
     end_date: '',
-    applicable_classes: ['Class 1', 'Class 2', 'Class 3'],
+    applicable_classes: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'],
     description: '',
     status: 'draft',
   })
@@ -80,10 +87,11 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
 
   const openCreateModal = () => {
     setEditingExam(null)
+    setCustomTypeInput('')
     setFormData({
-      name: '',
+      name: 'First Terminal Examination 2026-27',
       academic_session: '2026-27',
-      exam_type: 'Half-Yearly Examination',
+      exam_type: 'First Terminal Examination',
       start_date: '',
       end_date: '',
       applicable_classes: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'],
@@ -95,10 +103,19 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
 
   const openEditModal = (exam) => {
     setEditingExam(exam)
+    const isStandard = STANDARD_TERMS.some((t) => t.value === exam.exam_type)
+    const isOther = OTHER_EXAM_TYPES.includes(exam.exam_type)
+
+    if (!isStandard && !isOther && exam.exam_type) {
+      setCustomTypeInput(exam.exam_type)
+    } else {
+      setCustomTypeInput('')
+    }
+
     setFormData({
       name: exam.name || '',
       academic_session: exam.academic_session || '2026-27',
-      exam_type: exam.exam_type || 'Half-Yearly Examination',
+      exam_type: !isStandard && !isOther && exam.exam_type ? 'Custom / Other' : exam.exam_type || 'First Terminal Examination',
       start_date: exam.start_date || '',
       end_date: exam.end_date || '',
       applicable_classes: Array.isArray(exam.applicable_classes) ? exam.applicable_classes : [],
@@ -146,13 +163,27 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
       return
     }
 
+    let finalExamType = formData.exam_type
+    if (finalExamType === 'Custom / Other') {
+      if (!customTypeInput.trim()) {
+        emitToast('warning', 'Please enter a custom examination type name')
+        return
+      }
+      finalExamType = customTypeInput.trim()
+    }
+
+    const payload = {
+      ...formData,
+      exam_type: finalExamType,
+    }
+
     setFormSubmitting(true)
     try {
       if (editingExam) {
-        const res = await updateExaminationApi(editingExam.id, formData)
+        const res = await updateExaminationApi(editingExam.id, payload)
         emitToast('success', res.message || 'Examination updated successfully')
       } else {
-        const res = await createExaminationApi(formData)
+        const res = await createExaminationApi(payload)
         emitToast('success', res.message || 'Examination created successfully')
       }
       setIsModalOpen(false)
@@ -222,10 +253,21 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
             onChange={(e) => setFilterType(e.target.value)}
             className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="all">All Types</option>
-            {EXAM_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
+            <option value="all">All Exam Types</option>
+            <optgroup label="🌟 Core 4 Terms">
+              {STANDARD_TERMS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="📋 Other Assessments">
+              {OTHER_EXAM_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           {/* Status filter */}
@@ -403,15 +445,52 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
             {/* Form */}
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Examination Name */}
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">
-                    Examination Name <span className="text-rose-500">*</span>
-                  </label>
+                {/* Examination Name & Quick Presets */}
+                <div className="sm:col-span-2 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Examination Name <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      (Type freely or click a 4-term preset below)
+                    </span>
+                  </div>
+
+                  {/* 1-Click Quick Term Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50/50 p-2">
+                    <span className="text-[10px] font-bold text-blue-900 uppercase tracking-wider mr-1">
+                      Quick 4 Terms:
+                    </span>
+                    {STANDARD_TERMS.map((term) => {
+                      const isSelected = formData.exam_type === term.value
+                      return (
+                        <button
+                          key={term.value}
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              exam_type: term.value,
+                              name: `${term.value} ${prev.academic_session}`,
+                            }))
+                            setCustomTypeInput('')
+                          }}
+                          className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#132c4e] text-white shadow-2xs'
+                              : 'border border-blue-200 bg-white text-blue-900 hover:bg-blue-100/60'
+                          }`}
+                        >
+                          {term.short}
+                        </button>
+                      )
+                    })}
+                  </div>
+
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Half-Yearly Examination 2026-27"
+                    placeholder="e.g. First Terminal Examination 2026-27"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none"
@@ -436,14 +515,56 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
                   <label className="text-xs font-semibold text-slate-700">Examination Type</label>
                   <select
                     value={formData.exam_type}
-                    onChange={(e) => setFormData({ ...formData, exam_type: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setFormData((prev) => ({
+                        ...prev,
+                        exam_type: val,
+                        name:
+                          STANDARD_TERMS.some((t) => t.value === val) &&
+                          (!prev.name || STANDARD_TERMS.some((t) => prev.name.startsWith(t.value)))
+                            ? `${val} ${prev.academic_session}`
+                            : prev.name,
+                      }))
+                    }}
                     className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none"
                   >
-                    {EXAM_TYPES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
+                    <optgroup label="🌟 Core 4 School Terms">
+                      {STANDARD_TERMS.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="📋 Other Assessments & Custom">
+                      {OTHER_EXAM_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
+
+                {/* Custom Type Free-Text Input if Custom / Other is chosen */}
+                {formData.exam_type === 'Custom / Other' && (
+                  <div className="sm:col-span-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50/60 p-2.5">
+                    <label className="text-xs font-semibold text-amber-900">
+                      Custom Examination Type Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Weekly Assessment, Olympiad, Surprise Quiz"
+                      value={customTypeInput}
+                      onChange={(e) => setCustomTypeInput(e.target.value)}
+                      className="w-full rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-amber-700">
+                      Flexible mode: You can enter any custom exam type name needed by your institution.
+                    </p>
+                  </div>
+                )}
 
                 {/* Start Date */}
                 <div className="space-y-1">

@@ -3,7 +3,33 @@ import { createRoot } from 'react-dom/client'
 import html2canvas from 'html2canvas-pro'
 import jsPDF from 'jspdf'
 import BillSlipCard from '../../Components/Fees/BillSlipCard'
-import { getInvoiceDetails, downloadInvoicePDF as downloadInvoiceBackendPDF } from '../../Api/fees'
+import {
+  getInvoiceDetails,
+  downloadInvoicePDF as downloadInvoiceBackendPDF,
+  getCachedBillPdfApi,
+  uploadCachedBillPdfApi,
+} from '../../Api/fees'
+
+const triggerDirectCdnDownload = async (url, targetFilename) => {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('Fetch status ' + res.status)
+    const blob = await res.blob()
+    const blobUrl = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = targetFilename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500)
+    return true
+  } catch (err) {
+    console.warn('Direct blob fetch failed, opening URL directly:', err)
+    window.open(url, '_blank')
+    return true
+  }
+}
 
 /**
  * Normalizes bill/invoice object so BillSlipCard receives all expected fields
@@ -73,6 +99,37 @@ export const downloadInvoiceSlipPDF = async (billIdOrInvoice, customFileName = n
   const billForCard = normalizeInvoiceForSlip(invoiceObj)
   if (!billForCard) {
     throw new Error('Could not format invoice data for PDF')
+  }
+
+  const receiptNo =
+    billForCard.bill_number ||
+    billForCard.receipt_number ||
+    billForCard.receipt_no ||
+    billForCard.bill_id ||
+    'fee_receipt'
+  const cleanNo = String(receiptNo).replace(/[^a-zA-Z0-9_-]/g, '_')
+  const filePrefix = billForCard.isBill ? 'Fee_Bill' : 'Fee_Receipt'
+  const resolvedFileName = customFileName || `${filePrefix}_${cleanNo}.pdf`
+
+  // 0. Check if already cached in Cloudinary/local storage for instant download
+  const targetBillId = billForCard.bill_id || billIdString
+  let cachedUrl = billForCard.cached_pdf_url || null
+  if (!cachedUrl && targetBillId) {
+    try {
+      const cachedData = await getCachedBillPdfApi(targetBillId)
+      if (cachedData?.url) {
+        cachedUrl = cachedData.url
+      }
+    } catch (_) {}
+  }
+
+  if (cachedUrl) {
+    try {
+      const downloaded = await triggerDirectCdnDownload(cachedUrl, resolvedFileName)
+      if (downloaded) return true
+    } catch (cdnErr) {
+      console.warn('Failed to stream cached bill PDF, re-generating freshly:', cdnErr)
+    }
   }
 
   // Create an off-screen container mounted in DOM
@@ -177,16 +234,21 @@ export const downloadInvoiceSlipPDF = async (billIdOrInvoice, customFileName = n
 
     pdf.addImage(imgData, 'PNG', xPos, yPos, targetW, targetH, undefined, 'FAST')
 
-    const receiptNo =
-      billForCard.bill_number ||
-      billForCard.receipt_number ||
-      billForCard.receipt_no ||
-      billForCard.bill_id ||
-      'fee_receipt'
-    const cleanNo = String(receiptNo).replace(/[^a-zA-Z0-9_-]/g, '_')
-    const filePrefix = billForCard.isBill ? 'Fee_Bill' : 'Fee_Receipt'
-    const fileName = customFileName || `${filePrefix}_${cleanNo}.pdf`
+    const fileName = resolvedFileName
     pdf.save(fileName)
+
+    // Background upload to cache for instant future downloads
+    try {
+      if (targetBillId) {
+        const pdfBase64 = pdf.output('datauristring')
+        uploadCachedBillPdfApi(targetBillId, {
+          pdfBase64,
+          filename: fileName.replace(/\.pdf$/i, ''),
+        })
+      }
+    } catch (bgErr) {
+      console.warn('Background bill PDF upload to cache server failed:', bgErr)
+    }
 
     return true
   } catch (err) {
