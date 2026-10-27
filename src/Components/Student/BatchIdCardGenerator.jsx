@@ -83,7 +83,7 @@ function BatchIdCardGenerator({
   const docContext = useDocumentTemplates()
   const activeSystemTemplate = docContext?.getActiveTemplateId
     ? docContext.getActiveTemplateId(cardType)
-    : (cardType === 'admit_card' ? 'admit_card_modern_blue' : 'id_card_royal_prestige')
+    : (cardType === 'admit_card' ? 'admit_card_modern_blue' : 'id_card_modern_blue')
   const [selectedTemplate, setSelectedTemplate] = useState(activeSystemTemplate)
 
   useEffect(() => {

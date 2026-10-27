@@ -395,6 +395,9 @@ export default function UploadMarks() {
       const draftKey = `sps_student_marks_${selectedClass}_${selectedSection}_${examType}_${selectedStudentId}`
       localStorage.removeItem(draftKey)
 
+      // Instantly refresh full class marks from server so View Marks Details updates immediately
+      await loadClassMarks()
+
       setSaveDraftToast(`✓ Marks successfully saved for ${currentStudent.name} (Roll ${rollNo})!`)
       addAuditLog(`Saved marks for ${currentStudent.name} (Roll ${rollNo}) - ${marksPayload.length} subjects`)
       setTimeout(() => setSaveDraftToast(''), 4000)
@@ -533,9 +536,8 @@ export default function UploadMarks() {
     }
 
     const cleanClass = selectedClass.replace('Class ', '').trim()
-    const cleanSec = selectedSection.replace('Section ', '').trim()
 
-    const confirmMsg = `Are you sure you want to PUBLISH ${examType} results for ${selectedClass} (${selectedSection})?\n\nThis will compute official percentages, generate student rankings, and make report cards live for students and parents.`
+    const confirmMsg = `Are you sure you want to PUBLISH ${examType} results for ${selectedClass} (All Sections)?\n\nResult publishing is class-wide and section-independent. This will compute official percentages, generate student rankings, and make report cards live for all students of ${selectedClass}.`
 
     if (!window.confirm(confirmMsg)) {
       return
@@ -543,11 +545,11 @@ export default function UploadMarks() {
 
     setIsPublishing(true)
     try {
-      const res = await publishResults(cleanClass, cleanSec, examType)
+      const res = await publishResults(cleanClass, undefined, examType)
       if (res?.success) {
         setIsClassPublished(true)
-        setSaveDraftToast(`✓ ${res.message || 'Results published successfully!'}`)
-        addAuditLog(`Published ${examType} results for ${selectedClass}-${selectedSection}`)
+        setSaveDraftToast(`✓ ${res.message || 'Results published successfully for the class!'}`)
+        addAuditLog(`Published ${examType} results for ${selectedClass}`)
         await loadClassMarks()
       } else {
         alert(res?.message || 'Failed to publish results')

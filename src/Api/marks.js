@@ -37,6 +37,7 @@ export const getMarks = async (classValue, section, terminal) => {
       class: classValue,
       terminal: normalizeTerminal(terminal),
       section,
+      _t: Date.now(),
     })
 
     const response = await api.get('/api/marks', { params })

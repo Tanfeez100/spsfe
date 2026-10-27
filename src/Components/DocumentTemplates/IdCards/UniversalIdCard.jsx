@@ -1,13 +1,9 @@
 import React from 'react'
 import { useDocumentTemplates } from '../../../context/DocumentTemplateContext'
 import ModernBlueIdCard from './ModernBlueIdCard'
-import ClassicWhiteIdCard from './ClassicWhiteIdCard'
-import PremiumGradientIdCard from './PremiumGradientIdCard'
-import CompactVerticalIdCard from './CompactVerticalIdCard'
-import SmartIdentityIdCard from './SmartIdentityIdCard'
-import RoyalPrestigeIdCard from './RoyalPrestigeIdCard'
-import ModernTechDualToneIdCard from './ModernTechDualToneIdCard'
-import EliteClassicIdCard from './EliteClassicIdCard'
+import RoseGoldBlossomIdCard from './RoseGoldBlossomIdCard'
+import NavyWaveTechIdCard from './NavyWaveTechIdCard'
+import CrimsonArchClassicIdCard from './CrimsonArchClassicIdCard'
 
 export default function UniversalIdCard({
   templateId,
@@ -30,23 +26,14 @@ export default function UniversalIdCard({
   }
 
   switch (effectiveTemplateId) {
-    case 'id_card_royal_prestige':
-      return <RoyalPrestigeIdCard {...props} />
-    case 'id_card_modern_tech':
-      return <ModernTechDualToneIdCard {...props} />
-    case 'id_card_elite_classic':
-      return <EliteClassicIdCard {...props} />
-    case 'id_card_classic_white':
-      return <ClassicWhiteIdCard {...props} />
-    case 'id_card_premium_gradient':
-      return <PremiumGradientIdCard {...props} />
-    case 'id_card_compact_vertical':
-      return <CompactVerticalIdCard {...props} />
-    case 'id_card_smart_identity':
-      return <SmartIdentityIdCard {...props} />
+    case 'id_card_rose_gold':
+      return <RoseGoldBlossomIdCard {...props} />
+    case 'id_card_navy_wave':
+      return <NavyWaveTechIdCard {...props} />
+    case 'id_card_crimson_arch':
+      return <CrimsonArchClassicIdCard {...props} />
     case 'id_card_modern_blue':
     default:
       return <ModernBlueIdCard {...props} />
   }
 }
-
