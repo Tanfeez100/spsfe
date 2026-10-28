@@ -93,7 +93,13 @@ function WebsiteFooter() {
           <p>
             (c) {year} <span className="font-semibold text-white">{schoolProfile.name}</span>. All rights reserved.
           </p>
-          <p>Powered by Kavion Innovation</p>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy-policy" onClick={handleSiteNavigation} className="hover:text-white underline">
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <p>Powered by Kavion Innovation</p>
+          </div>
         </div>
       </div>
     </footer>
