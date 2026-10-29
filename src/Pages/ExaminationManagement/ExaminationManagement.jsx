@@ -30,10 +30,14 @@ export default function ExaminationManagement({ initialTab = 'overview' }) {
       const res = await getExaminationsApi()
       if (res?.success && Array.isArray(res.data)) {
         setExams(res.data)
-        if (res.data.length > 0 && !activeExam) {
-          // Default to ongoing or first exam
-          const ongoing = res.data.find((e) => e.status === 'ongoing') || res.data[0]
-          setActiveExam(ongoing)
+        if (res.data.length > 0) {
+          // Default to ongoing or first exam if not selected
+          setActiveExam((prev) => {
+            if (prev && res.data.some((e) => e.id === prev.id)) return prev
+            return res.data.find((e) => e.status === 'ongoing') || res.data[0]
+          })
+        } else {
+          setActiveExam(null)
         }
       }
     } catch {

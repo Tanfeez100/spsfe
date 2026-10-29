@@ -16,6 +16,7 @@ const DEFAULT_SUBJECTS_MAP = {
     { name: 'G.K', fullMarks: 100, passMarks: 30 },
     { name: 'URDU / SANS', fullMarks: 100, passMarks: 30 },
     { name: 'COMP / TAB', fullMarks: 100, passMarks: 30 },
+    { name: 'DRAWING', fullMarks: 50, passMarks: 15 },
   ],
 }
 
@@ -77,16 +78,13 @@ export default function ResultView() {
         const marksheets = studentsList.map((st) => {
           const subjects = Object.entries(st.marks || {}).map(([subName, markData]) => {
             const raw = typeof markData === 'object' ? (markData.theory ?? markData.external_marks ?? markData.total ?? markData) : markData
-            const cleanSub = String(subName || '').trim()
-            const cleanAlphanum = cleanSub.toLowerCase().replace(/[^a-z0-9]/g, '')
-            let displaySub = cleanSub
-            if (cleanAlphanum === 'gk' || cleanAlphanum === 'generalknowledge') displaySub = 'G.K'
-            else if (cleanAlphanum === 'sst' || cleanAlphanum === 'socialscience') displaySub = 'S.S.T'
-
+            const isDrawing = /drawing|art/i.test(subName) || markData?.full_marks === 50 || markData?.fullMarks === 50
+            const fullMarks = isDrawing ? 50 : (Number(markData?.full_marks || markData?.fullMarks) || 100)
+            const passMarks = isDrawing ? 15 : (Number(markData?.pass_marks || markData?.passMarks) || 30)
             return {
-              subject_name: displaySub,
-              full_marks: 100,
-              pass_marks: 30,
+              subject_name: subName,
+              full_marks: fullMarks,
+              pass_marks: passMarks,
               marks_obtained: raw ?? '-',
             }
           })
@@ -96,7 +94,7 @@ export default function ResultView() {
             return Number.isFinite(num) ? sum + num : sum
           }, 0)
 
-          const totalFull = subjects.length * 100 || 800
+          const totalFull = subjects.reduce((sum, s) => sum + (Number(s.full_marks) || 100), 0) || 800
           const pct = totalFull > 0 ? ((totalObtained / totalFull) * 100).toFixed(2) : '0.00'
 
           let div = 'Failed'
@@ -244,24 +242,6 @@ export default function ResultView() {
         if (nameIdx === -1) nameIdx = rollIdx === 0 ? 1 : 0
         if (fatherIdx === -1) fatherIdx = 2
 
-        // Normalize subject headers so GK / G.K / G.K. / SST / S.S.T all match seamlessly
-        const normalizeSubjectHeader = (h) => {
-          const raw = String(h || '').trim()
-          const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (clean === 'gk' || clean === 'generalknowledge') return 'G.K'
-          if (clean === 'sst' || clean === 'socialscience' || clean === 'socialstudies') return 'S.S.T'
-          if (clean === 'evs' || clean === 'environmentalstudies') return 'EVS'
-          if (clean === 'math' || clean === 'maths' || clean === 'mathematics') return 'MATH'
-          if (clean === 'eng' || clean === 'english') return 'ENGLISH'
-          if (clean === 'hin' || clean === 'hindi') return 'HINDI'
-          if (clean === 'sci' || clean === 'science') return 'SCIENCE'
-          if (clean === 'comp' || clean === 'computer' || clean === 'comptab') return 'COMP / TAB'
-          if (clean === 'draw' || clean === 'drawing' || clean === 'art') return 'DRAWING'
-          if (clean === 'urdu') return 'URDU'
-          if (clean === 'sanskrit' || clean === 'sans') return 'SANSKRIT'
-          return raw.toUpperCase()
-        }
-
         // All other columns except computed/summary columns are treated as examination Subjects
         const summaryColsRegex = /total|percentage|percent|result|grade|rank|division|remarks|status|pass|fail/i
         const subjectCols = []
@@ -269,11 +249,7 @@ export default function ResultView() {
           if (idx !== rollIdx && idx !== nameIdx && idx !== fatherIdx && h) {
             const cleanHeader = h.trim()
             if (!summaryColsRegex.test(cleanHeader)) {
-              subjectCols.push({ 
-                name: normalizeSubjectHeader(cleanHeader), 
-                rawName: cleanHeader,
-                colIdx: idx 
-              })
+              subjectCols.push({ name: cleanHeader.toUpperCase(), colIdx: idx })
             }
           }
         })
@@ -288,10 +264,7 @@ export default function ResultView() {
           const marks = {}
           subjectCols.forEach((sc) => {
             const raw = row[sc.colIdx]
-            const val = raw !== undefined && raw !== null ? raw : '-'
-            marks[sc.name] = val
-            marks[sc.rawName] = val
-            marks[sc.name.toLowerCase()] = val
+            marks[sc.name] = raw !== undefined && raw !== null ? raw : '-'
           })
 
           parsedStudents.push({
@@ -331,11 +304,14 @@ export default function ResultView() {
         terminal: selectedTerminal,
         academicYear,
         examTitle: terminalTitle,
-        subjects: parsedData.subjectCols.map((s) => ({
-          name: s.name,
-          fullMarks: 100,
-          passMarks: 30,
-        })),
+        subjects: parsedData.subjectCols.map((s) => {
+          const isDrawing = /drawing|art/i.test(s.name) || /50/.test(s.name)
+          return {
+            name: s.name,
+            fullMarks: isDrawing ? 50 : 100,
+            passMarks: isDrawing ? 15 : 30,
+          }
+        }),
         students: parsedData.students,
       }
 

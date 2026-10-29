@@ -155,6 +155,28 @@ function TimetableIcon({ className = 'w-5 h-5' }) {
   )
 }
 
+// 15. Marksheet: Certificate / Award
+function MarksheetIcon({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+  )
+}
+
+// 14. Help Center: Question circle
+function HelpCenterIcon({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
 // Feature-based Grouped Navigation Architecture
 const NAV_GROUPS = [
   {
@@ -190,6 +212,12 @@ const NAV_GROUPS = [
         label: 'Marks Upload',
         path: '/marks-upload',
         Icon: MarksUploadIcon,
+      },
+      {
+        id: 'result',
+        label: 'Marksheet Studio',
+        path: '/result-view',
+        Icon: MarksheetIcon,
       },
       {
         id: 'subject',
@@ -272,6 +300,18 @@ const NAV_GROUPS = [
       },
     ],
   },
+  {
+    id: 'support',
+    title: 'HELP & GUIDES',
+    items: [
+      {
+        id: 'helpCenter',
+        label: 'Help Center & Docs',
+        path: '/help',
+        Icon: HelpCenterIcon,
+      },
+    ],
+  },
 ]
 
 const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items)
@@ -291,6 +331,7 @@ const viewPathMap = {
   uploadPhoto: '/upload-photo',
   timetable: '/timetable',
   result: '/result-view',
+  helpCenter: '/help',
 }
 
 function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {

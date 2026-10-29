@@ -38,7 +38,7 @@ export const DOCUMENT_CATEGORIES = [
     description: 'Comprehensive academic grade sheets, terminal results, and progress reports.',
     icon: 'analytics',
     paperSize: 'A4 Portrait',
-    defaultTemplate: 'marksheet_bihar_board',
+    defaultTemplate: 'marksheet_official_star_public',
   },
 ]
 
@@ -188,9 +188,18 @@ export const DOCUMENT_TEMPLATES = {
   ],
 
   // ==========================================
-  // CATEGORY 4: MARKSHEETS (5 DESIGNS)
+  // CATEGORY 4: MARKSHEETS (6 DESIGNS)
   // ==========================================
   marksheet: [
+    {
+      id: 'marksheet_official_star_public',
+      name: 'Star Public School Official Marksheet (2026)',
+      badge: 'Official Star Public',
+      layout: 'A4 Portrait',
+      description: 'Official Star Public School examination marksheet with golden crest, student profile card, 8-subject comprehensive score table, watermark, and principal seal.',
+      accent: '#0d2d5e',
+      previewBg: 'from-blue-900 via-indigo-900 to-amber-900',
+    },
     {
       id: 'marksheet_bihar_board',
       name: 'Bihar Board-Inspired Layout',
@@ -252,8 +261,8 @@ export const SAMPLE_STUDENT_DATA = {
   admission_number: 'SPS-2024-0012',
   admission_date: '10/04/2024',
   date_of_birth: '15/08/2011',
-  mobile: '9876543210',
-  address: 'Gandhi Chowk, Bettiah, West Champaran, Bihar - 845438',
+  mobile: '9006457330',
+  address: 'Meghwal mathia Bazar, West Champaran, Bihar - 845106',
   pen_number: 'PEN98765432',
   aadhaar_card: 'XXXXXXXX1234',
   blood_group: 'B+',
@@ -274,25 +283,27 @@ export const SAMPLE_EXAM_TIMETABLE = [
 
 // Realistic sample marksheet evaluation data
 export const SAMPLE_MARKS_DATA = {
-  examName: 'Annual Examination 2026-27',
-  terminal: 'Annual',
+  examName: 'FIRST TERMINAL EXAMINATION RESULT - 2026',
+  terminal: 'First Term',
   session: '2026-2027',
   subjects: [
-    { subject: 'Hindi', code: 'HIN', maxMarks: 100, passMarks: 33, theory: 72, practical: 18, total: 90, grade: 'A+', result: 'PASS' },
-    { subject: 'English', code: 'ENG', maxMarks: 100, passMarks: 33, theory: 68, practical: 17, total: 85, grade: 'A', result: 'PASS' },
-    { subject: 'Mathematics', code: 'MATH', maxMarks: 100, passMarks: 33, theory: 76, practical: 19, total: 95, grade: 'A+', result: 'PASS' },
-    { subject: 'Science', code: 'SCI', maxMarks: 100, passMarks: 33, theory: 70, practical: 18, total: 88, grade: 'A', result: 'PASS' },
-    { subject: 'Social Science', code: 'SST', maxMarks: 100, passMarks: 33, theory: 65, practical: 17, total: 82, grade: 'A', result: 'PASS' },
-    { subject: 'Sanskrit / Urdu', code: 'SKT', maxMarks: 100, passMarks: 33, theory: 74, practical: 18, total: 92, grade: 'A+', result: 'PASS' },
+    { subject: 'HINDI', code: 'HIN', maxMarks: 100, passMarks: 30, total: 48, marks_obtained: 48, grade: 'C2', result: 'PASS' },
+    { subject: 'ENGLISH', code: 'ENG', maxMarks: 100, passMarks: 30, total: 62, marks_obtained: 62, grade: 'B2', result: 'PASS' },
+    { subject: 'MATH', code: 'MATH', maxMarks: 100, passMarks: 30, total: 42, marks_obtained: 42, grade: 'C2', result: 'PASS' },
+    { subject: 'SCIENCE', code: 'SCI', maxMarks: 100, passMarks: 30, total: 30, marks_obtained: 30, grade: 'D', result: 'PASS' },
+    { subject: 'S.S.T', code: 'SST', maxMarks: 100, passMarks: 30, total: 59, marks_obtained: 59, grade: 'C1', result: 'PASS' },
+    { subject: 'G.K', code: 'GK', maxMarks: 100, passMarks: 30, total: 96, marks_obtained: 96, grade: 'A1', result: 'PASS' },
+    { subject: 'URDU / SANS', code: 'URD', maxMarks: 100, passMarks: 30, total: 70, marks_obtained: 70, grade: 'B1', result: 'PASS' },
+    { subject: 'COMP / TAB', code: 'COMP', maxMarks: 100, passMarks: 30, total: 50, marks_obtained: 50, grade: 'C1', result: 'PASS' },
   ],
-  totalMaxMarks: 600,
-  totalObtained: 532,
-  percentage: '88.7',
-  division: '1st Division',
-  rank: 3,
+  totalMaxMarks: 800,
+  totalObtained: 457,
+  percentage: '57.13',
+  division: 'Second',
+  rank: 1,
   resultStatus: 'PASSED',
-  attendance: '94.2%',
-  remarks: 'Outstanding academic performance and exemplary discipline.',
+  attendance: '95.4%',
+  remarks: 'Satisfactory performance. Recommended for continuous improvement.',
 }
 
 // Realistic sample Transfer Certificate data

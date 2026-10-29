@@ -14,13 +14,14 @@ import Sidebar from '../../Components/Sidebar'
 import { getUser, getLoginType, getTeachers } from '../../Api/auth'
 import { getAllStudents } from '../../Api/students'
 import { getAllSubjects } from '../../Api/subjects'
-import { getAttendanceBootstrap, getHolidayCalendar } from '../../Api/attendance'
+import { getAttendanceBootstrap, getAttendanceRecords, getHolidayCalendar } from '../../Api/attendance'
 import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 import BatchIdCardGenerator from '../../Components/Student/BatchIdCardGenerator'
 import DocumentManagement from '../DocumentManagement/DocumentManagement'
 import ExaminationManagement from '../ExaminationManagement/ExaminationManagement'
 import TimetableManagement from '../TimetableManagement/TimetableManagement'
 import TeacherDashboardView from './TeacherDashboardView'
+import HelpCenter from '../HelpCenter/HelpCenter'
 
 function Dashboard({ initialView = 'dashboard' }) {
   const navigate = useNavigate()
@@ -42,31 +43,42 @@ function Dashboard({ initialView = 'dashboard' }) {
   const [attendancePeriod, setAttendancePeriod] = useState('Daily')
 
   const [dashboardData, setDashboardData] = useState({
-    totalStudents: 1245,
-    totalClasses: 12,
-    totalSubjects: 34,
-    totalTeachers: 48,
+    totalStudents: 0,
+    totalClasses: 0,
+    totalSubjects: 0,
+    totalTeachers: 0,
     studentsByClass: [],
     studentsBySection: [],
     loading: false,
   })
 
-  // Calendar state
-  const [calendarDate, setCalendarDate] = useState(new Date(2026, 9, 16)) // October 16, 2026
-  const [selectedDay, setSelectedDay] = useState(16)
+  const [attendanceStats, setAttendanceStats] = useState({
+    present: 0,
+    absent: 0,
+    rate: 100,
+    dailyTrend: [
+      { day: 'Mon', rate: 100 },
+      { day: 'Tue', rate: 100 },
+      { day: 'Wed', rate: 100 },
+      { day: 'Thu', rate: 100 },
+      { day: 'Fri', rate: 100 },
+      { day: 'Sat', rate: 100 },
+    ],
+  })
 
-  // Pinned Notes state
+  // Calendar state - initialize to today's date
+  const [calendarDate, setCalendarDate] = useState(() => new Date())
+  const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
+
+  // Pinned Notes state - user persistent notes
   const [notes, setNotes] = useState(() => {
     try {
-      const saved = localStorage.getItem('sps_dashboard_notes_v3')
+      const saved = localStorage.getItem('sps_dashboard_notes_v4')
       if (saved) return JSON.parse(saved)
     } catch {
       // fallback
     }
-    return [
-      { id: 1, title: 'Check Class 8 science lab records', date: 'Oct 16' },
-      { id: 2, title: 'Verify fee reconciliation for bus transport', date: 'Oct 18' },
-    ]
+    return []
   })
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [newNoteTitle, setNewNoteTitle] = useState('')
@@ -91,12 +103,14 @@ function Dashboard({ initialView = 'dashboard' }) {
     '/upload-photo': 'uploadPhoto',
     '/timetable': 'timetable',
     '/result-view': 'result',
+    '/help': 'helpCenter',
+    '/help-center': 'helpCenter',
   }
 
   // Persist notes
   useEffect(() => {
     try {
-      localStorage.setItem('sps_dashboard_notes_v3', JSON.stringify(notes))
+      localStorage.setItem('sps_dashboard_notes_v4', JSON.stringify(notes))
     } catch {
       // Ignore
     }
@@ -112,7 +126,7 @@ function Dashboard({ initialView = 'dashboard' }) {
           ? studentsResponse
           : []
       setRealStudents(students)
-      const totalStudents = students.length || 1245
+      const totalStudents = students.length
 
       const classDistribution = {}
       const sectionDistribution = {}
@@ -137,13 +151,16 @@ function Dashboard({ initialView = 'dashboard' }) {
 
       const subjectsResponse = await getAllSubjects()
       const totalClasses =
-        subjectsResponse?.summary?.total_classes ||
         studentsByClass.length ||
+        subjectsResponse?.summary?.total_classes ||
         (Array.isArray(subjectsResponse?.classes) ? subjectsResponse.classes.length : 0) ||
-        12
-      const totalSubjects = subjectsResponse?.summary?.total_unique_subjects || 34
+        0
+      const totalSubjects =
+        subjectsResponse?.summary?.total_unique_subjects ||
+        (Array.isArray(subjectsResponse?.data) ? subjectsResponse.data.length : 0) ||
+        0
 
-      let totalTeachers = 48
+      let totalTeachers = 0
       try {
         const teachersResp = await getTeachers()
         const teachersList = Array.isArray(teachersResp)
@@ -158,6 +175,54 @@ function Dashboard({ initialView = 'dashboard' }) {
         const holidaysResp = await getHolidayCalendar()
         const holidaysList = Array.isArray(holidaysResp?.holidays) ? holidaysResp.holidays : []
         if (holidaysList.length > 0) setRealHolidays(holidaysList.slice(0, 4))
+      } catch {
+        // Fallback
+      }
+
+      // Fetch real attendance records for live analytics
+      try {
+        const attRes = await getAttendanceRecords()
+        const records = Array.isArray(attRes) ? attRes : attRes?.records || attRes?.data || []
+        if (records.length > 0) {
+          const present = records.filter((r) => r.status === 'present').length
+          const absent = records.filter((r) => r.status === 'absent').length
+          const total = present + absent
+          const rate = total > 0 ? Math.round((present / total) * 100) : 100
+
+          const daysMap = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' }
+          const dayStats = {
+            Mon: { p: 0, t: 0 },
+            Tue: { p: 0, t: 0 },
+            Wed: { p: 0, t: 0 },
+            Thu: { p: 0, t: 0 },
+            Fri: { p: 0, t: 0 },
+            Sat: { p: 0, t: 0 },
+          }
+
+          records.forEach((r) => {
+            const d = new Date(r.attendance_date || r.created_at)
+            const dayName = daysMap[d.getDay()]
+            if (dayName && dayStats[dayName]) {
+              dayStats[dayName].t++
+              if (r.status === 'present') dayStats[dayName].p++
+            }
+          })
+
+          const dailyTrend = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => {
+            const s = dayStats[day]
+            return {
+              day,
+              rate: s.t > 0 ? Math.round((s.p / s.t) * 100) : (rate || 100),
+            }
+          })
+
+          setAttendanceStats({
+            present,
+            absent,
+            rate,
+            dailyTrend,
+          })
+        }
       } catch {
         // Fallback
       }
@@ -211,6 +276,9 @@ function Dashboard({ initialView = 'dashboard' }) {
         '/examinations',
         '/timetable',
         '/students',
+        '/help',
+        '/help-center',
+        '/result-view',
       ]
       const isAllowed = teacherAllowedRoutes.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
@@ -260,23 +328,21 @@ function Dashboard({ initialView = 'dashboard' }) {
   const displayedStudents = useMemo(() => {
     let list = realStudents
     if (selectedClassFilter !== 'all') {
-      list = list.filter((s) => String(s.Class || s.class || '').toLowerCase() === selectedClassFilter.toLowerCase())
+      const norm = normalizeSchoolClass(selectedClassFilter) || selectedClassFilter
+      list = list.filter((s) => {
+        const c = normalizeSchoolClass(s.Class || s.class || '')
+        return (
+          c.toLowerCase() === norm.toLowerCase() ||
+          String(s.Class || s.class || '').toLowerCase() === selectedClassFilter.toLowerCase()
+        )
+      })
     }
     if (selectedSectionFilter !== 'all') {
-      list = list.filter((s) => String(s.Section || s.section || '').toUpperCase() === selectedSectionFilter.toUpperCase())
+      list = list.filter(
+        (s) => String(s.Section || s.section || '').toUpperCase() === selectedSectionFilter.toUpperCase()
+      )
     }
-    if (list.length === 0) {
-      return [
-        { id: 1, name: 'Sam smith', class: '1', section: 'B', roll_no: '01', score: 98 },
-        { id: 2, name: 'Olivier james', class: '1', section: 'B', roll_no: '02', score: 98 },
-        { id: 3, name: 'Michelle marie', class: '1', section: 'B', roll_no: '03', score: 98 },
-        { id: 4, name: 'Cassandra brit', class: '1', section: 'B', roll_no: '04', score: 98 },
-      ]
-    }
-    return list.slice(0, 4).map((s, i) => ({
-      ...s,
-      score: 95 + (i % 5),
-    }))
+    return list.slice(0, 4)
   }, [realStudents, selectedClassFilter, selectedSectionFilter])
 
   const handleAddNote = (e) => {
@@ -291,14 +357,14 @@ function Dashboard({ initialView = 'dashboard' }) {
   }
 
   // User display name
-  const displayName = currentUser?.fullName || currentUser?.name || 'Principal Sharma'
+  const displayName = currentUser?.fullName || currentUser?.name || 'Administrator'
   const displayEmail = currentUser?.email || 'admin@starpublicschool.com'
   const userInitials = displayName
     .split(' ')
     .map((n) => n[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase() || 'PS'
+    .toUpperCase() || 'AD'
 
   return (
     <>
@@ -419,7 +485,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                       Campus overview
                     </h2>
                     <span className="text-xs text-slate-400 font-normal">
-                      Updated just now · illustrative
+                      Live Academic Overview
                     </span>
                   </div>
 
@@ -437,7 +503,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                           {dashboardData.totalStudents.toLocaleString()}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          +4.2% vs last academic year
+                          Enrolled Students
                         </p>
                       </div>
                       {/* Mini sparkline curve */}
@@ -466,7 +532,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                           {dashboardData.totalClasses}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          Pre-primary to Senior Secondary
+                          Active Class Groups
                         </p>
                       </div>
                       <div className="mt-4 flex gap-1 h-1.5">
@@ -489,7 +555,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                           {dashboardData.totalTeachers}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          96% present today
+                          Faculty Members
                         </p>
                       </div>
                       <div className="mt-4 flex gap-1 h-1.5">
@@ -512,7 +578,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                           {dashboardData.totalSubjects}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          CBSE curriculum
+                          School Curriculum
                         </p>
                       </div>
                       <div className="mt-4 flex gap-1 h-1.5">
@@ -549,7 +615,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                             </p>
                           </div>
                           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            94.6% today
+                            {attendanceStats.rate}% overall
                           </span>
                         </div>
 
@@ -572,20 +638,13 @@ function Dashboard({ initialView = 'dashboard' }) {
                         {/* Attendance Chart Visualization */}
                         <div className="mt-4 pt-2">
                           <div className="grid grid-cols-6 gap-3 items-end h-32 px-1">
-                            {[
-                              { day: 'Mon', rate: 95 },
-                              { day: 'Tue', rate: 93 },
-                              { day: 'Wed', rate: 96 },
-                              { day: 'Thu', rate: 94 },
-                              { day: 'Fri', rate: 95 },
-                              { day: 'Sat', rate: 92 },
-                            ].map((item, idx) => (
+                            {attendanceStats.dailyTrend.map((item, idx) => (
                               <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end group">
                                 <span className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
                                   {item.rate}%
                                 </span>
                                 <div
-                                  style={{ height: `${item.rate - 20}%` }}
+                                  style={{ height: `${Math.max(15, item.rate - 20)}%` }}
                                   className="w-full max-w-[28px] rounded-t-lg bg-[#38bdf8] group-hover:bg-[#0284c7] transition-all"
                                 />
                                 <span className="text-[11px] font-semibold text-slate-600">
@@ -600,8 +659,8 @@ function Dashboard({ initialView = 'dashboard' }) {
                       {/* Footer Row */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 mt-4 text-xs">
                         <div className="flex items-center gap-4 text-slate-700">
-                          <span>Present <strong className="text-slate-900">1,178</strong></span>
-                          <span>Absent <strong className="text-slate-900">67</strong></span>
+                          <span>Present <strong className="text-slate-900">{attendanceStats.present}</strong></span>
+                          <span>Absent <strong className="text-slate-900">{attendanceStats.absent}</strong></span>
                         </div>
                         <button
                           onClick={() => navigate('/attendance')}
@@ -654,26 +713,38 @@ function Dashboard({ initialView = 'dashboard' }) {
 
                         {/* Performance rows */}
                         <div className="mt-4 space-y-2.5">
-                          {displayedStudents.slice(0, 4).map((s, idx) => (
-                            <div key={s.id || idx} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-none">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#eef2f6] text-[#0f1e36] font-bold text-xs">
-                                  {(s.name || 'S').charAt(0)}
-                                </div>
-                                <div>
-                                  <p className="font-bold text-slate-900 leading-tight">
-                                    {s.name}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400">
-                                    Class {s.class || '1'} · Section {s.section || 'A'}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="font-extrabold text-slate-900">
-                                {s.score || 98}%
-                              </span>
+                          {displayedStudents.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-slate-400">
+                              No students enrolled in this class / section.
                             </div>
-                          ))}
+                          ) : (
+                            displayedStudents.slice(0, 4).map((s, idx) => {
+                              const name = s.name || s.Name || `Student ${idx + 1}`
+                              const studentClass = s.class || s.Class || '1'
+                              const studentSection = s.section || s.Section || 'A'
+                              const rollNo = s.roll_no || s.Roll_No || idx + 1
+                              return (
+                                <div key={s.id || idx} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-none">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#eef2f6] text-[#0f1e36] font-bold text-xs">
+                                      {name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900 leading-tight">
+                                        {name}
+                                      </p>
+                                      <p className="text-[10px] text-slate-400">
+                                        Class {studentClass} · Section {studentSection} · Roll #{rollNo}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px]">
+                                    Active
+                                  </span>
+                                </div>
+                              )
+                            })
+                          )}
                         </div>
                       </div>
 
@@ -702,18 +773,18 @@ function Dashboard({ initialView = 'dashboard' }) {
                         Today&apos;s teaching schedule
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Four periods across the school day
+                        Manage class routines & faculty schedules
                       </p>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 shadow-2xs">
-                        <span>10/16/2026</span>
+                        <span>{new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>
                         <span className="material-symbols-outlined text-xs text-slate-400">calendar_today</span>
                       </div>
 
                       <button
-                        onClick={() => navigate('/subjects')}
+                        onClick={() => navigate('/timetable')}
                         className="text-xs font-semibold text-[#1e40af] hover:underline"
                       >
                         View full timetable →
@@ -805,8 +876,9 @@ function Dashboard({ initialView = 'dashboard' }) {
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                       const dayNum = i + 1
                       const isSelected = dayNum === selectedDay
-                      const isExam = dayNum === 24
-                      const isHoliday = dayNum === 31
+                      const dateStr = `${calendarDate.getFullYear()}-${String(calendarDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
+                      const isHoliday = realHolidays.some((h) => (h.holiday_date || h.start_date) === dateStr)
+                      const isExam = false
 
                       return (
                         <div key={dayNum} className="h-7 flex items-center justify-center">
@@ -844,20 +916,23 @@ function Dashboard({ initialView = 'dashboard' }) {
                   </select>
 
                   <div className="space-y-2 pt-1 text-xs">
-                    <div className="flex items-center justify-between py-1 border-b border-slate-50">
-                      <div>
-                        <p className="font-semibold text-slate-800">Term 1 Assessment</p>
-                        <p className="text-[10px] text-slate-400">Exam · Oct 24, 2026</p>
+                    {realHolidays && realHolidays.length > 0 ? (
+                      realHolidays.slice(0, 4).map((h) => (
+                        <div key={h.id || h.holiday_date} className="flex items-center justify-between py-1 border-b border-slate-50">
+                          <div>
+                            <p className="font-semibold text-slate-800">{h.title || h.name}</p>
+                            <p className="text-[10px] text-slate-400">
+                              {h.holiday_type || 'Holiday'} · {h.holiday_date ? new Date(h.holiday_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Scheduled'}
+                            </p>
+                          </div>
+                          <span className="h-2 w-2 rounded-full bg-rose-500" />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-4 text-center text-xs text-slate-400">
+                        No upcoming events or holidays scheduled.
                       </div>
-                      <span className="h-2 w-2 rounded-full bg-amber-500" />
-                    </div>
-                    <div className="flex items-center justify-between py-1 border-b border-slate-50">
-                      <div>
-                        <p className="font-semibold text-slate-800">Diwali Break</p>
-                        <p className="text-[10px] text-slate-400">Holiday · Oct 31, 2026</p>
-                      </div>
-                      <span className="h-2 w-2 rounded-full bg-rose-500" />
-                    </div>
+                    )}
                   </div>
 
                   <div className="pt-2">
@@ -927,7 +1002,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-slate-400">Loading saved notes...</p>
+                      <p className="text-xs text-slate-400 text-center py-2">No pinned notes. Click + to add a note.</p>
                     )}
                   </div>
                 </div>
@@ -942,8 +1017,8 @@ function Dashboard({ initialView = 'dashboard' }) {
           )}
 
           {/* Sub-view router preserving all administrative features */}
-          {!isTeacher && (loginType === 'student' || activeView === 'result') && (
-            <div className="w-full bg-white rounded-2xl border border-slate-200 p-6 shadow-xs"><ResultView /></div>
+          {(loginType === 'student' || activeView === 'result') && (
+            <div className="w-full"><ResultView /></div>
           )}
           {activeView === 'student' && (
             <div className="w-full"><Student /></div>
@@ -989,6 +1064,9 @@ function Dashboard({ initialView = 'dashboard' }) {
           )}
           {activeView === 'timetable' && (
             <div className="w-full"><TimetableManagement /></div>
+          )}
+          {activeView === 'helpCenter' && (
+            <div className="w-full"><HelpCenter /></div>
           )}
         </div>
 

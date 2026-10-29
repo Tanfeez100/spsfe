@@ -1,5 +1,6 @@
 import React from 'react'
 import { useDocumentTemplates } from '../../../context/DocumentTemplateContext'
+import OfficialStarPublicMarksheet from './OfficialStarPublicMarksheet'
 import BiharBoardMarksheet from './BiharBoardMarksheet'
 import ModernAcademicReportCard from './ModernAcademicReportCard'
 import ClassicTableMarksheet from './ClassicTableMarksheet'
@@ -15,7 +16,7 @@ export default function UniversalMarksheet({
 }) {
   const { getActiveTemplateId, getCustomization } = useDocumentTemplates()
 
-  const effectiveTemplateId = templateId || getActiveTemplateId('marksheet') || 'marksheet_bihar_board'
+  const effectiveTemplateId = templateId || getActiveTemplateId('marksheet') || 'marksheet_official_star_public'
   const baseCustomization = getCustomization('marksheet') || {}
   const effectiveCustomization = { ...baseCustomization, ...(customOverrides || {}) }
 
@@ -27,6 +28,8 @@ export default function UniversalMarksheet({
   }
 
   switch (effectiveTemplateId) {
+    case 'marksheet_bihar_board':
+      return <BiharBoardMarksheet {...props} />
     case 'marksheet_modern_academic':
       return <ModernAcademicReportCard {...props} />
     case 'marksheet_classic_table':
@@ -35,8 +38,8 @@ export default function UniversalMarksheet({
       return <PremiumBlueWhiteMarksheet {...props} />
     case 'marksheet_minimal_print':
       return <MinimalPrintMarksheet {...props} />
-    case 'marksheet_bihar_board':
+    case 'marksheet_official_star_public':
     default:
-      return <BiharBoardMarksheet {...props} />
+      return <OfficialStarPublicMarksheet {...props} />
   }
 }

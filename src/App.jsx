@@ -259,6 +259,8 @@ function App() {
             <Route path="/examinations/:tab" element={<Dashboard initialView="examinationManagement" />} />
             <Route path="/timetable" element={<Dashboard initialView="timetable" />} />
             <Route path="/timetable/:tab" element={<Dashboard initialView="timetable" />} />
+            <Route path="/help" element={<Dashboard initialView="helpCenter" />} />
+            <Route path="/help-center" element={<Dashboard initialView="helpCenter" />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -16,7 +16,7 @@ export default function ExamMarksEntryTab({ activeExam, exams = [] }) {
   const [selectedExamId, setSelectedExamId] = useState(activeExam?.id || exams[0]?.id || '')
   const [selectedClass, setSelectedClass] = useState('Class 1')
   const [selectedSection, setSelectedSection] = useState('A')
-  const [selectedSubject, setSelectedSubject] = useState('English')
+  const [selectedSubject, setSelectedSubject] = useState('')
   const [availableSubjects, setAvailableSubjects] = useState([])
 
   const [loading, setLoading] = useState(false)
@@ -46,12 +46,8 @@ export default function ExamMarksEntryTab({ activeExam, exams = [] }) {
             setSelectedSubject(res.data[0].subject_name)
           }
         } else {
-          setAvailableSubjects([
-            { subject_name: 'English', max_marks: 50 },
-            { subject_name: 'Mathematics', max_marks: 50 },
-            { subject_name: 'Hindi', max_marks: 50 },
-            { subject_name: 'EVS', max_marks: 50 },
-          ])
+          setAvailableSubjects([])
+          setSelectedSubject('')
         }
       } catch {
         // ignore
@@ -245,11 +241,15 @@ export default function ExamMarksEntryTab({ activeExam, exams = [] }) {
               onChange={(e) => setSelectedSubject(e.target.value)}
               className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-blue-700 focus:outline-none"
             >
-              {availableSubjects.map((s) => (
-                <option key={s.subject_name} value={s.subject_name}>
-                  {s.subject_name} (Max {s.max_marks || 100})
-                </option>
-              ))}
+              {availableSubjects.length === 0 ? (
+                <option value="">No subjects configured</option>
+              ) : (
+                availableSubjects.map((s) => (
+                  <option key={s.subject_name} value={s.subject_name}>
+                    {s.subject_name} (Max {s.max_marks || 100})
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>

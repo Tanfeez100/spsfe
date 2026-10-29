@@ -658,6 +658,16 @@ export default function UploadMarks() {
 
         {/* Global Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Fast-Track Link */}
+          <button
+            type="button"
+            onClick={() => window.location.href = '/result-view'}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 px-3.5 py-2.5 text-xs font-bold shadow-2xs transition-all"
+            title="Fast-Track: Upload entire class Excel to create students and save marks in 1 step"
+          >
+            <span className="material-symbols-outlined text-base">upload_file</span>
+            <span>Fast-Track Excel Importer →</span>
+          </button>
           {/* Publication Status Badge */}
           {isClassPublished ? (
             <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 shadow-2xs">

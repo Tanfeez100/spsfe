@@ -230,11 +230,8 @@ export default function SlotEditorModal({
                     {s.name} {s.code ? `(${s.code})` : ''}
                   </option>
                 ))}
-                {/* Common subjects fallback if subjects list empty */}
                 {subjects.length === 0 && (
-                  ['English', 'Hindi', 'Mathematics', 'Science', 'Social Science', 'EVS', 'Sanskrit', 'Computer', 'Art & Craft', 'General Knowledge'].map((sn) => (
-                    <option key={sn} value={sn}>{sn}</option>
-                  ))
+                  <option value="" disabled>No subjects found in database</option>
                 )}
               </select>
             </div>

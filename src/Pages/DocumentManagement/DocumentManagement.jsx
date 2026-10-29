@@ -349,13 +349,13 @@ export default function DocumentManagement() {
             <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-500 font-medium">Currently Active:</span>
               <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
-                {DOCUMENT_TEMPLATES[activeCategory].find((t) => t.id === activeTemplateId)?.name}
+                {DOCUMENT_TEMPLATES[activeCategory].find((t) => t.id === activeTemplateId)?.name || DOCUMENT_TEMPLATES[activeCategory]?.[0]?.name}
               </span>
             </div>
           </div>
 
-          {/* 5 Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 pt-2">
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4 pt-2">
             {DOCUMENT_TEMPLATES[activeCategory].map((template) => {
               const isActive = activeTemplateId === template.id
 

@@ -29,12 +29,12 @@ export default function ExamTimetableTab({ activeExam, exams = [] }) {
   const [slotData, setSlotData] = useState({
     class_name: 'Class 1',
     section: 'All',
-    subject_name: 'English',
+    subject_name: '',
     exam_date: '',
     start_time: '09:00 AM',
     end_time: '11:30 AM',
     max_marks: 50,
-    room_no: 'Room 101',
+    room_no: '',
     instructions: '',
     status: 'draft',
   })
@@ -97,12 +97,12 @@ export default function ExamTimetableTab({ activeExam, exams = [] }) {
     setSlotData({
       class_name: selectedClass,
       section: selectedSection,
-      subject_name: availableSubjects[0]?.subject_name || 'English',
+      subject_name: availableSubjects[0]?.subject_name || '',
       exam_date: '',
       start_time: '09:00 AM',
       end_time: '11:30 AM',
       max_marks: availableSubjects[0]?.max_marks || 50,
-      room_no: 'Room 101',
+      room_no: '',
       instructions: '',
       status: 'draft',
     })

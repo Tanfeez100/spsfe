@@ -52,7 +52,7 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
   const [customTypeInput, setCustomTypeInput] = useState('')
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    name: 'First Terminal Examination 2026-27',
+    name: '',
     academic_session: '2026-27',
     exam_type: 'First Terminal Examination',
     start_date: '',
@@ -89,7 +89,7 @@ export default function ExamSetupTab({ onNavigateTab, onSelectExam }) {
     setEditingExam(null)
     setCustomTypeInput('')
     setFormData({
-      name: 'First Terminal Examination 2026-27',
+      name: '',
       academic_session: '2026-27',
       exam_type: 'First Terminal Examination',
       start_date: '',

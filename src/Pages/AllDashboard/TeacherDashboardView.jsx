@@ -16,8 +16,8 @@ export default function TeacherDashboardView({
   const navigate = useNavigate()
   const user = propUser || getUser()
 
-  const teacherClass = user?.assignedClass || '10'
-  const teacherSection = user?.assignedSection || 'A'
+  const teacherClass = user?.assignedClass || ''
+  const teacherSection = user?.assignedSection || ''
   const academicYear = user?.academicYear || '2026-27'
   const teacherName =
     user?.fullName || user?.name || user?.email?.split('@')[0] || 'Teacher'
@@ -49,10 +49,7 @@ export default function TeacherDashboardView({
     } catch {
       // ignore
     }
-    return [
-      { id: 1, text: `Check Class ${teacherClass}-${teacherSection} homework notebooks`, time: '08:30 AM' },
-      { id: 2, text: 'Submit Unit Test assessment marks before Friday', time: '11:00 AM' },
-    ]
+    return []
   })
   const [newNote, setNewNote] = useState('')
   const [isAddingNote, setIsAddingNote] = useState(false)
@@ -685,27 +682,31 @@ export default function TeacherDashboardView({
             )}
 
             <div className="space-y-2">
-              {notes.map((n) => (
-                <div
-                  key={n.id}
-                  className="group flex items-start justify-between rounded-xl bg-slate-50 p-2.5 text-xs border border-slate-100"
-                >
-                  <div>
-                    <span className="text-slate-700 font-medium leading-tight block">
-                      {n.text}
-                    </span>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">
-                      {n.time}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setNotes((prev) => prev.filter((item) => item.id !== n.id))}
-                    className="hidden group-hover:block text-slate-400 hover:text-rose-500 ml-2 font-bold"
+              {notes.length === 0 ? (
+                <p className="text-xs text-slate-400 py-3 text-center">No pinned notes</p>
+              ) : (
+                notes.map((n) => (
+                  <div
+                    key={n.id}
+                    className="group flex items-start justify-between rounded-xl bg-slate-50 p-2.5 text-xs border border-slate-100"
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    <div>
+                      <span className="text-slate-700 font-medium leading-tight block">
+                        {n.text}
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">
+                        {n.time}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setNotes((prev) => prev.filter((item) => item.id !== n.id))}
+                      className="hidden group-hover:block text-slate-400 hover:text-rose-500 ml-2 font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
