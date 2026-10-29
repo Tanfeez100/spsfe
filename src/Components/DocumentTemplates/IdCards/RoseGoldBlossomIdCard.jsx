@@ -12,12 +12,12 @@ export default function RoseGoldBlossomIdCard({
   const studentName = student.Name || student.name || 'AARAV SHARMA'
   const fatherName = student.father_name || student.FatherName || student.fatherName || 'Mr. Rajesh Sharma'
   const motherName = student.mother_name || student.MotherName || student.motherName || 'Mrs. Sunita Sharma'
-  const rollNo = (student.Roll || student.roll_no || student.rollNo || '98765').toString()
-  const rawClass = (student.Class || student.class || 'X').toString()
-  const studentSection = (student.Section || student.section || '').toString()
-  const admissionNo = student.admission_number || student.admissionNo || student.id || rollNo || '98765'
-  const studentAddress = student.address || 'H.No. 45, Sector 4,\nChandigarh'
-  const mobile = student.mobile || student.Mobile || student.phone || student.contact_no || '98765 43210'
+  const rollNo = (student.Roll || student.roll_no || student.rollNo || '-').toString()
+  const rawClass = (student.Class || student.class || '1').toString()
+  const studentSection = (student.Section || student.section || 'A').toString()
+  const admissionNo = student.admission_number || student.admissionNo || student.id || rollNo || '-'
+  const studentAddress = student.address || '-'
+  const mobile = student.mobile || student.Mobile || student.phone || student.contact_no || '-'
   const schoolName = customization.schoolName || 'ANTI-GRAVITY ACADEMY'
   const schoolEmail = customization.schoolEmail || 'contact@antigravity.com'
 

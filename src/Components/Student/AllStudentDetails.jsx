@@ -94,15 +94,21 @@ function AllStudentDetails() {
       student.AdmissionNumber ||
       student.admission_id ||
       student.ScholarNo ||
-      `ADM-2026-${String(student.Roll || student.id || '081').padStart(3, '0')}`
+      (student.Roll ? `Roll: ${student.Roll}` : '-')
     )
   }
 
   const getStudentFeeStatus = (student) => {
     if (student.FeeStatus) return student.FeeStatus
-    const rollNum = parseInt(student.Roll || '1', 10)
-    if (rollNum % 3 === 0) return 'Partial'
-    if (rollNum % 2 === 0) return '₹3,200 Due'
+    if (student.fee_status) return student.fee_status
+    if (student.PreviousDue !== undefined && student.PreviousDue !== null) {
+      const due = Number(student.PreviousDue) || 0
+      return due > 0 ? `₹${due.toLocaleString('en-IN')} Due` : 'Cleared'
+    }
+    if (student.previous_due !== undefined && student.previous_due !== null) {
+      const due = Number(student.previous_due) || 0
+      return due > 0 ? `₹${due.toLocaleString('en-IN')} Due` : 'Cleared'
+    }
     return 'Cleared'
   }
 
@@ -591,8 +597,8 @@ function AllStudentDetails() {
                   const rollNo = student.Roll || '-'
                   const className = getStudentClass(student)
                   const sectionName = getStudentSection(student)
-                  const guardian = student.Father || student.Mother || 'Guardian'
-                  const mobile = student.Mobile || '+91 98765 43210'
+                  const guardian = student.Father || student.Mother || student.father_name || student.mother_name || '-'
+                  const mobile = student.Mobile || student.mobile || student.Phone || student.phone || '-'
                   const admissionNo = getStudentAdmissionNo(student)
                   const feeStatus = getStudentFeeStatus(student)
 
@@ -800,17 +806,17 @@ function AllStudentDetails() {
 
               <div className="rounded-xl bg-slate-50 p-3">
                 <p className="text-slate-400 font-semibold text-[10px] uppercase">Father / Guardian</p>
-                <p className="text-slate-800 font-bold mt-0.5">{viewingStudent.Father || 'N/A'}</p>
+                <p className="text-slate-800 font-bold mt-0.5">{viewingStudent.Father || viewingStudent.father_name || '-'}</p>
               </div>
 
               <div className="rounded-xl bg-slate-50 p-3">
                 <p className="text-slate-400 font-semibold text-[10px] uppercase">Contact Phone</p>
-                <p className="text-slate-800 font-bold mt-0.5">{viewingStudent.Mobile || 'N/A'}</p>
+                <p className="text-slate-800 font-bold mt-0.5">{viewingStudent.Mobile || viewingStudent.mobile || '-'}</p>
               </div>
 
               <div className="col-span-2 rounded-xl bg-slate-50 p-3">
                 <p className="text-slate-400 font-semibold text-[10px] uppercase">Residential Address</p>
-                <p className="text-slate-800 font-medium mt-0.5">{viewingStudent.Address || 'Kanpur, UP'}</p>
+                <p className="text-slate-800 font-medium mt-0.5">{viewingStudent.Address || viewingStudent.address || '-'}</p>
               </div>
             </div>
 
