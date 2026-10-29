@@ -16,6 +16,22 @@ const normalizeTerminal = (terminal) => {
 }
 
 // Submit marks
+// Fast-Track Class Bulk Import: Students + Marks in 1 Step
+export const bulkImportClassMarks = async (bulkData) => {
+  try {
+    const payload = {
+      ...bulkData,
+      terminal: normalizeTerminal(bulkData?.terminal),
+    }
+    const response = await api.post('/api/marks/bulk-import-class', payload, {
+      timeout: 90000,
+    })
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to bulk import class marks')
+  }
+}
+
 export const submitMarks = async (marksData) => {
   try {
     const payload = {
