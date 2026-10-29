@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --navy: #082b66;
+  --navy-dark: #061d4c;
+  --maroon: #8d0d2c;
+  --gold: #dca52d;
+  --line: #b9c8d8;
+  --ink: #0b245a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #eef1f6; color: #111827; font-family: Inter, Arial, sans-serif; }
+.marksheet-page { padding: 24px; display: flex; justify-content: center; }
+.marksheet {
+  width: min(100%, 990px); background: #fffdf8; position: relative; overflow: hidden;
+  padding: 24px 24px 0; border: 3px double #c68d26; box-shadow: 0 12px 36px #13264b22;
+}
+.marksheet::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .24;
+  background: repeating-linear-gradient(135deg, transparent 0 26px, #ead9b7 27px, transparent 28px 48px);
+}
+.marksheet > * { position: relative; z-index: 1; }
+.top-ribbons { position: absolute; left: 0; right: 0; top: 0; height: 17px; z-index: 2; overflow: hidden; }
+.top-ribbons span { position: absolute; top: -32px; height: 54px; width: 42%; transform: rotate(-7deg); background: var(--navy); }
+.top-ribbons span:nth-child(1) { left: -5%; background: var(--maroon); }
+.top-ribbons span:nth-child(2) { left: 29%; background: var(--gold); }
+.top-ribbons span:nth-child(3) { right: -5%; background: var(--navy-dark); }
+.school-header { display: grid; grid-template-columns: 170px 1fr 150px; gap: 18px; align-items: center; min-height: 218px; padding: 4px 0 18px; }
+.school-crest {
+  width: 150px; height: 150px; border: 3px solid var(--gold); border-radius: 50%; background: radial-gradient(circle, #fff 55%, #fff5d9);
+  box-shadow: inset 0 0 0 5px white, inset 0 0 0 7px #e9c56e; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--gold); position: relative;
+}
+.crest-wreath { position: absolute; top: 8px; font-size: 76px; transform: rotate(90deg); opacity: .75; }
+.crest-star { font-size: 65px; line-height: 1; text-shadow: 1px 2px #8b5d00; z-index: 1; }
+.crest-ribbon { font: 700 8px Inter, sans-serif; background: #a87813; color: white; padding: 5px 8px; border-radius: 4px; transform: rotate(-7deg); z-index: 2; }
+.school-heading { text-align: center; }
+.school-heading h1 { color: var(--navy-dark); font: 700 clamp(27px, 4vw, 47px) 'Libre Baskerville', Georgia, serif; margin: 0 0 8px; white-space: nowrap; letter-spacing: -1.2px; }
+.school-address { color: #172c56; font-size: 14px; font-weight: 700; margin: 0 0 10px; }
+.gold-rule { width: 72%; height: 1px; margin: 0 auto 10px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.school-heading h2 { color: var(--maroon); font: 700 clamp(17px, 2.3vw, 24px) 'Libre Baskerville', Georgia, serif; margin: 0 0 8px; }
+.academic-year { color: var(--navy); font-weight: 700; margin: 0 0 8px; }
+.report-label { display: inline-flex; align-items: center; gap: 14px; background: var(--maroon); color: white; border: 2px solid #e5b94c; border-radius: 22px; padding: 6px 22px; font: 700 13px 'Libre Baskerville', Georgia, serif; letter-spacing: 2px; }
+.report-label span { color: #ffd96b; font-size: 10px; }
+.photo-box { height: 150px; border: 2px solid #d4a53d; border-radius: 12px; background: linear-gradient(145deg, #fff, #f1f5fb); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #65748a; gap: 4px; }
+.photo-silhouette { font-size: 42px; color: #c1c8d1; line-height: 1; }
+.photo-box b { font-size: 12px; letter-spacing: 2px; }
+.student-details { display: grid; grid-template-columns: 1.2fr 1fr; border: 1.5px solid #c99c38; border-radius: 8px; overflow: hidden; margin-bottom: 14px; background: #fff; }
+.detail-column + .detail-column { border-left: 1.5px solid #c99c38; }
+.detail-column > div { display: grid; grid-template-columns: minmax(135px, 1fr) 18px 1.4fr; gap: 6px; align-items: center; min-height: 43px; padding: 7px 15px; border-bottom: 1px solid #d6dce5; font-size: 15px; }
+.detail-column > div:last-child { border-bottom: 0; }
+.detail-column b, .detail-column strong { color: var(--navy); }
+.detail-column span { font-weight: 700; }
+.section-heading { background: linear-gradient(105deg, var(--maroon), #6e0a25); color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-radius: 8px 8px 0 0; }
+.section-heading h3, .panel h3 { font: 700 19px 'Libre Baskerville', Georgia, serif; margin: 0; letter-spacing: .5px; }
+.section-heading p { margin: 0; font-size: 13px; font-weight: 700; }
+.marks-table, .term-table { width: 100%; border-collapse: collapse; background: #fff; }
+.marks-table { border: 1px solid var(--line); }
+th, td { border: 1px solid #b9c5d1; padding: 8px 9px; font-size: 14px; }
+.marks-table th { background: #f1f4f7; color: var(--navy); font-weight: 800; font-size: 12px; text-align: center; }
+.marks-table th:nth-child(2) { text-align: left; }
+.marks-table td { text-align: center; }
+.marks-table .subject-name { text-align: left; font-weight: 700; }
+.serial { color: #4b5360; }
+.total-mark { color: var(--navy); font-weight: 800; }
+.pass-pill { display: block; background: #d9f7e5; color: #087a43; font-weight: 800; padding: 4px 8px; border-radius: 4px; }
+.summary-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin: 14px 0; }
+.summary-card { min-height: 78px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid; border-radius: 8px; padding: 9px 7px; background: #fff; }
+.summary-card > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.summary-card b { font-size: 10px; color: var(--navy-dark); white-space: nowrap; }
+.summary-card strong { font: 700 22px 'Libre Baskerville', Georgia, serif; color: var(--navy); white-space: nowrap; }
+.summary-icon { font-size: 25px; font-weight: 800; }
+.blue { border-color: #63b5ec; background: #edf8ff; }.blue .summary-icon { color: #123a75; }
+.red { border-color: #ef8e9c; background: #fff0f2; }.red .summary-icon { color: #ad183d; }.red strong { color: #8d0d2c; }
+.green { border-color: #85d69e; background: #effff2; }.green .summary-icon { color: #16834a; }
+.gold { border-color: #edc36a; background: #fff8e7; }.gold .summary-icon { color: #b17a14; }
+.purple { border-color: #b5a0f1; background: #f6f1ff; }.purple .summary-icon { color: #6a3cc2; }
+.pink { border-color: #f1a0b8; background: #fff0f5; }.pink .summary-icon { color: #b20d53; }
+.middle-panels { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-bottom: 14px; }
+.panel { border: 1.5px solid #c99c38; border-radius: 9px; overflow: hidden; background: #fff; }
+.panel h3 { padding: 11px 14px; color: white; background: var(--navy); font-size: 15px; }
+.remarks-panel h3 { background: var(--maroon); }
+.term-table th { background: #eef3f7; color: var(--navy); font-size: 11px; text-align: left; }
+.term-table td { font-size: 12px; font-weight: 600; padding: 7px 9px; }
+.term-table td:not(:first-child), .term-table th:not(:first-child) { text-align: center; }
+.positive { color: #168348; font-weight: 800 !important; }
+.remarks-content { min-height: 205px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--navy); font: italic 22px/1.9 'Libre Baskerville', Georgia, serif; background: linear-gradient(#fffdf9, #fff9f1); padding: 15px; }
+.bottom-panels { display: grid; grid-template-columns: 1.25fr .75fr; gap: 14px; margin-bottom: 15px; }
+.instructions-panel h3 { background: #f5ead5; color: var(--maroon); }
+.instructions-panel ol { margin: 0; padding: 12px 20px 12px 36px; }
+.instructions-panel li { font-size: 12px; line-height: 1.55; padding: 3px 0 3px 3px; }
+.principal-panel { text-align: center; padding-bottom: 12px; }
+.principal-panel h3 { background: #eaf3fb; color: var(--navy); }
+.principal-seal { width: 115px; height: 115px; border: 2px solid #3d8bea; border-radius: 50%; color: #1768c1; margin: 15px auto 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; outline: 1px solid #8cb9ed; outline-offset: 4px; background: #fafdff; }
+.seal-ring { font: 700 8px Inter, sans-serif; letter-spacing: .6px; }
+.seal-book { font-size: 32px; line-height: 1.2; }
+.principal-seal small { font-size: 9px; line-height: 1.2; font-weight: 700; }
+.signature-line { width: 70%; height: 1px; background: var(--navy); margin: 24px auto 7px; }
+.signature-label { font: 700 11px Inter, sans-serif; color: var(--navy); letter-spacing: 1px; }
+.school-footer { background: linear-gradient(110deg, var(--navy-dark), #123d79, var(--maroon)); color: white; text-align: center; margin: 0 -24px; padding: 17px 12px 15px; border-top: 4px solid #d9a638; }
+.school-footer strong { font: 700 17px 'Libre Baskerville', Georgia, serif; }
+.school-footer p { font-size: 10px; font-weight: 700; letter-spacing: 1px; margin: 7px 0; }
+.footer-ornament { color: #f5d27a; font-size: 10px; letter-spacing: 2px; }
+
+@media (max-width: 760px) {
+  .marksheet-page { padding: 0; }
+  .marksheet { padding: 15px 10px 0; border-width: 2px; }
+  .school-header { grid-template-columns: 72px 1fr 66px; gap: 7px; min-height: auto; padding: 14px 0; }
+  .school-crest { width: 68px; height: 68px; }.crest-wreath { font-size: 38px; top: 3px; }.crest-star { font-size: 32px; }.crest-ribbon { font-size: 4px; padding: 2px; }
+  .school-heading h1 { white-space: normal; font-size: clamp(15px, 4vw, 26px); letter-spacing: -.5px; }
+  .school-address { font-size: 8px; }.school-heading h2 { font-size: 11px; }.academic-year { font-size: 10px; }.report-label { font-size: 8px; padding: 4px 7px; gap: 4px; letter-spacing: .5px; }
+  .photo-box { height: 68px; border-radius: 6px; }.photo-silhouette { font-size: 23px; }.photo-box b { font-size: 7px; }
+  .detail-column > div { grid-template-columns: 1fr 10px 1fr; padding: 6px; font-size: 9px; min-height: 34px; gap: 3px; }
+  .section-heading { align-items: flex-start; gap: 5px; padding: 9px; flex-direction: column; }.section-heading h3 { font-size: 13px; }.section-heading p { font-size: 9px; }
+  th, td { padding: 5px 3px; font-size: 9px; }.marks-table th { font-size: 8px; }.pass-pill { padding: 3px 2px; }
+  .summary-cards { grid-template-columns: repeat(3, 1fr); gap: 5px; }.summary-card { min-height: 58px; gap: 4px; }.summary-icon { font-size: 17px; }.summary-card b { font-size: 7px; }.summary-card strong { font-size: 15px; }
+  .middle-panels, .bottom-panels { grid-template-columns: 1fr; gap: 10px; }.panel h3 { font-size: 12px; padding: 9px; }.term-table td { font-size: 10px; padding: 6px 5px; }.remarks-content { min-height: 125px; font-size: 17px; }
+  .instructions-panel li { font-size: 10px; }.school-footer { margin: 0 -10px; }.school-footer strong { font-size: 13px; }.school-footer p { font-size: 8px; }
+}
+@media print {
+  @page { size: A4 portrait; margin: 7mm; }
+  body { background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .marksheet-page { padding: 0; display: block; }
+  .marksheet { width: 100%; box-shadow: none; border-width: 2px; }
+}

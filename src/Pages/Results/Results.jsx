@@ -8,6 +8,153 @@ import SEO from '../../Components/SEO/SEO'
 import WebsiteLayout from '../../Components/Website/WebsiteLayout'
 import { SCHOOL_KEYWORDS, buildSchoolJsonLd, parseClassSlug, parseRollSlug } from '../../seo/siteSeo'
 import '../../styles/print.css'
+import './Marksheet.css'
+import MarksheetComponent from './MarksheetComponent'
+import ExecutiveWaveDesign from '../../Components/DocumentTemplates/Marksheets/ResultDesigns/ExecutiveWaveDesign'
+import ModernRibbonDesign from '../../Components/DocumentTemplates/Marksheets/ResultDesigns/ModernRibbonDesign'
+import JuniorPlayfulDesign from '../../Components/DocumentTemplates/Marksheets/ResultDesigns/JuniorPlayfulDesign'
+import CanvaThemeDesign from '../../Components/DocumentTemplates/Marksheets/ResultDesigns/CanvaThemeDesign'
+import ClassicFormalDesign from '../../Components/DocumentTemplates/Marksheets/ResultDesigns/ClassicFormalDesign'
+
+export const RESULT_THEMES = {
+  orange: {
+    id: 'orange',
+    number: '5',
+    name: '5. Orange (Bright & Friendly)',
+    shortName: 'Orange',
+    primary: '#9a3412',
+    title: '#c2410c',
+    border: '#ea580c',
+    grid: '#fdba74',
+    bgTint: '#fff7ed',
+    bgAlt: '#fffaf5',
+    barGrad: 'linear-gradient(90deg, #ea580c 0%, #f97316 48%, #ea580c 100%)',
+    pillBg: '#fff7ed',
+    pillBorder: '#ea580c',
+    pillText: '#c2410c',
+    dotColor: '#ea580c',
+  },
+  blue: {
+    id: 'blue',
+    number: '1',
+    name: '1. Classic Blue (Original Style)',
+    shortName: 'Classic Blue',
+    primary: '#061b66',
+    title: '#061b66',
+    border: '#0a2b78',
+    grid: '#9bb0d3',
+    bgTint: '#f8fbff',
+    bgAlt: '#fafcff',
+    barGrad: 'linear-gradient(90deg, #061b66 0%, #082b86 48%, #061b66 100%)',
+    pillBg: '#f0f4ff',
+    pillBorder: '#061b66',
+    pillText: '#061b66',
+    dotColor: '#0a2b78',
+  },
+  green: {
+    id: 'green',
+    number: '2',
+    name: '2. Green (Clean & Fresh)',
+    shortName: 'Green',
+    primary: '#14532d',
+    title: '#15803d',
+    border: '#15803d',
+    grid: '#86efac',
+    bgTint: '#f0fdf4',
+    bgAlt: '#f7fee7',
+    barGrad: 'linear-gradient(90deg, #15803d 0%, #16a34a 48%, #15803d 100%)',
+    pillBg: '#f0fdf4',
+    pillBorder: '#15803d',
+    pillText: '#15803d',
+    dotColor: '#16a34a',
+  },
+  maroon: {
+    id: 'maroon',
+    number: '3',
+    name: '3. Maroon (Elegant)',
+    shortName: 'Maroon',
+    primary: '#7f1d1d',
+    title: '#881337',
+    border: '#991b1b',
+    grid: '#fca5a5',
+    bgTint: '#fef2f2',
+    bgAlt: '#fff1f2',
+    barGrad: 'linear-gradient(90deg, #881337 0%, #9f1239 48%, #881337 100%)',
+    pillBg: '#fef2f2',
+    pillBorder: '#991b1b',
+    pillText: '#881337',
+    dotColor: '#991b1b',
+  },
+  purple: {
+    id: 'purple',
+    number: '4',
+    name: '4. Purple (Modern Look)',
+    shortName: 'Purple',
+    primary: '#581c87',
+    title: '#6b21a8',
+    border: '#6b21a8',
+    grid: '#d8b4fe',
+    bgTint: '#faf5ff',
+    bgAlt: '#fdf4ff',
+    barGrad: 'linear-gradient(90deg, #581c87 0%, #7e22ce 48%, #581c87 100%)',
+    pillBg: '#faf5ff',
+    pillBorder: '#6b21a8',
+    pillText: '#6b21a8',
+    dotColor: '#7e22ce',
+  },
+  teal: {
+    id: 'teal',
+    number: '6',
+    name: '6. Teal (Professional)',
+    shortName: 'Teal',
+    primary: '#134e4a',
+    title: '#0f766e',
+    border: '#0f766e',
+    grid: '#99f6e4',
+    bgTint: '#f0fdfa',
+    bgAlt: '#f2fbf9',
+    barGrad: 'linear-gradient(90deg, #0f766e 0%, #0d9488 48%, #0f766e 100%)',
+    pillBg: '#f0fdfa',
+    pillBorder: '#0f766e',
+    pillText: '#0f766e',
+    dotColor: '#0d9488',
+  },
+  brown: {
+    id: 'brown',
+    number: '7',
+    name: '7. Brown (Premium)',
+    shortName: 'Brown',
+    primary: '#451a03',
+    title: '#78350f',
+    border: '#78350f',
+    grid: '#fde68a',
+    bgTint: '#fefce8',
+    bgAlt: '#fffbeb',
+    barGrad: 'linear-gradient(90deg, #78350f 0%, #92400e 48%, #78350f 100%)',
+    pillBg: '#fefce8',
+    pillBorder: '#78350f',
+    pillText: '#78350f',
+    dotColor: '#92400e',
+  },
+  pink: {
+    id: 'pink',
+    number: '8',
+    name: '8. Pink (Soft & Attractive)',
+    shortName: 'Pink',
+    primary: '#831843',
+    title: '#be185d',
+    border: '#be185d',
+    grid: '#fbcfe8',
+    bgTint: '#fdf2f8',
+    bgAlt: '#fff1f2',
+    barGrad: 'linear-gradient(90deg, #9d174d 0%, #be185d 48%, #9d174d 100%)',
+    pillBg: '#fdf2f8',
+    pillBorder: '#be185d',
+    pillText: '#be185d',
+    dotColor: '#db2777',
+  },
+}
+
 
 const SUMMARY_TERMINALS = ['First', 'Second', 'Third', 'Annual']
 const TERMINAL_ALIAS_MAP = {
@@ -175,6 +322,9 @@ function Results() {
 
   const [loading, setLoading] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
+  const [selectedThemeKey, setSelectedThemeKey] = useState('orange')
+  const [selectedDesign, setSelectedDesign] = useState('design2')
+  const currentTheme = RESULT_THEMES[selectedThemeKey] || RESULT_THEMES.orange
   const [error, setError] = useState('')
   const [data, setData] = useState(null)
   const [termSummaries, setTermSummaries] = useState({})
@@ -359,6 +509,16 @@ function Results() {
 
   const isTermAvailable = (terminalKey) => {
     return Boolean(termSummaries[terminalKey])
+  }
+
+  const getDisplaySummaryMetric = (terminalKey, metricKey) => {
+    if (!isTermAvailable(terminalKey)) return 'Result Not Found'
+    const row = termSummaries[terminalKey]
+    if (!row) return '--'
+    const val = row[metricKey]
+    if (val === undefined || val === null || val === '') return '--'
+    if (metricKey === 'percentage') return `${val}%`
+    return toDisplayValue(val)
   }
 
   const getSummaryCellValue = (terminalKey, value, fallback = '--') => {
@@ -553,6 +713,40 @@ function Results() {
     ['Rank', currentRankLabel],
     ['Published Date', currentPublishedDate],
   ]
+  const renderActiveDesign = () => {
+    const commonProps = {
+      data,
+      student,
+      studentRollLabel,
+      params,
+      sessionDisplay,
+      schoolLogo,
+      stampcert,
+      studentPhotoUrl,
+      processedMarks,
+      currentTotalMarksLabel,
+      currentObtainedLabel,
+      currentPercentageLabel,
+      currentDivisionLabel,
+      currentRankLabel,
+      currentPublishedDate,
+      currentSummary,
+      termSummaries,
+      summaryReportTerminals,
+      toDisplayValue,
+      getDisplaySummaryMetric,
+      getDisplayRank,
+      getPublishedDateFromSummary,
+      formatDateLabel,
+      formatTerminalExamTitle,
+      SCHOOL_NAME,
+      SCHOOL_ADDRESS,
+    }
+
+    return <ExecutiveWaveDesign {...commonProps} />
+  }
+
+
   const canonicalPath = classSlug && rollNumber ? `/results/${classSlug}/roll-${rollNumber}` : '/result'
 
   const getStatusTextColor = (status) => {
@@ -614,27 +808,35 @@ function Results() {
 
     const { default: html2canvas } = await import('html2canvas-pro')
 
-    // Always create a clean fixed desktop-width (920px) capture container at (0, 0)
-    // Ensures 100% complete UI capture on all screen sizes (mobile, tablet, desktop)
+    const targetWidth = 920
+    const targetHeight = Math.round(targetWidth * (297 / 210)) // 1301px (Exact A4 proportion)
+
     const container = document.createElement('div')
     container.style.position = 'fixed'
     container.style.top = '0'
     container.style.left = '0'
-    container.style.width = '920px'
-    container.style.minWidth = '920px'
-    container.style.maxWidth = '920px'
+    container.style.width = `${targetWidth}px`
+    container.style.minWidth = `${targetWidth}px`
+    container.style.maxWidth = `${targetWidth}px`
     container.style.zIndex = '-9999'
     container.style.pointerEvents = 'none'
     container.style.backgroundColor = '#ffffff'
     container.style.overflow = 'visible'
 
     const clone = sourceCard.cloneNode(true)
-    clone.style.width = '920px'
-    clone.style.minWidth = '920px'
-    clone.style.maxWidth = '920px'
+    clone.style.width = `${targetWidth}px`
+    clone.style.minWidth = `${targetWidth}px`
+    clone.style.maxWidth = `${targetWidth}px`
     clone.style.margin = '0'
     clone.style.boxShadow = 'none'
     clone.style.transform = 'none'
+
+    const innerCard = clone.querySelector('.result-card-exact') || clone.firstElementChild || clone
+    if (innerCard) {
+      innerCard.style.width = `${targetWidth}px`
+      innerCard.style.minHeight = `${targetHeight}px`
+      innerCard.style.boxSizing = 'border-box'
+    }
 
     const origImgs = sourceCard.querySelectorAll('img')
     const cloneImgs = clone.querySelectorAll('img')
@@ -652,11 +854,11 @@ function Results() {
     await new Promise((resolve) => setTimeout(resolve, 150))
 
     try {
-      const captureWidth = 920
-      const captureHeight = clone.offsetHeight || clone.scrollHeight || 1200
+      const captureWidth = targetWidth
+      const captureHeight = Math.max(targetHeight, clone.offsetHeight || clone.scrollHeight || targetHeight)
 
       const canvas = await html2canvas(clone, {
-        scale: 2.5,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
@@ -668,7 +870,6 @@ function Results() {
         x: 0,
         y: 0,
         onclone: (clonedDoc) => {
-          // Convert Tailwind CSS oklch colors to standard RGB for html2canvas compatibility
           const scratchCanvas = document.createElement('canvas')
           const ctx = scratchCanvas.getContext('2d')
           const toRgb = (val) => {
@@ -730,18 +931,9 @@ function Results() {
 
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
-    const renderSidePadding = 12
-    const renderTopPadding = 12
-    const renderBottomPadding = 12
-    const renderWidthLimit = pageWidth - (renderSidePadding * 2)
-    const renderHeightLimit = pageHeight - renderTopPadding - renderBottomPadding
-    const fitScale = Math.min(renderWidthLimit / canvas.width, renderHeightLimit / canvas.height)
-    const renderWidth = canvas.width * fitScale
-    const renderHeight = canvas.height * fitScale
-    const renderX = (pageWidth - renderWidth) / 2
-    const renderY = (pageHeight - renderHeight) / 2
 
-    doc.addImage(imgData, 'PNG', renderX, renderY, renderWidth, renderHeight, undefined, 'FAST')
+    // Full A4 page coverage edge-to-edge
+    doc.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST')
 
     return doc.output('blob')
   }
@@ -850,384 +1042,117 @@ function Results() {
       />
       <div className="bg-white text-[#0f172a] overflow-x-hidden" style={{ fontFamily: "'Lexend', sans-serif" }}>
         <header className="no-print relative z-30 border-b border-[#e2e8f0] bg-white">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-           
-          </div>
+          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
 
-          <div className="relative z-40 flex flex-wrap items-center gap-2 pointer-events-auto">
-            <Link
-              to="/results-portal"
-              className="inline-flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-bold text-[#334155] hover:bg-[#f8fafc]"
-            >
-              <span className="material-symbols-outlined text-sm">arrow_back</span>
-              New Search
-            </Link>
-            {data ? (
-              <>
-                <button
-                  type="button"
-                  disabled={pdfBusy}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    handleDownloadPdf()
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg bg-[#9b2335] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#9b2335]/90 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="material-symbols-outlined text-sm">{pdfBusy ? 'hourglass_top' : 'picture_as_pdf'}</span>
-                  {pdfBusy ? 'Preparing PDF...' : 'Download PDF'}
-                </button>
-                <button
-                  type="button"
-                  disabled={pdfBusy}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    handleDownloadPng()
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg bg-[#061b66] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#061b66]/90 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="material-symbols-outlined text-sm">{pdfBusy ? 'hourglass_top' : 'image'}</span>
-                  {pdfBusy ? 'Preparing...' : 'Download PNG'}
-                </button>
-              </>
-            ) : null}
-           
-            
+            </div>
+
+            <div className="relative z-40 flex flex-wrap items-center gap-2 pointer-events-auto">
+              <Link
+                to="/results-portal"
+                className="inline-flex items-center gap-1 rounded-lg border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-bold text-[#334155] hover:bg-[#f8fafc]"
+              >
+                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                New Search
+              </Link>
+              {data ? (
+                <>
+                  
+                  <button
+                    type="button"
+                    disabled={pdfBusy}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      handleDownloadPdf()
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#9b2335] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#9b2335]/90 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-sm">{pdfBusy ? 'hourglass_top' : 'picture_as_pdf'}</span>
+                    {pdfBusy ? 'Preparing PDF...' : 'Download PDF'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pdfBusy}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      handleDownloadPng()
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#061b66] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#061b66]/90 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-sm">{pdfBusy ? 'hourglass_top' : 'image'}</span>
+                    {pdfBusy ? 'Preparing...' : 'Download PNG'}
+                  </button>
+                </>
+              ) : null}
+
+
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
         <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4">
-        <div className="bg-white border border-[#e2e8f0] p-4 no-print">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#c79843]">badge</span>
-              <div>
-                <p className="text-sm font-bold">Class {params.classValue || '--'} | Roll {params.roll || '--'}</p>
-                <p className="text-xs text-[#64748b]">
-                  Terminal: <span className="font-bold">{params.terminal || '--'}</span>
-                  {params.section ? (
-                    <>
-                      {' '}
-                      | Section: <span className="font-bold">{params.section}</span>
-                    </>
-                  ) : null}
-                  {params.session ? (
-                    <>
-                      {' '}
-                      | Session: <span className="font-bold">{params.session}</span>
-                    </>
-                  ) : null}
-                </p>
-              </div>
-            </div>
-            {currentSummary?.status ? (
-              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 border border-[#cbd5df] bg-white text-[#244f97]">
-                <span className="material-symbols-outlined text-sm">verified</span>
-                {currentSummary.status}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="bg-white border border-[#e2e8f0] p-6">
-            <div className="flex items-center gap-2 text-[#475569]">
-              <span className="material-symbols-outlined animate-spin">sync</span>
-              <span className="text-sm font-bold">Fetching result...</span>
-            </div>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="bg-[#fef2f2] border border-[#fecaca] p-4">
-            <p className="text-sm font-bold text-[#b91c1c]">{error}</p>
-            <p className="text-xs text-[rgba(220,38,38,0.8)] mt-1">
-              Please verify details and ensure result is published for the selected terminal.
-            </p>
-          </div>
-        ) : null}
-
-        {(!loading && !error && data) && (
-          <>
-            <div className="print-card-only">
-              <div
-                ref={cardRef}
-                data-result-card-capture="true"
-                className="result-print result-card-exact print-card relative overflow-hidden bg-white text-[12px] leading-[1.3] text-[#06154b] sm:text-[13px]"
-                style={{ width: '100%', maxWidth: '920px', margin: '0 auto' }}
-              >
-                <div className="result-card-inner px-3 py-3 sm:px-4 sm:py-4">
-                  <div
-                    className="result-card-header px-1 pb-3 sm:px-2 sm:pb-4"
-                  >
-                    <div className="grid gap-2.5 sm:grid-cols-[148px_minmax(0,1fr)_148px] sm:items-start sm:gap-4">
-                      <div className="mx-auto w-fit sm:mx-0 sm:justify-self-start">
-                        <div
-                          className="result-logo-ring flex h-[92px] w-[92px] items-center justify-center rounded-full p-1.5 sm:h-[132px] sm:w-[132px]"
-                        >
-                          <img src={schoolLogo} alt="School logo" loading="eager" decoding="sync" className="h-full w-full rounded-full bg-white object-contain p-1" />
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 text-center sm:px-1">
-                        <h1
-                          className="result-school-title mx-auto mt-1.5 max-w-[760px] text-[24px] font-black uppercase leading-[1.05] tracking-[0.03em] text-[#061b66] sm:text-[43px]"
-                          style={{ fontFamily: "'Baskerville Old Face', 'Book Antiqua', 'Palatino Linotype', 'Georgia', serif" }}
-                        >
-                          {SCHOOL_NAME}
-                        </h1>
-                        <p className="mx-auto mt-2 max-w-[660px] text-[10px] font-semibold text-[#061b66] sm:mt-2.5 sm:text-[14px]">
-                          {SCHOOL_ADDRESS}
-                        </p>
-                        <div className="mt-2.5 flex flex-col items-center justify-center space-y-1">
-                          <p className="text-[12px] font-extrabold uppercase tracking-[0.03em] text-[#061b66] sm:text-[16px]">
-                            {formatTerminalExamTitle(data.terminal)}
-                          </p>
-                          <p className="text-[11px] font-bold text-[#061b66] sm:text-[13px]">
-                            {sessionDisplay.label} : {sessionDisplay.text}
-                          </p>
-
-                          {/* Official Report Card Title with Non-overlapping Separation Lines */}
-                          <div className="pt-1.5 flex items-center justify-center gap-2.5 w-full max-w-[340px]">
-                            <span className="h-[1.5px] flex-1 bg-[#061b66]" />
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#061b66] bg-[#f0f4ff] px-3.5 py-0.5 text-[10px] font-black uppercase tracking-[0.09em] text-[#061b66] sm:text-[12px]">
-                              <span className="text-[8px] text-[#061b66]">◆</span>
-                              Report Card
-                              <span className="text-[8px] text-[#061b66]">◆</span>
-                            </span>
-                            <span className="h-[1.5px] flex-1 bg-[#061b66]" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-center sm:justify-self-end">
-                        <div className="result-student-photo-box">
-                          {studentPassportPhotoUrl ? (
-                            <img
-                              src={studentPassportPhotoUrl}
-                              alt={`${student?.name || 'Student'} photo`}
-                              crossOrigin="anonymous"
-                              loading="eager"
-                              decoding="async"
-                              className="result-student-photo"
-                            />
-                          ) : (
-                            <div className="result-photo-placeholder">
-                              Photo
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-
-                    <div className="mt-3 overflow-hidden rounded-[4px] border border-[#0a2b78] bg-white">
-                      <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-[#0a2b78]">
-                        {studentInfoColumns.map((column, columnIndex) => (
-                          <div key={columnIndex === 0 ? 'student-left' : 'student-right'} className={columnIndex === 1 ? 'border-t border-[#0a2b78] md:border-t-0' : ''}>
-                            {column.map(([label, value]) => (
-                              <div key={label} className="grid grid-cols-[118px_14px_minmax(0,1fr)] border-b border-[#9bb0d3] px-3 py-2 text-[11px] last:border-b-0 sm:grid-cols-[150px_18px_minmax(0,1fr)] sm:px-4 sm:py-2.5 sm:text-[16px]">
-                                <div className="font-black text-[#061b66]">{label}</div>
-                                <div className="font-black text-[#061b66]">:</div>
-                                <div className="font-bold text-black">{toDisplayValue(value)}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 overflow-hidden rounded-[4px] border border-[#0a2b78] bg-white">
-                      <div className="result-section-bar flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <h3 className="text-[13px] font-black uppercase tracking-[0.06em] text-white sm:text-[18px]">Scholastic Areas</h3>
-                        <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.04em] text-white sm:text-[13px]">
-                          <span>Subjects : {processedMarks.length}</span>
-                          <span>Pass : 30</span>
-                          <span>Drawing Pass : 15</span>
-                        </div>
-                      </div>
-
-                      <div className="overflow-x-auto">
-                        <table className="result-data-table w-full min-w-[690px] border-collapse border-spacing-0 text-[11px] sm:text-[16px]">
-                          <thead>
-                            <tr className="bg-[#f8fbff] text-[#061b66]">
-                              <th className="border border-[#9bb0d3] px-3 py-2.5 text-left font-black uppercase tracking-[0.06em]">Subject</th>
-                              <th className="border border-[#9bb0d3] px-2 py-2.5 text-center font-black uppercase tracking-[0.06em]">FM</th>
-                              <th className="border border-[#9bb0d3] px-2 py-2.5 text-center font-black uppercase tracking-[0.06em]">Pass</th>
-                              <th className="border border-[#9bb0d3] px-2 py-2.5 text-center font-black uppercase tracking-[0.06em]">Ext</th>
-                              <th className="border border-[#9bb0d3] px-2 py-2.5 text-center font-black uppercase tracking-[0.06em]">Int</th>
-                              <th className="border border-[#9bb0d3] px-2 py-2.5 text-center font-black uppercase tracking-[0.06em]">Total</th>
-                              <th className="border border-[#9bb0d3] px-2 py-2.5 text-center font-black uppercase tracking-[0.06em]">Result</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {processedMarks.length === 0 && (
-                              <tr>
-                                <td colSpan={7} className="py-6 text-center font-medium text-[#475569]">No marks available</td>
-                              </tr>
-                            )}
-
-                            {processedMarks.map((m, idx) => (
-                              <tr key={m.key} className="bg-white">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-bold uppercase text-black">{m.subjectName}</td>
-                                <td className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-black">{m.fullMarks}</td>
-                                <td className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-black">{m.passMarks}</td>
-                                <td className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-black">{m.externalDisplay}</td>
-                                <td className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-black">{m.internalDisplay}</td>
-                                <td className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">{m.obtainedDisplay}</td>
-                                <td className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getStatusTextColor(m.status)}`}>{m.status}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 overflow-x-auto rounded-[4px] border border-[#0a2b78] bg-white">
-                      <table className="w-full min-w-[640px] border-collapse border-spacing-0 text-[10px] sm:text-[15px]">
-                        <tbody>
-                          <tr>
-                            {performanceSummaryItems.map(([label, value]) => (
-                              <td key={label} className="border border-[#9bb0d3] px-2 py-2.5 text-center align-middle">
-                                <p className="text-[8px] font-black uppercase tracking-[0.08em] text-[#061b66] sm:text-[12px]">{label}</p>
-                                <p className="mt-1 text-[14px] font-black text-[#061b66] sm:text-[21px]">{value}</p>
-                              </td>
-                            ))}
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {summaryReportTerminals.length > 0 && (
-                      <div className="mt-3 overflow-hidden rounded-[4px] border border-[#0a2b78] bg-white">
-                        <div className="result-section-bar flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                          <h3 className="text-[13px] font-black uppercase tracking-[0.06em] text-white sm:text-[18px]">Summary Report</h3>
-                          <span className="text-[10px] font-black uppercase tracking-[0.04em] text-white sm:text-[13px]">Rank Scope : Class + Section</span>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[620px] border-collapse border-spacing-0 text-[11px] sm:text-[15px]">
-                            <thead>
-                              <tr className="bg-[#f8fbff] text-[#061b66]">
-                                <th className="border border-[#9bb0d3] px-3 py-2 text-left font-black uppercase tracking-[0.06em]">Metric</th>
-                                {summaryReportTerminals.map((t) => (
-                                  <th key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black uppercase tracking-[0.06em]">{t} Term</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr className="bg-white">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Total Marks</td>
-                                {summaryReportTerminals.map((t) => (
-                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
-                                    {getSummaryCellValue(t, termSummaries[t]?.total_max_marks)}
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="bg-[#fafcff]">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Marks Obtained</td>
-                                {summaryReportTerminals.map((t) => (
-                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
-                                    {getSummaryCellValue(t, termSummaries[t]?.total_obtained)}
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="bg-white">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Percentage</td>
-                                {summaryReportTerminals.map((t) => (
-                                  <td key={t} className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getDivisionColor(termSummaries[t]?.division)}`}>
-                                    {getSummaryCellValue(
-                                      t,
-                                      typeof termSummaries[t]?.percentage !== 'undefined' && termSummaries[t]?.percentage !== null
-                                        ? `${termSummaries[t].percentage}%`
-                                        : '--'
-                                    )}
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="bg-[#fafcff]">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Division</td>
-                                {summaryReportTerminals.map((t) => (
-                                  <td key={t} className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getDivisionColor(termSummaries[t]?.division)}`}>
-                                    {getSummaryCellValue(t, termSummaries[t]?.division)}
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="bg-white">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Class &amp; Section Rank</td>
-                                {summaryReportTerminals.map((t) => (
-                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
-                                    {getDisplayRank(t)}
-                                  </td>
-                                ))}
-                              </tr>
-                              <tr className="bg-[#fafcff]">
-                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Published Date</td>
-                                {summaryReportTerminals.map((t) => {
-                                  const publishedDate = getPublishedDateFromSummary(termSummaries[t])
-                                  return (
-                                    <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-[#061b66]">
-                                      {isTermAvailable(t) ? (
-                                        publishedDate 
-                                          ? new Date(publishedDate).toLocaleDateString('en-IN')
-                                          : '--'
-                                      ) : (
-                                        'Result Not Found'
-                                      )}
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="result-instructions-sign mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
-                      <div className="rounded-[4px] border border-[#0a2b78] bg-white px-5 py-3">
-                        <p className="text-[14px] font-black uppercase tracking-[0.08em] text-[#061b66] sm:text-[19px]">Instructions</p>
-                        <div className="mt-3 space-y-2 text-[11px] leading-[1.35] text-black sm:text-[14px]">
-                          <p>1. This is a computer-generated result marksheet for official school use.</p>
-                          <p>2. The details shown here are based on official school records.</p>
-                          <p>3. Any discrepancy should be reported within 7 days of result declaration.</p>
-                          <p>4. AB denotes absent and NA denotes not applicable.</p>
-                          <p>5. Pass Marks: 30 for regular subjects and 15 for Drawing.</p>
-                          <p>6. Rank displayed above is calculated class and section wise.</p>
-                        </div>
-                      </div>
-
-                      <div className="overflow-hidden rounded-[4px] border border-[#0a2b78] bg-white">
-                        <p className="border-b border-[#9bb0d3] px-3 py-2 text-center text-[13px] font-black uppercase tracking-[0.08em] text-[#061b66] sm:text-[17px]">Principal Sign &amp; Stamp</p>
-                        <div className="flex min-h-[144px] items-end justify-center px-5 py-3 sm:min-h-[174px]">
-                          <div className="w-full max-w-[230px] text-center text-[11px] font-black uppercase tracking-[0.08em] text-[#061b66] sm:text-[15px]">
-                            <div className="mb-2 flex justify-center">
-                              <img
-                                src={stampcert}
-                                alt="Temporary principal sign and stamp placeholder"
-                                loading="eager"
-                                decoding="sync"
-                                className="h-[86px] w-[86px] rounded-full border border-[#9bb0d3] bg-[#f8fbff] p-1.5 object-cover opacity-90 sm:h-[118px] sm:w-[118px]"
-                              />
-                            </div>
-                            <div className="h-7 border-b-2 border-[#061b66]" />
-                            <p className="mt-2">Principal Signature</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="result-card-footer mt-4 px-3 py-3 text-center text-[10px] font-black uppercase tracking-[0.09em] text-white sm:text-[14px]">
-                      {SCHOOL_NAME} | {SCHOOL_ADDRESS}
-                    </div>
+          <div className="bg-white border border-[#e2e8f0] p-4 no-print">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#c79843]">badge</span>
+                <div>
+                  <p className="text-sm font-bold">Class {params.classValue || '--'} | Roll {params.roll || '--'}</p>
+                  <p className="text-xs text-[#64748b]">
+                    Terminal: <span className="font-bold">{params.terminal || '--'}</span>
+                    {params.section ? (
+                      <>
+                        {' '}
+                        | Section: <span className="font-bold">{params.section}</span>
+                      </>
+                    ) : null}
+                    {params.session ? (
+                      <>
+                        {' '}
+                        | Session: <span className="font-bold">{params.session}</span>
+                      </>
+                    ) : null}
+                  </p>
                 </div>
               </div>
+              {currentSummary?.status ? (
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 border border-[#cbd5df] bg-white text-[#244f97]">
+                  <span className="material-symbols-outlined text-sm">verified</span>
+                  {currentSummary.status}
+                </span>
+              ) : null}
             </div>
-          </>
+          </div>
+
+          {loading ? (
+            <div className="bg-white border border-[#e2e8f0] p-6">
+              <div className="flex items-center gap-2 text-[#475569]">
+                <span className="material-symbols-outlined animate-spin">sync</span>
+                <span className="text-sm font-bold">Fetching result...</span>
+              </div>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="bg-[#fef2f2] border border-[#fecaca] p-4">
+              <p className="text-sm font-bold text-[#b91c1c]">{error}</p>
+              <p className="text-xs text-[rgba(220,38,38,0.8)] mt-1">
+                Please verify details and ensure result is published for the selected terminal.
+              </p>
+            </div>
+          ) : null}
+
+          {(!loading && !error && data) && (
+          <div className="print-card-only marksheet-page" style={{ padding: 0 }}>
+            <div
+              ref={cardRef}
+              data-result-card-capture="true"
+              style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+            >
+              {renderActiveDesign()}
+            </div>
+          </div>
         )}
         </main>
       </div>
