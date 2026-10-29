@@ -49,6 +49,13 @@ export default function OfficialStarPublicMarksheet({
     (totalFullMarks > 0 ? ((totalObtained / totalFullMarks) * 100).toFixed(2) : '57.13')
   const division = data.division || 'Second'
 
+  // Flag to hide first term summary result as requested ("abhi ke liye First term ke marksheet me result summary me first term ke result hide kr do")
+  const hideFirstTermSummary =
+    customization.hideFirstTermSummary !== undefined
+      ? Boolean(customization.hideFirstTermSummary)
+      : true
+  const hideSummaryTable = Boolean(customization.hideSummaryTable)
+
   return (
     <div
       id={id || `marksheet-${rollNo}`}
@@ -217,52 +224,54 @@ export default function OfficialStarPublicMarksheet({
           </div>
 
           {/* 4. Summary Table (Empty top-left header, First Term on right, centered rows) */}
-          <div className="border border-[#cfdbe8] rounded-xl overflow-hidden bg-white text-xs sm:text-sm">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-[#ebf1fa] border-b border-[#cfdbe8]">
-                  <th className="py-2.5 px-4 w-1/2"></th>
-                  <th className="py-2.5 px-4 w-1/2 text-center font-bold text-slate-800 border-l border-[#cfdbe8]">
-                    {termHeader}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#cfdbe8]">
-                <tr>
-                  <td className="py-2 px-4 text-center font-bold text-slate-800">
-                    Total Marks
-                  </td>
-                  <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
-                    {totalFullMarks}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 text-center font-bold text-slate-800">
-                    Marks Obtained
-                  </td>
-                  <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
-                    {totalObtained}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 text-center font-bold text-slate-800">
-                    Percentage
-                  </td>
-                  <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
-                    {percentage}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 text-center font-bold text-slate-800">
-                    Division
-                  </td>
-                  <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
-                    {division}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {!hideSummaryTable && (
+            <div className="border border-[#cfdbe8] rounded-xl overflow-hidden bg-white text-xs sm:text-sm">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-[#ebf1fa] border-b border-[#cfdbe8]">
+                    <th className="py-2.5 px-4 w-1/2"></th>
+                    <th className="py-2.5 px-4 w-1/2 text-center font-bold text-slate-800 border-l border-[#cfdbe8]">
+                      {termHeader}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#cfdbe8]">
+                  <tr>
+                    <td className="py-2 px-4 text-center font-bold text-slate-800">
+                      Total Marks
+                    </td>
+                    <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
+                      {hideFirstTermSummary ? '-' : totalFullMarks}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 text-center font-bold text-slate-800">
+                      Marks Obtained
+                    </td>
+                    <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
+                      {hideFirstTermSummary ? '-' : totalObtained}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 text-center font-bold text-slate-800">
+                      Percentage
+                    </td>
+                    <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
+                      {hideFirstTermSummary ? '-' : percentage}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 text-center font-bold text-slate-800">
+                      Division
+                    </td>
+                    <td className="py-2 px-4 text-center font-bold text-slate-900 border-l border-[#cfdbe8]">
+                      {hideFirstTermSummary ? '-' : division}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* 5. Important Information Box */}
           <div className="border border-[#cfdbe8] rounded-xl p-4 sm:p-5 text-[11px] sm:text-xs leading-relaxed text-slate-700 bg-white relative">

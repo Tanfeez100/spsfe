@@ -420,6 +420,16 @@ function Results() {
   const currentObtainedLabel = toDisplayValue(currentSummary?.total_obtained)
   const currentDivisionLabel = toDisplayValue(currentSummary?.division)
 
+  const summaryReportTerminals = useMemo(() => {
+    // Hide 'First' term from Summary Report as requested ("abhi ke liye First term ke marksheet me result summary me first term ke result hide kr do")
+    return (visibleTerminals || []).filter((t) => {
+      if (t === 'First') return false
+      const s = termSummaries[t]
+      if (s && Number(s.total_obtained || 0) === 0 && !s.published_date) return false
+      return true
+    })
+  }, [visibleTerminals, termSummaries])
+
   const processedMarks = useMemo(() => {
     return marks.map((mark, idx) => {
       const subjectName = toDisplayValue(
@@ -602,69 +612,97 @@ function Results() {
       throw new Error('Result card not found.')
     }
 
-    // Use modern html2canvas-pro for full Tailwind CSS v4 support, crisp font antialiasing, and exact color fidelity
     const { default: html2canvas } = await import('html2canvas-pro')
 
-    await waitForCaptureAssets(sourceCard)
+    // Always create a clean fixed desktop-width (920px) capture container at (0, 0)
+    // Ensures 100% complete UI capture on all screen sizes (mobile, tablet, desktop)
+    const container = document.createElement('div')
+    container.style.position = 'fixed'
+    container.style.top = '0'
+    container.style.left = '0'
+    container.style.width = '920px'
+    container.style.minWidth = '920px'
+    container.style.maxWidth = '920px'
+    container.style.zIndex = '-9999'
+    container.style.pointerEvents = 'none'
+    container.style.backgroundColor = '#ffffff'
+    container.style.overflow = 'visible'
 
-    // Check if on-screen card is already at full desktop dimensions (>= 850px)
-    const isDesktopView = sourceCard.offsetWidth >= 850
+    const clone = sourceCard.cloneNode(true)
+    clone.style.width = '920px'
+    clone.style.minWidth = '920px'
+    clone.style.maxWidth = '920px'
+    clone.style.margin = '0'
+    clone.style.boxShadow = 'none'
+    clone.style.transform = 'none'
 
-    let targetElement = sourceCard
-    let cleanup = null
-
-    if (!isDesktopView) {
-      // For mobile/tablet, clone into an offscreen desktop container to preserve exact 920px proportions
-      const container = document.createElement('div')
-      container.style.position = 'fixed'
-      container.style.top = '0'
-      container.style.left = '-10000px'
-      container.style.width = '920px'
-      container.style.minWidth = '920px'
-      container.style.maxWidth = '920px'
-      container.style.zIndex = '-9999'
-      container.style.backgroundColor = '#ffffff'
-      container.style.overflow = 'visible'
-
-      const clone = sourceCard.cloneNode(true)
-      clone.style.width = '920px'
-      clone.style.minWidth = '920px'
-      clone.style.maxWidth = '920px'
-      clone.style.margin = '0'
-
-      const origImgs = sourceCard.querySelectorAll('img')
-      const cloneImgs = clone.querySelectorAll('img')
-      origImgs.forEach((orig, idx) => {
-        if (cloneImgs[idx]) {
-          cloneImgs[idx].src = orig.currentSrc || orig.src
-        }
-      })
-
-      container.appendChild(clone)
-      document.body.appendChild(container)
-      await waitForCaptureAssets(clone)
-
-      targetElement = clone
-      cleanup = () => {
-        if (document.body.contains(container)) {
-          document.body.removeChild(container)
-        }
+    const origImgs = sourceCard.querySelectorAll('img')
+    const cloneImgs = clone.querySelectorAll('img')
+    origImgs.forEach((orig, idx) => {
+      if (cloneImgs[idx]) {
+        cloneImgs[idx].src = orig.currentSrc || orig.src
+        cloneImgs[idx].crossOrigin = 'anonymous'
       }
-    }
+    })
+
+    container.appendChild(clone)
+    document.body.appendChild(container)
+
+    await waitForCaptureAssets(clone)
+    await new Promise((resolve) => setTimeout(resolve, 150))
 
     try {
-      const captureWidth = targetElement.offsetWidth || 920
-      const captureHeight = targetElement.offsetHeight || targetElement.scrollHeight
+      const captureWidth = 920
+      const captureHeight = clone.offsetHeight || clone.scrollHeight || 1200
 
-      const canvas = await html2canvas(targetElement, {
-        scale: 3, // Crisp 300 DPI print quality
+      const canvas = await html2canvas(clone, {
+        scale: 2.5,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
         width: captureWidth,
         height: captureHeight,
-        windowWidth: 1200, // Enforce desktop viewport so Tailwind 'sm:' media queries are always applied
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
+        onclone: (clonedDoc) => {
+          // Convert Tailwind CSS oklch colors to standard RGB for html2canvas compatibility
+          const scratchCanvas = document.createElement('canvas')
+          const ctx = scratchCanvas.getContext('2d')
+          const toRgb = (val) => {
+            if (!val || typeof val !== 'string' || !val.includes('oklch')) return val
+            try {
+              ctx.fillStyle = '#000000'
+              ctx.fillStyle = val
+              return ctx.fillStyle
+            } catch (_) {
+              return '#000000'
+            }
+          }
+          const colorProps = [
+            'color',
+            'backgroundColor',
+            'borderColor',
+            'borderTopColor',
+            'borderRightColor',
+            'borderBottomColor',
+            'borderLeftColor',
+            'outlineColor',
+          ]
+          clonedDoc.querySelectorAll('*').forEach((el) => {
+            try {
+              const comp = (clonedDoc.defaultView || window).getComputedStyle(el)
+              colorProps.forEach((prop) => {
+                const val = comp[prop]
+                if (val && typeof val === 'string' && val.includes('oklch')) {
+                  el.style[prop] = toRgb(val)
+                }
+              })
+            } catch (_) {}
+          })
+        },
       })
 
       if (!canvas || !canvas.width || !canvas.height) {
@@ -673,7 +711,9 @@ function Results() {
 
       return canvas
     } finally {
-      if (cleanup) cleanup()
+      if (document.body.contains(container)) {
+        document.body.removeChild(container)
+      }
     }
   }
 
@@ -1062,89 +1102,91 @@ function Results() {
                       </table>
                     </div>
 
-                    <div className="mt-3 overflow-hidden rounded-[4px] border border-[#0a2b78] bg-white">
-                      <div className="result-section-bar flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <h3 className="text-[13px] font-black uppercase tracking-[0.06em] text-white sm:text-[18px]">Summary Report</h3>
-                        <span className="text-[10px] font-black uppercase tracking-[0.04em] text-white sm:text-[13px]">Rank Scope : Class + Section</span>
-                      </div>
+                    {summaryReportTerminals.length > 0 && (
+                      <div className="mt-3 overflow-hidden rounded-[4px] border border-[#0a2b78] bg-white">
+                        <div className="result-section-bar flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                          <h3 className="text-[13px] font-black uppercase tracking-[0.06em] text-white sm:text-[18px]">Summary Report</h3>
+                          <span className="text-[10px] font-black uppercase tracking-[0.04em] text-white sm:text-[13px]">Rank Scope : Class + Section</span>
+                        </div>
 
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[620px] border-collapse border-spacing-0 text-[11px] sm:text-[15px]">
-                          <thead>
-                            <tr className="bg-[#f8fbff] text-[#061b66]">
-                              <th className="border border-[#9bb0d3] px-3 py-2 text-left font-black uppercase tracking-[0.06em]">Metric</th>
-                              {visibleTerminals.map((t) => (
-                                <th key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black uppercase tracking-[0.06em]">{t} Term</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="bg-white">
-                              <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Total Marks</td>
-                              {visibleTerminals.map((t) => (
-                                <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
-                                  {getSummaryCellValue(t, termSummaries[t]?.total_max_marks)}
-                                </td>
-                              ))}
-                            </tr>
-                            <tr className="bg-[#fafcff]">
-                              <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Marks Obtained</td>
-                              {visibleTerminals.map((t) => (
-                                <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
-                                  {getSummaryCellValue(t, termSummaries[t]?.total_obtained)}
-                                </td>
-                              ))}
-                            </tr>
-                            <tr className="bg-white">
-                              <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Percentage</td>
-                              {visibleTerminals.map((t) => (
-                                <td key={t} className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getDivisionColor(termSummaries[t]?.division)}`}>
-                                  {getSummaryCellValue(
-                                    t,
-                                    typeof termSummaries[t]?.percentage !== 'undefined' && termSummaries[t]?.percentage !== null
-                                      ? `${termSummaries[t].percentage}%`
-                                      : '--'
-                                  )}
-                                </td>
-                              ))}
-                            </tr>
-                            <tr className="bg-[#fafcff]">
-                              <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Division</td>
-                              {visibleTerminals.map((t) => (
-                                <td key={t} className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getDivisionColor(termSummaries[t]?.division)}`}>
-                                  {getSummaryCellValue(t, termSummaries[t]?.division)}
-                                </td>
-                              ))}
-                            </tr>
-                            <tr className="bg-white">
-                              <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Class &amp; Section Rank</td>
-                              {visibleTerminals.map((t) => (
-                                <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
-                                  {getDisplayRank(t)}
-                                </td>
-                              ))}
-                            </tr>
-                            <tr className="bg-[#fafcff]">
-                              <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Published Date</td>
-                              {visibleTerminals.map((t) => {
-                                const publishedDate = getPublishedDateFromSummary(termSummaries[t])
-                                return (
-                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-[#061b66]">
-                                    {isTermAvailable(t) ? (
-                                      publishedDate 
-                                        ? new Date(publishedDate).toLocaleDateString('en-IN')
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[620px] border-collapse border-spacing-0 text-[11px] sm:text-[15px]">
+                            <thead>
+                              <tr className="bg-[#f8fbff] text-[#061b66]">
+                                <th className="border border-[#9bb0d3] px-3 py-2 text-left font-black uppercase tracking-[0.06em]">Metric</th>
+                                {summaryReportTerminals.map((t) => (
+                                  <th key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black uppercase tracking-[0.06em]">{t} Term</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="bg-white">
+                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Total Marks</td>
+                                {summaryReportTerminals.map((t) => (
+                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
+                                    {getSummaryCellValue(t, termSummaries[t]?.total_max_marks)}
+                                  </td>
+                                ))}
+                              </tr>
+                              <tr className="bg-[#fafcff]">
+                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Marks Obtained</td>
+                                {summaryReportTerminals.map((t) => (
+                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
+                                    {getSummaryCellValue(t, termSummaries[t]?.total_obtained)}
+                                  </td>
+                                ))}
+                              </tr>
+                              <tr className="bg-white">
+                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Percentage</td>
+                                {summaryReportTerminals.map((t) => (
+                                  <td key={t} className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getDivisionColor(termSummaries[t]?.division)}`}>
+                                    {getSummaryCellValue(
+                                      t,
+                                      typeof termSummaries[t]?.percentage !== 'undefined' && termSummaries[t]?.percentage !== null
+                                        ? `${termSummaries[t].percentage}%`
                                         : '--'
-                                    ) : (
-                                      'Result Not Found'
                                     )}
                                   </td>
-                                )
-                              })}
-                            </tr>
-                          </tbody>
-                        </table>
+                                ))}
+                              </tr>
+                              <tr className="bg-[#fafcff]">
+                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Division</td>
+                                {summaryReportTerminals.map((t) => (
+                                  <td key={t} className={`border border-[#9bb0d3] px-2 py-2 text-center font-black ${getDivisionColor(termSummaries[t]?.division)}`}>
+                                    {getSummaryCellValue(t, termSummaries[t]?.division)}
+                                  </td>
+                                ))}
+                              </tr>
+                              <tr className="bg-white">
+                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Class &amp; Section Rank</td>
+                                {summaryReportTerminals.map((t) => (
+                                  <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-black text-[#061b66]">
+                                    {getDisplayRank(t)}
+                                  </td>
+                                ))}
+                              </tr>
+                              <tr className="bg-[#fafcff]">
+                                <td className="border border-[#9bb0d3] px-3 py-2 font-black uppercase text-[#061b66]">Published Date</td>
+                                {summaryReportTerminals.map((t) => {
+                                  const publishedDate = getPublishedDateFromSummary(termSummaries[t])
+                                  return (
+                                    <td key={t} className="border border-[#9bb0d3] px-2 py-2 text-center font-semibold text-[#061b66]">
+                                      {isTermAvailable(t) ? (
+                                        publishedDate 
+                                          ? new Date(publishedDate).toLocaleDateString('en-IN')
+                                          : '--'
+                                      ) : (
+                                        'Result Not Found'
+                                      )}
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="result-instructions-sign mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
                       <div className="rounded-[4px] border border-[#0a2b78] bg-white px-5 py-3">
