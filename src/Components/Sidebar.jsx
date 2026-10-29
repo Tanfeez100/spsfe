@@ -215,7 +215,7 @@ const NAV_GROUPS = [
       },
       {
         id: 'result',
-        label: 'Marksheet Studio',
+        label: 'Marksheet',
         path: '/result-view',
         Icon: MarksheetIcon,
       },

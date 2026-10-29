@@ -362,7 +362,7 @@ export default function ResultView() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 mb-1">
             <span className="material-symbols-outlined text-sm">workspace_premium</span>
-            <span>Official Marksheet Studio</span>
+            <span>Official Marksheet</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-[#0f1e36]">
             Star Public School - Marksheet & Results
@@ -382,7 +382,7 @@ export default function ResultView() {
               }`}
           >
             <span className="material-symbols-outlined text-sm">print</span>
-            <span>Marksheet Studio</span>
+            <span>Marksheet</span>
           </button>
           <button
             onClick={() => setActiveMode('importer')}
@@ -392,7 +392,7 @@ export default function ResultView() {
               }`}
           >
             <span className="material-symbols-outlined text-sm">upload_file</span>
-            <span>Fast-Track Excel Importer</span>
+            <span>Fast-Track Excel Import</span>
           </button>
         </div>
       </div>
