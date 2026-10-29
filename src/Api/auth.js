@@ -568,6 +568,28 @@ api.interceptors.request.use(
   (error) => Promise.reject(normalizeApiError(error)),
 );
 
+const PUBLIC_ROUTES = [
+  '/',
+  '/about',
+  '/admission',
+  '/contact',
+  '/gallery',
+  '/pay-fees',
+  '/privacy-policy',
+  '/privacy',
+  '/results-portal',
+  '/result',
+  '/login',
+  '/student-login',
+  '/unauthorized',
+];
+
+const isPublicRoute = () => {
+  if (typeof window === 'undefined') return false;
+  const p = window.location.pathname || '/';
+  return PUBLIC_ROUTES.some((route) => p === route || p.startsWith(route + '/'));
+};
+
 let isRedirectingToLogin = false;
 
 api.interceptors.response.use(
@@ -611,6 +633,7 @@ api.interceptors.response.use(
           clearSession();
           if (
             !isRedirectingToLogin &&
+            !isPublicRoute() &&
             window.location.pathname !== "/login" &&
             window.location.pathname !== "/student-login"
           ) {
@@ -659,6 +682,7 @@ api.interceptors.response.use(
         clearSession();
         if (
           !isRedirectingToLogin &&
+          !isPublicRoute() &&
           window.location.pathname !== "/login" &&
           window.location.pathname !== "/student-login"
         ) {

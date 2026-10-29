@@ -1044,7 +1044,14 @@ function Results() {
         <header className="no-print relative z-30 border-b border-[#e2e8f0] bg-white">
           <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3 min-w-0">
-
+              <Link
+                to="/"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-bold text-[#061b66] hover:bg-[#f0f4ff] hover:border-[#bfdbfe]"
+                title="Go to School Website Landing Page"
+              >
+                <span className="material-symbols-outlined text-sm">home</span>
+                School Website
+              </Link>
             </div>
 
             <div className="relative z-40 flex flex-wrap items-center gap-2 pointer-events-auto">
