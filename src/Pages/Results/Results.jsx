@@ -830,6 +830,9 @@ function Results() {
     clone.style.margin = '0'
     clone.style.boxShadow = 'none'
     clone.style.transform = 'none'
+    clone.style.webkitFontSmoothing = 'antialiased'
+    clone.style.mozOsxFontSmoothing = 'grayscale'
+    clone.style.textRendering = 'geometricPrecision'
 
     const innerCard = clone.querySelector('.result-card-exact') || clone.firstElementChild || clone
     if (innerCard) {
@@ -858,7 +861,7 @@ function Results() {
       const captureHeight = Math.max(targetHeight, clone.offsetHeight || clone.scrollHeight || targetHeight)
 
       const canvas = await html2canvas(clone, {
-        scale: 3,
+        scale: 3.5,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
@@ -933,7 +936,7 @@ function Results() {
     const pageHeight = doc.internal.pageSize.getHeight()
 
     // Full A4 page coverage edge-to-edge
-    doc.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST')
+    doc.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'SLOW')
 
     return doc.output('blob')
   }
@@ -971,34 +974,12 @@ function Results() {
   const handleDownloadPdf = async () => {
     if (!data || pdfBusy) return
 
-    // ⚡ 1. Check if we already have a cached PDF from Cloudinary / Storage
-    const cachedUrl = data?.cached_pdf_url
-    if (cachedUrl) {
-      try {
-        fireToast('info', 'Fast Download', 'Downloading pre-cached PDF from CDN...')
-        let response = await fetch(cachedUrl)
-        if (!response.ok && data?.cached_pdf_local) {
-          const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
-          const serverBase = apiBase.replace(/\/api\/?$/, '')
-          response = await fetch(`${serverBase}${data.cached_pdf_local}`)
-        }
-        if (response.ok) {
-          const blob = await response.blob()
-          triggerBlobDownload(blob, `${downloadFileName}.pdf`)
-          fireToast('success', 'Download', 'Instant PDF downloaded.')
-          return
-        }
-      } catch (err) {
-        console.warn('Direct cached PDF fetch failed, falling back to local render:', err)
-      }
-    }
-
-    // ⚡ 2. First-time download: Render crisp 300 DPI PDF
+    // Render Ultra-HD (350+ DPI) Lossless PDF directly to ensure latest fixes & maximum clarity
     setPdfBusy(true)
     try {
       const pdfBlob = await createHighQualityPdfBlob()
       triggerBlobDownload(pdfBlob, `${downloadFileName}.pdf`)
-      fireToast('success', 'Download', 'High-quality PDF downloaded.')
+      fireToast('success', 'Download', 'Ultra-HD PDF downloaded.')
 
       // ⚡ 3. Background Caching: Upload to Cloudinary for all subsequent downloads
       const reader = new FileReader()

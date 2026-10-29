@@ -262,51 +262,51 @@ export default function OfficialStarPublicMarksheet({
 
             {/* 6 Metric Cards */}
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-              <div className="rounded-xl border border-[#93c5fd] bg-[#f0f9ff] p-2 flex items-center gap-2 shadow-2xs">
-                <span className="text-xl sm:text-2xl text-[#0c2340]">🏆</span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 truncate">TOTAL MARKS</p>
-                  <p className="text-[15px] sm:text-[20px] font-black text-[#0c2340] leading-tight">{totalFullMarks}</p>
+              <div className="rounded-xl border border-[#93c5fd] bg-[#f0f9ff] px-2 py-2 sm:px-2.5 sm:py-2.5 flex items-center gap-2 shadow-2xs min-h-[64px]">
+                <span className="text-lg sm:text-xl text-[#0c2340] shrink-0">🏆</span>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-tight text-slate-600 leading-[1.15]">TOTAL MARKS</p>
+                  <p className="text-[15px] sm:text-[18px] font-black text-[#0c2340] leading-normal pt-0.5 pb-0.5">{totalFullMarks}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#fbcfe8] bg-[#fff1f2] p-2 flex items-center gap-2 shadow-2xs">
-                <span className="text-xl sm:text-2xl text-[#be123c]">📊</span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 truncate">MARKS OBTAINED</p>
-                  <p className="text-[15px] sm:text-[20px] font-black text-[#be123c] leading-tight">{totalObtained}</p>
+              <div className="rounded-xl border border-[#fbcfe8] bg-[#fff1f2] px-2 py-2 sm:px-2.5 sm:py-2.5 flex items-center gap-2 shadow-2xs min-h-[64px]">
+                <span className="text-lg sm:text-xl text-[#be123c] shrink-0">📊</span>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-tight text-slate-600 leading-[1.15]">MARKS OBTAINED</p>
+                  <p className="text-[15px] sm:text-[18px] font-black text-[#be123c] leading-normal pt-0.5 pb-0.5">{totalObtained}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#a7f3d0] bg-[#f0fdf4] p-2 flex items-center gap-2 shadow-2xs">
-                <span className="text-xl sm:text-2xl text-[#15803d]">📈</span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 truncate">PERCENTAGE</p>
-                  <p className="text-[15px] sm:text-[20px] font-black text-[#15803d] leading-tight">{percentage}</p>
+              <div className="rounded-xl border border-[#a7f3d0] bg-[#f0fdf4] px-2 py-2 sm:px-2.5 sm:py-2.5 flex items-center gap-2 shadow-2xs min-h-[64px]">
+                <span className="text-lg sm:text-xl text-[#15803d] shrink-0">📈</span>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-tight text-slate-600 leading-[1.15]">PERCENTAGE</p>
+                  <p className="text-[15px] sm:text-[18px] font-black text-[#15803d] leading-normal pt-0.5 pb-0.5">{percentage}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#fde68a] bg-[#fffbeb] p-2 flex items-center gap-2 shadow-2xs">
-                <span className="text-xl sm:text-2xl text-[#d97706]">🎖️</span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 truncate">DIVISION</p>
-                  <p className="text-[15px] sm:text-[20px] font-black text-[#0c2340] leading-tight">{division}</p>
+              <div className="rounded-xl border border-[#fde68a] bg-[#fffbeb] px-2 py-2 sm:px-2.5 sm:py-2.5 flex items-center gap-2 shadow-2xs min-h-[64px]">
+                <span className="text-lg sm:text-xl text-[#d97706] shrink-0">🎖️</span>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-tight text-slate-600 leading-[1.15]">DIVISION</p>
+                  <p className="text-[15px] sm:text-[18px] font-black text-[#0c2340] leading-normal pt-0.5 pb-0.5">{division}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#d8b4fe] bg-[#faf5ff] p-2 flex items-center gap-2 shadow-2xs">
-                <span className="text-xl sm:text-2xl text-[#7e22ce]">🏅</span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 truncate">RANK</p>
-                  <p className="text-[15px] sm:text-[20px] font-black text-[#0c2340] leading-tight">{rank}</p>
+              <div className="rounded-xl border border-[#d8b4fe] bg-[#faf5ff] px-2 py-2 sm:px-2.5 sm:py-2.5 flex items-center gap-2 shadow-2xs min-h-[64px]">
+                <span className="text-lg sm:text-xl text-[#7e22ce] shrink-0">🏅</span>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-tight text-slate-600 leading-[1.15]">RANK</p>
+                  <p className="text-[15px] sm:text-[18px] font-black text-[#0c2340] leading-normal pt-0.5 pb-0.5">{rank}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] p-2 flex items-center gap-2 shadow-2xs">
-                <span className="text-xl sm:text-2xl text-[#9f1239]">📅</span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-600 truncate">PUBLISHED DATE</p>
-                  <p className="text-[12px] sm:text-[14px] font-black text-[#0c2340] leading-tight">{publishedDate}</p>
+              <div className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-2 py-2 sm:px-2.5 sm:py-2.5 flex items-center gap-2 shadow-2xs min-h-[64px]">
+                <span className="text-lg sm:text-xl text-[#9f1239] shrink-0">📅</span>
+                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                  <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-tight text-slate-600 leading-[1.15]">PUBLISHED DATE</p>
+                  <p className="text-[11.5px] sm:text-[13.5px] font-black text-[#0c2340] leading-normal pt-0.5 pb-0.5">{publishedDate}</p>
                 </div>
               </div>
             </div>
