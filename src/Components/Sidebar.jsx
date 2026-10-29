@@ -215,9 +215,9 @@ const NAV_GROUPS = [
       },
       {
         id: 'result',
-        label: 'Marksheet',
+        label: 'Fast-Track Excel Import',
         path: '/result-view',
-        Icon: MarksheetIcon,
+        Icon: MarksUploadIcon,
       },
       {
         id: 'subject',

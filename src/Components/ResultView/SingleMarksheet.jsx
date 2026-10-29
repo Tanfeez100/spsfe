@@ -13,16 +13,10 @@ export default function SingleMarksheet({
 
   const totalFullMarks =
     student.total_marks ??
-    subjects.reduce((sum, s) => {
-      const isDrawing = /drawing|art/i.test(s.subject || s.subject_name || s.name || '')
-      return sum + (Number(s.full_marks || s.fullMarks) || (isDrawing ? 50 : 100))
-    }, 0)
+    subjects.reduce((sum, s) => sum + (Number(s.full_marks || s.fullMarks) || 100), 0)
 
   const totalPassMarks =
-    subjects.reduce((sum, s) => {
-      const isDrawing = /drawing|art/i.test(s.subject || s.subject_name || s.name || '')
-      return sum + (Number(s.pass_marks || s.passMarks) || (isDrawing ? 15 : 30))
-    }, 0)
+    subjects.reduce((sum, s) => sum + (Number(s.pass_marks || s.passMarks) || 30), 0)
 
   const totalObtained =
     student.total_obtained ??
@@ -41,10 +35,10 @@ export default function SingleMarksheet({
     (Number(percentage) >= 60
       ? 'First'
       : Number(percentage) >= 45
-        ? 'Second'
-        : Number(percentage) >= 33
-          ? 'Third'
-          : 'Failed')
+      ? 'Second'
+      : Number(percentage) >= 33
+      ? 'Third'
+      : 'Failed')
 
   const studentName = student.name || 'SAIMA KHATOON'
   const fatherName = student.father_name || student.fatherName || 'SHAMAD ANSARI'
@@ -55,7 +49,7 @@ export default function SingleMarksheet({
     <div className="single-marksheet-page w-full max-w-[820px] mx-auto bg-white p-4 sm:p-6 font-sans print:p-2 print:max-w-none text-slate-800">
       {/* Outer Enclosing Border matching the exact sheet frame */}
       <div className="relative border border-[#cfdbe8] rounded-2xl p-6 sm:p-8 bg-white shadow-sm flex flex-col justify-between min-h-[1080px] print:border-[#cfdbe8] print:shadow-none print:p-6">
-
+        
         {/* Full-Page Faint Watermark "STAR PUBLIC SCHOOL" */}
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden"
@@ -75,7 +69,7 @@ export default function SingleMarksheet({
 
         {/* Content Container (Layered above watermark) */}
         <div className="relative z-10 space-y-5">
-
+          
           {/* 1. Header: Logo at left, Centered School Titles (NO horizontal divider line) */}
           <div className="relative flex items-center justify-center min-h-[96px] pt-1 pb-2">
             {/* Top Left Crest Logo */}
@@ -173,10 +167,9 @@ export default function SingleMarksheet({
               </thead>
               <tbody className="divide-y divide-[#cfdbe8]">
                 {subjects.map((sub, idx) => {
-                  const subName = sub.subject || sub.subject_name || sub.name || `Subject ${idx + 1}`
-                  const isDrawing = /drawing|art/i.test(subName)
-                  const full = Number(sub.full_marks || sub.fullMarks) || (isDrawing ? 50 : 100)
-                  const pass = Number(sub.pass_marks || sub.passMarks) || (isDrawing ? 15 : 30)
+                  const subName = sub.subject || sub.name || `Subject ${idx + 1}`
+                  const full = sub.full_marks || sub.fullMarks || 100
+                  const pass = sub.pass_marks || sub.passMarks || 30
                   const obtained = sub.marks_obtained ?? sub.marks ?? '-'
 
                   return (
