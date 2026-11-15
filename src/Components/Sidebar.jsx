@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import { clearSession, getLoginType, getUser, logout } from '../Api/auth'
 import schoolLogo from '../assets/logo.png'
 
@@ -181,6 +181,7 @@ function HelpCenterIcon({ className = 'w-5 h-5' }) {
 const NAV_GROUPS = [
   {
     id: 'overview',
+    number: '01',
     title: 'OVERVIEW',
     items: [
       {
@@ -192,45 +193,9 @@ const NAV_GROUPS = [
     ],
   },
   {
-    id: 'academics',
-    title: 'ACADEMICS & ROUTINE',
-    items: [
-      {
-        id: 'timetable',
-        label: 'Timetable',
-        path: '/timetable',
-        Icon: TimetableIcon,
-      },
-      {
-        id: 'examinationManagement',
-        label: 'Examination',
-        path: '/examinations',
-        Icon: ExaminationIcon,
-      },
-      {
-        id: 'uploadMarks',
-        label: 'Marks Upload',
-        path: '/marks-upload',
-        Icon: MarksUploadIcon,
-      },
-      {
-        id: 'result',
-        label: 'Fast-Track Excel Import',
-        path: '/result-view',
-        Icon: MarksUploadIcon,
-      },
-      {
-        id: 'subject',
-        label: 'Subject & Syllabus',
-        path: '/subjects',
-        Icon: SubjectIcon,
-        adminOnly: true,
-      },
-    ],
-  },
-  {
     id: 'students',
-    title: 'STUDENTS & RECORDS',
+    number: '02',
+    title: 'STUDENT MANAGEMENT',
     items: [
       {
         id: 'student',
@@ -255,8 +220,55 @@ const NAV_GROUPS = [
     ],
   },
   {
-    id: 'operations',
-    title: 'DAILY OPERATIONS',
+    id: 'fees',
+    number: '03',
+    title: 'FEE MANAGEMENT',
+    items: [
+      {
+        id: 'fees',
+        label: 'Fee Management',
+        path: '/fees',
+        Icon: FeesIcon,
+        adminOnly: true,
+      },
+    ],
+  },
+  {
+    id: 'academics',
+    number: '04',
+    title: 'ACADEMICS',
+    items: [
+      {
+        id: 'timetable',
+        label: 'Timetable',
+        path: '/timetable',
+        Icon: TimetableIcon,
+      },
+      {
+        id: 'examinationManagement',
+        label: 'Examination',
+        path: '/examinations',
+        Icon: ExaminationIcon,
+      },
+      {
+        id: 'uploadMarks',
+        label: 'Marks Upload',
+        path: '/marks-upload',
+        Icon: MarksUploadIcon,
+      },
+      {
+        id: 'subject',
+        label: 'Subject & Syllabus',
+        path: '/subjects',
+        Icon: SubjectIcon,
+        adminOnly: true,
+      },
+    ],
+  },
+  {
+    id: 'attendanceStaff',
+    number: '05',
+    title: 'ATTENDANCE & STAFF',
     items: [
       {
         id: 'attendance',
@@ -274,16 +286,10 @@ const NAV_GROUPS = [
     ],
   },
   {
-    id: 'finance',
-    title: 'ADMIN & FINANCE',
+    id: 'administration',
+    number: '06',
+    title: 'ADMINISTRATION',
     items: [
-      {
-        id: 'fees',
-        label: 'Fee Management',
-        path: '/fees',
-        Icon: FeesIcon,
-        adminOnly: true,
-      },
       {
         id: 'idCards',
         label: 'ID / Admit Cards',
@@ -298,11 +304,18 @@ const NAV_GROUPS = [
         Icon: DocumentManagementIcon,
         adminOnly: true,
       },
+      {
+        id: 'result',
+        label: 'Fast-Track Excel Import',
+        path: '/result-view',
+        Icon: MarksUploadIcon,
+      },
     ],
   },
   {
-    id: 'support',
-    title: 'HELP & GUIDES',
+    id: 'helpSupport',
+    number: '07',
+    title: 'HELP & SUPPORT',
     items: [
       {
         id: 'helpCenter',
@@ -334,13 +347,45 @@ const viewPathMap = {
   helpCenter: '/help',
 }
 
-function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
+function Sidebar({
+  isOpen,
+  setIsOpen,
+  activeView,
+  setActiveView,
+  isCollapsed: propIsCollapsed,
+  setIsCollapsed: propSetIsCollapsed,
+}) {
   const navigate = useNavigate()
   const location = useLocation()
+  const outletContext = useOutletContext() || {}
   const [, setIsLoggingOut] = useState(false)
   const [, setLoginType] = useState('all')
   const [user, setUser] = useState(null)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const [internalCollapsed, setInternalCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sps_sidebar_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  // Synchronize collapse state with layout context or localStorage
+  const isCollapsed = propIsCollapsed !== undefined
+    ? propIsCollapsed
+    : outletContext.isCollapsed !== undefined
+      ? outletContext.isCollapsed
+      : internalCollapsed
+
+  const setIsCollapsed = propSetIsCollapsed || outletContext.setIsCollapsed || setInternalCollapsed
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setInternalCollapsed((prev) => !prev)
+    }
+    window.addEventListener('sps_sidebar_toggle', handleToggle)
+    return () => window.removeEventListener('sps_sidebar_toggle', handleToggle)
+  }, [])
 
   useEffect(() => {
     setLoginType(getLoginType())
@@ -418,60 +463,64 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
         />
       )}
 
-      {/* Enhanced High-Visibility Sidebar with Clear Contrast and Group Dividers */}
+      {/* Clean Premium Sidebar with Soft Ice-Blue Wash matching Canva Mockup */}
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-50 flex h-full ${isCollapsed ? 'w-20' : 'w-68'
-          } shrink-0 flex-col justify-between bg-[#0b172b] border-r border-[#1a2f4e] text-slate-200 shadow-2xl transition-all duration-300 ease-out select-none lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed bottom-0 left-0 top-0 z-50 flex h-full ${isCollapsed ? 'w-[72px]' : 'w-64'
+          } shrink-0 flex-col justify-between bg-[#f0f4fc] border-r border-[#e2e8f0] text-slate-700 select-none transition-all duration-200 ease-in-out lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
       >
-        <div className="flex h-full flex-col justify-between overflow-y-auto px-3.5 py-5 scrollbar-none">
+        <div className="flex h-full flex-col justify-between overflow-y-auto px-3 py-4 scrollbar-none">
 
-          <div className="space-y-6">
-            {/* Top Brand Header */}
-            <div
-              className={`flex items-center gap-3 cursor-pointer group ${isCollapsed ? 'justify-center' : 'px-2'
-                }`}
-              onClick={() => handleNavigate('dashboard', '/dashboard')}
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md border border-white/20 transition-transform group-hover:scale-105 overflow-hidden">
-                <img
-                  src={schoolLogo}
-                  alt="Star Public School"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              {!isCollapsed && (
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <h1 className="text-[15px] font-extrabold text-white leading-tight truncate tracking-tight">
+          <div className="space-y-4">
+            {/* Mobile Drawer Header (Only visible on small mobile screens when drawer is open) */}
+            <div className="flex items-center justify-between p-1.5 lg:hidden border-b border-[#e2e8f0] pb-3 mb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white p-1 border border-[#e2e8f0] shadow-2xs overflow-hidden">
+                  <img
+                    src={schoolLogo}
+                    alt="Star Public School"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-[13px] font-bold text-slate-900 leading-tight truncate">
                     Star Public School
                   </h1>
-                  <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-blue-900/50 border border-blue-500/30">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-blue-200">
-                      {isTeacher ? 'Teacher Portal' : 'Admin Console'}
-                    </span>
-                  </div>
+                  <p className="text-[10px] font-medium text-slate-500 leading-none mt-0.5 truncate">
+                    {isTeacher ? 'Faculty Portal' : 'Admin Console'}
+                  </p>
                 </div>
-              )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOpen && setIsOpen(false)}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white/80 transition-colors"
+                title="Close sidebar"
+              >
+                <span className="material-symbols-outlined text-[20px] leading-none">close</span>
+              </button>
             </div>
 
-            {/* Grouped Feature Navigation with High-Visibility Labels */}
+            {/* Grouped Feature Navigation (All Tabs 100% Preserved) */}
             <div className="space-y-4">
               {visibleGroups.map((group, groupIdx) => (
-                <div key={group.id} className="space-y-1.5">
+                <div key={group.id} className="space-y-0.5">
                   {!isCollapsed ? (
-                    <div className="flex items-center gap-2 px-2.5 pt-2 pb-0.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400/80"></span>
-                      <p className="text-[11px] font-extrabold uppercase tracking-wider text-blue-200">
+                    <div className="px-2.5 pt-2.5 pb-1 flex items-center gap-1.5">
+                      {group.number && (
+                        <span className="text-[9.5px] font-extrabold font-mono text-slate-400">
+                          {group.number}
+                        </span>
+                      )}
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         {group.title}
                       </p>
-                      <div className="h-px flex-1 bg-gradient-to-r from-blue-500/25 to-transparent"></div>
                     </div>
                   ) : groupIdx > 0 ? (
-                    <div className="my-2.5 border-t border-[#1d3559]" />
+                    <div className="my-2 border-t border-[#e2e8f0]" />
                   ) : null}
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {group.items.map((item) => {
                       const isActive = currentActive === item.id || currentPath === item.path
                       const { Icon } = item
@@ -480,18 +529,18 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
                         <button
                           key={item.id}
                           onClick={() => handleNavigate(item.id, item.path)}
-                          className={`group flex w-full items-center rounded-xl text-[13px] font-semibold transition-all duration-150 ${isCollapsed ? 'justify-center p-3' : 'px-3.5 py-2.5 gap-3'
+                          className={`group flex w-full items-center rounded-xl text-[13px] transition-all duration-150 ${isCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5 gap-2.5'
                             } ${isActive
-                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-400/40 font-bold'
-                              : 'text-slate-200 hover:bg-[#162a4a] hover:text-white'
+                              ? 'bg-[#183867] text-white font-bold shadow-xs'
+                              : 'text-slate-600 hover:bg-white/80 hover:text-slate-900 font-semibold'
                             }`}
                           title={item.label}
                         >
                           <div
-                            className={`shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-blue-300 group-hover:text-amber-300'
+                            className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-800'
                               }`}
                           >
-                            <Icon className="w-5 h-5 stroke-[2]" />
+                            <Icon className={`w-[18px] h-[18px] ${isActive ? 'stroke-[2.2]' : 'stroke-[1.8]'}`} />
                           </div>
 
                           {!isCollapsed && (
@@ -509,18 +558,18 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
 
           </div>
 
-          {/* Bottom Footer Section: Dynamic User Profile & Controls */}
-          <div className="pt-4 border-t border-[#1d3559] space-y-3">
-            <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : 'px-2'}`}>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-extrabold text-sm shadow-md">
+          {/* Bottom Footer Section: Dynamic User Profile */}
+          <div className="pt-3 border-t border-[#e2e8f0]">
+            <div className={`flex items-center gap-2.5 ${isCollapsed ? 'justify-center' : 'px-1.5'}`}>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#183867] text-white font-bold text-xs shadow-2xs">
                 {userInitials}
               </div>
               {!isCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-white truncate leading-tight">
+                  <p className="text-xs font-bold text-slate-900 truncate leading-tight">
                     {displayName}
                   </p>
-                  <p className="text-[11px] font-medium text-blue-300 truncate mt-0.5">
+                  <p className="text-[10.5px] font-medium text-slate-500 truncate mt-0.5">
                     {displayRole}
                   </p>
                 </div>
@@ -528,24 +577,13 @@ function Sidebar({ isOpen, setIsOpen, activeView, setActiveView }) {
               {!isCollapsed && (
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-slate-300 hover:text-rose-400 transition-colors rounded-xl hover:bg-[#162a4a]"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors rounded-lg cursor-pointer"
                   title="Logout"
                 >
-                  <span className="material-symbols-outlined text-lg leading-none">logout</span>
+                  <span className="material-symbols-outlined text-[18px] leading-none">logout</span>
                 </button>
               )}
             </div>
-
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`flex w-full items-center text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#162a4a] rounded-lg transition-colors ${isCollapsed ? 'justify-center p-2' : 'px-2.5 py-2 gap-2'
-                }`}
-            >
-              <span className="material-symbols-outlined text-sm">
-                {isCollapsed ? 'menu_open' : 'keyboard_double_arrow_left'}
-              </span>
-              {!isCollapsed && <span>Collapse sidebar</span>}
-            </button>
           </div>
 
         </div>

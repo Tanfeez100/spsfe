@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { getUser } from '../../Api/auth'
 import { promoteClass } from '../../Api/promotions'
-
-const CLASS_OPTIONS = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8']
+import { CLASS_OPTIONS } from '../../constants/schoolOptions'
 
 const getDefaultPromotedBy = () => {
   const user = getUser()
@@ -40,7 +39,7 @@ function ClassPromotion() {
   const helperNotes = useMemo(() => [
     'Annual result must be published before promotion.',
     'Target class requires unique class+section+roll for active students.',
-    'Class 8 students are marked pass-out/inactive; they are not promoted to class 9.',
+    'Class 12 students are marked pass-out/inactive; they are not promoted to higher classes.',
   ], [])
 
   const handleFieldChange = (field, value) => {
