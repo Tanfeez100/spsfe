@@ -354,12 +354,13 @@ export default function TimetableManagement({ initialTab = null }) {
                           return (
                             <button
                               key={tab.id}
-                  if (tab.id === 'print_export') {
-                          window.print();
-                  } else {
-                          setActiveTab(tab.id);
-                  }
-                }}
+                              onClick={() => {
+                                if (tab.id === 'print_export') {
+                                  window.print();
+                                } else {
+                                  setActiveTab(tab.id);
+                                }
+                              }}
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${isActive
                               ? 'bg-[#0f2444] text-white shadow-xs'
                               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
