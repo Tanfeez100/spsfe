@@ -185,7 +185,7 @@ export default function WeeklyTimetableTab({
                   >
                     {CLASS_OPTIONS.map((c) => (
                       <option key={c} value={c}>
-                        Class {c}
+                        {['Nursery', 'LKG', 'UKG'].includes(c) ? c : `Class ${c}`}
                       </option>
                     ))}
                   </select>

@@ -14,7 +14,7 @@ import {
 } from '../../Api/auth'
 import { uploadSingleImage } from '../../Api/megaImages'
 import { getClassesWithSections } from '../../Api/classes'
-import { normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
+import { CLASS_OPTIONS, normalizeSchoolClass, sortSchoolClasses } from '../../constants/schoolOptions'
 import StaffBatchIdCardGenerator from '../../Components/Teacher/StaffBatchIdCardGenerator'
 
 
@@ -30,10 +30,11 @@ const toTeacherRow = (teacher) => {
   }))
   const primaryAssignment = normalizedAssignments[0] || null
 
+  const formatClassLabel = (c) => (['nursery', 'lkg', 'ukg'].includes(String(c || '').toLowerCase()) ? c : `Class ${c}`)
   const assignedClassesStr = normalizedAssignments.length > 0
-    ? normalizedAssignments.map((a) => `Class ${a.class}-${a.section || 'A'}`).join(', ')
+    ? normalizedAssignments.map((a) => `${formatClassLabel(a.class)}-${a.section || 'A'}`).join(', ')
     : teacher?.assignedClass
-      ? `Class ${teacher.assignedClass}-${teacher.assignedSection || 'A'}`
+      ? `${formatClassLabel(teacher.assignedClass)}-${teacher.assignedSection || 'A'}`
       : 'General Staff'
 
   const profile = teacher?.profile || {}
@@ -1299,7 +1300,11 @@ function TeacherManagement() {
                       <button
                         onClick={() => {
                           setAssigningTeacher(teacher)
-                          setAssignForm({ class: '10', section: 'A', academic_year: getDefaultAcademicYear() })
+                          setAssignForm({
+                            class: teacher.assignedClass || 'Nursery',
+                            section: teacher.assignedSection || 'A',
+                            academic_year: teacher.academicYear || getDefaultAcademicYear()
+                          })
                         }}
                         className="flex-1 rounded-xl bg-[#eff6ff] border border-blue-100 py-2 text-center text-xs font-semibold text-[#1d4ed8] hover:bg-blue-100/80 transition-colors flex items-center justify-center gap-1 shadow-2xs"
                         title="Manage Timetable & Allocations"
@@ -1393,7 +1398,14 @@ function TeacherManagement() {
                             <>
                               <span className="text-slate-300">|</span>
                               <button
-                                onClick={() => setAssigningTeacher(teacher)}
+                                onClick={() => {
+                                  setAssigningTeacher(teacher)
+                                  setAssignForm({
+                                    class: teacher.assignedClass || 'Nursery',
+                                    section: teacher.assignedSection || 'A',
+                                    academic_year: teacher.academicYear || getDefaultAcademicYear()
+                                  })
+                                }}
                                 className="text-xs font-semibold text-[#1e40af] hover:underline"
                               >
                                 Timetable
@@ -3130,8 +3142,10 @@ function TeacherManagement() {
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-none"
                 >
                   <option value="">Select class</option>
-                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((c) => (
-                    <option key={c} value={c}>Class {c}</option>
+                  {CLASS_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {['Nursery', 'LKG', 'UKG'].includes(c) ? c : `Class ${c}`}
+                    </option>
                   ))}
                 </select>
               </div>
