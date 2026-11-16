@@ -465,6 +465,20 @@ export const createUser = async (payload) => {
   }
 };
 
+export const updateTeacher = async (teacherId, payload) => {
+  try {
+    const response = await api.put(`/api/auth/teachers/${teacherId}`, payload);
+    return response.data;
+  } catch (error) {
+    try {
+      const fallback = await api.patch(`/api/auth/teachers/${teacherId}`, payload);
+      return fallback.data;
+    } catch (_) {
+      throw normalizeApiError(error, 'Update teacher profile failed');
+    }
+  }
+};
+
 export const createTeacher = async (payload) => {
   try {
     const response = await api.post("/api/auth/teachers", payload);
@@ -520,11 +534,20 @@ export const resetPassword = async (userId, payload) => {
   try {
     const response = await api.patch(
       `/api/auth/reset-password/${userId}`,
-      payload,
+      payload
     );
     return response.data;
   } catch (error) {
-    throw normalizeApiError(error, "Reset password failed");
+    try {
+      const fallback = await api.post('/api/auth/reset-password', {
+        id: userId,
+        newPassword: payload?.newPassword || payload?.password,
+        ...payload,
+      });
+      return fallback.data;
+    } catch (_) {
+      throw normalizeApiError(error, 'Reset password failed');
+    }
   }
 };
 

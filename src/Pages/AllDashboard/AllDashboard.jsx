@@ -366,6 +366,16 @@ function Dashboard({ initialView = 'dashboard' }) {
     .slice(0, 2)
     .toUpperCase() || 'AD'
 
+  const todayFormatted = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  const currentHour = new Date().getHours()
+  const timeGreeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening'
+  const currentMonthYear = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
   return (
     <>
       <SEO
@@ -374,9 +384,9 @@ function Dashboard({ initialView = 'dashboard' }) {
         canonicalPath="/dashboard"
       />
 
-      <div className="flex h-full w-full overflow-hidden bg-[#fbfcfb]">
+      <div className="flex h-full w-full overflow-hidden bg-[#f8fafc]">
 
-        {/* ================= LEFT SIDEBAR (Dark Forest Teal) ================= */}
+        {/* ================= LEFT SIDEBAR ================= */}
         <Sidebar
           isOpen={sidebarOpen}
           setIsOpen={setSidebarOpen}
@@ -393,21 +403,21 @@ function Dashboard({ initialView = 'dashboard' }) {
               <div className="flex-1 min-w-0 space-y-6">
 
                 {/* Top Header / Meta Bar */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                      FRIDAY, 16 OCTOBER 2026 · SESSION 2026–27
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                      {todayFormatted.toUpperCase()} · SESSION 2026–27
                     </p>
 
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Live sync · illustrative
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Sync Connected
                       </span>
 
                       <button
                         onClick={fetchDashboardData}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-2xs hover:bg-gray-50 hover:text-gray-900 transition-colors"
                         title="Refresh Data"
                       >
                         <span className="material-symbols-outlined text-base">refresh</span>
@@ -415,21 +425,17 @@ function Dashboard({ initialView = 'dashboard' }) {
 
                       <select
                         defaultValue="2026-27"
-                        className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-2xs focus:outline-none cursor-pointer"
+                        className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-2xs focus:outline-none cursor-pointer"
                       >
-                        <option value="2026-27">2026–27</option>
-                        <option value="2025-26">2025–26</option>
+                        <option value="2026-27">Session 2026–27</option>
+                        <option value="2025-26">Session 2025–26</option>
                       </select>
-
-                      <button className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors">
-                        <span className="material-symbols-outlined text-base">filter_list</span>
-                      </button>
 
                       {/* Mobile Hamburger toggle */}
                       {setSidebarOpen && (
                         <button
                           onClick={() => setSidebarOpen(!sidebarOpen)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 lg:hidden shadow-2xs"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 lg:hidden shadow-2xs"
                         >
                           <span className="material-symbols-outlined text-base">menu</span>
                         </button>
@@ -438,11 +444,11 @@ function Dashboard({ initialView = 'dashboard' }) {
                   </div>
 
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0f1e36]">
-                      Good afternoon, {displayName}
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+                      {timeGreeting}, {displayName}
                     </h1>
-                    <p className="mt-1 text-xs font-normal text-slate-500">
-                      Your campus priorities, all in one clear view.
+                    <p className="mt-1 text-xs sm:text-sm text-gray-500">
+                      Campus operations and academic management overview.
                     </p>
                   </div>
 
@@ -450,184 +456,174 @@ function Dashboard({ initialView = 'dashboard' }) {
                   <div className="flex flex-wrap items-center gap-2.5 pt-1">
                     <button
                       onClick={() => navigate('/students')}
-                      className="rounded-xl bg-[#132c4e] px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#0e223e] transition-colors"
+                      className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-gray-800 transition-colors"
                     >
-                      New admission
+                      <span className="material-symbols-outlined text-base leading-none">person_add</span>
+                      <span>New Admission</span>
                     </button>
 
                     <button
                       onClick={() => navigate('/fees')}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 hover:text-gray-900 transition-colors"
                     >
-                      Collect fee
+                      <span className="material-symbols-outlined text-base leading-none text-emerald-600">payments</span>
+                      <span>Collect Fee</span>
                     </button>
 
                     <button
                       onClick={() => navigate('/attendance')}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 hover:text-gray-900 transition-colors"
                     >
-                      Take attendance
+                      <span className="material-symbols-outlined text-base leading-none text-blue-600">checklist</span>
+                      <span>Take Attendance</span>
                     </button>
 
                     <button
                       onClick={() => navigate('/marks-upload')}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 hover:text-gray-900 transition-colors"
                     >
-                      Upload marks
+                      <span className="material-symbols-outlined text-base leading-none text-purple-600">upload_file</span>
+                      <span>Upload Marks</span>
+                    </button>
+
+                    <button
+                      onClick={() => navigate('/timetable')}
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base leading-none text-amber-600">calendar_month</span>
+                      <span>Timetable</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Campus overview Section */}
+                {/* Campus Overview Section */}
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-[#0f1e36]">
-                      Campus overview
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500">
+                      Campus Overview
                     </h2>
-                    <span className="text-xs text-slate-400 font-normal">
-                      Live Academic Overview
+                    <span className="text-xs text-gray-400">
+                      Live Academic Snapshot
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Card 1: Total students */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-600">Total students</span>
-                          <div className="h-7 w-7 rounded-lg bg-[#e2ecf8] text-[#2563eb] flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm">groups</span>
-                          </div>
+                    <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-500">Total Students</span>
+                        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-lg">groups</span>
                         </div>
-                        <p className="mt-2 text-3xl font-extrabold text-[#0f1e36] tracking-tight">
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-3xl font-bold text-gray-900 tracking-tight">
                           {dashboardData.totalStudents.toLocaleString()}
                         </p>
-                        <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          Enrolled Students
-                        </p>
-                      </div>
-                      {/* Mini sparkline curve */}
-                      <div className="mt-4 h-6 w-full">
-                        <svg viewBox="0 0 160 26" fill="none" className="w-full h-full">
-                          <path
-                            d="M 0,22 Q 40,20 70,16 T 140,6 L 160,4"
-                            stroke="#1d4ed8"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                          />
-                        </svg>
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700">Enrolled</span>
+                          <span>Active in session</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Card 2: Total classes */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-600">Total classes</span>
-                          <div className="h-7 w-7 rounded-lg bg-[#fef3c7] text-[#d97706] flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm">meeting_room</span>
-                          </div>
+                    <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-500">Active Classes</span>
+                        <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-lg">meeting_room</span>
                         </div>
-                        <p className="mt-2 text-3xl font-extrabold text-[#0f1e36] tracking-tight">
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-3xl font-bold text-gray-900 tracking-tight">
                           {dashboardData.totalClasses}
                         </p>
-                        <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          Active Class Groups
-                        </p>
-                      </div>
-                      <div className="mt-4 flex gap-1 h-1.5">
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="flex-1 rounded-full bg-amber-400/40" />
-                        ))}
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+                          <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-amber-700">Classrooms</span>
+                          <span>Nursery to 10th</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Card 3: Active faculty */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-600">Active faculty</span>
-                          <div className="h-7 w-7 rounded-lg bg-[#dcfce7] text-[#16a34a] flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm">badge</span>
-                          </div>
+                    <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-500">Teaching Staff</span>
+                        <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-lg">badge</span>
                         </div>
-                        <p className="mt-2 text-3xl font-extrabold text-[#0f1e36] tracking-tight">
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-3xl font-bold text-gray-900 tracking-tight">
                           {dashboardData.totalTeachers}
                         </p>
-                        <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          Faculty Members
-                        </p>
-                      </div>
-                      <div className="mt-4 flex gap-1 h-1.5">
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="flex-1 rounded-full bg-emerald-400/40" />
-                        ))}
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700">Faculty</span>
+                          <span>Teaching faculty</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Card 4: Subjects */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-600">Subjects</span>
-                          <div className="h-7 w-7 rounded-lg bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm">auto_stories</span>
-                          </div>
+                    <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-500">Curriculum</span>
+                        <div className="h-8 w-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-lg">auto_stories</span>
                         </div>
-                        <p className="mt-2 text-3xl font-extrabold text-[#0f1e36] tracking-tight">
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-3xl font-bold text-gray-900 tracking-tight">
                           {dashboardData.totalSubjects}
                         </p>
-                        <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          School Curriculum
-                        </p>
-                      </div>
-                      <div className="mt-4 flex gap-1 h-1.5">
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="flex-1 rounded-full bg-indigo-400/40" />
-                        ))}
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+                          <span className="inline-flex items-center rounded-md bg-purple-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-purple-700">Subjects</span>
+                          <span>Approved syllabus</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* School health Section */}
+                {/* School Health Section */}
                 <div className="space-y-3 pt-2">
                   <div>
-                    <h2 className="text-base font-bold text-[#0f1e36]">
-                      School health
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500">
+                      School Health
                     </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Attendance and learning signals at a glance.
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Daily student attendance and roster directory.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Left: Attendance trend Card */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
+                    {/* Left: Attendance Trend Card */}
+                    <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="text-sm font-bold text-[#0f1e36]">
-                              Attendance trend
+                            <h3 className="text-sm font-semibold text-gray-900">
+                              Attendance Trend
                             </h3>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              Students present · Mon–Sat
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Weekly student presence · Mon–Sat
                             </p>
                           </div>
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            {attendanceStats.rate}% overall
+                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
+                            {attendanceStats.rate}% Overall
                           </span>
                         </div>
 
                         {/* Toggle Pills: Daily / Weekly / Monthly */}
-                        <div className="mt-3 inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+                        <div className="mt-3 inline-flex rounded-lg bg-gray-100 p-0.5 text-xs font-medium">
                           {['Daily', 'Weekly', 'Monthly'].map((tab) => (
                             <button
                               key={tab}
                               onClick={() => setAttendancePeriod(tab)}
                               className={`rounded-md px-3 py-1 transition-all ${attendancePeriod === tab
-                                  ? 'bg-[#132c4e] text-white shadow-2xs font-bold'
-                                  : 'text-slate-600 hover:text-slate-900'
+                                  ? 'bg-white text-gray-900 shadow-2xs font-semibold'
+                                  : 'text-gray-500 hover:text-gray-900'
                                 }`}
                             >
                               {tab}
@@ -640,14 +636,14 @@ function Dashboard({ initialView = 'dashboard' }) {
                           <div className="grid grid-cols-6 gap-3 items-end h-32 px-1">
                             {attendanceStats.dailyTrend.map((item, idx) => (
                               <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end group">
-                                <span className="text-[10px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[10px] font-semibold text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
                                   {item.rate}%
                                 </span>
                                 <div
-                                  style={{ height: `${Math.max(15, item.rate - 20)}%` }}
-                                  className="w-full max-w-[28px] rounded-t-lg bg-[#38bdf8] group-hover:bg-[#0284c7] transition-all"
+                                  style={{ height: `${Math.max(18, item.rate - 15)}%` }}
+                                  className="w-full max-w-[28px] rounded-t-lg bg-gray-900 group-hover:bg-gray-700 transition-all"
                                 />
-                                <span className="text-[11px] font-semibold text-slate-600">
+                                <span className="text-[11px] font-medium text-gray-600">
                                   {item.day}
                                 </span>
                               </div>
@@ -657,35 +653,38 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
 
                       {/* Footer Row */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 mt-4 text-xs">
-                        <div className="flex items-center gap-4 text-slate-700">
-                          <span>Present <strong className="text-slate-900">{attendanceStats.present}</strong></span>
-                          <span>Absent <strong className="text-slate-900">{attendanceStats.absent}</strong></span>
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-4 text-xs">
+                        <div className="flex items-center gap-4 text-gray-600">
+                          <span>Present <strong className="text-gray-900">{attendanceStats.present}</strong></span>
+                          <span>Absent <strong className="text-gray-900">{attendanceStats.absent}</strong></span>
                         </div>
                         <button
                           onClick={() => navigate('/attendance')}
-                          className="font-semibold text-[#1e40af] hover:underline"
+                          className="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
                         >
                           View attendance details →
                         </button>
                       </div>
                     </div>
 
-                    {/* Right: Student performance Card */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
+                    {/* Right: Student Roster Directory */}
+                    <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs flex flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-bold text-[#0f1e36]">
-                          Student performance
-                        </h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            Student Directory
+                          </h3>
+                          <span className="text-xs text-gray-400">Class Roster</span>
+                        </div>
 
-                        {/* Filter Dropdowns matching mockup */}
+                        {/* Filter Dropdowns */}
                         <div className="mt-3 flex items-center gap-2 flex-wrap">
                           <select
                             value={selectedClassFilter}
                             onChange={(e) => setSelectedClassFilter(e.target.value)}
-                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
+                            className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700 focus:outline-none cursor-pointer"
                           >
-                            <option value="all">All classes</option>
+                            <option value="all">All Classes</option>
                             {dashboardData.studentsByClass.map((c) => (
                               <option key={c.class} value={c.class}>Class {c.name}</option>
                             ))}
@@ -694,28 +693,19 @@ function Dashboard({ initialView = 'dashboard' }) {
                           <select
                             value={selectedSectionFilter}
                             onChange={(e) => setSelectedSectionFilter(e.target.value)}
-                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
+                            className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700 focus:outline-none cursor-pointer"
                           >
-                            <option value="all">All sections</option>
+                            <option value="all">All Sections</option>
                             <option value="A">Section A</option>
                             <option value="B">Section B</option>
                           </select>
-
-                          <select
-                            value={selectedMasteryFilter}
-                            onChange={(e) => setSelectedMasteryFilter(e.target.value)}
-                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
-                          >
-                            <option value="all">All results</option>
-                            <option value="top">Top scores</option>
-                          </select>
                         </div>
 
-                        {/* Performance rows */}
-                        <div className="mt-4 space-y-2.5">
+                        {/* Students Rows */}
+                        <div className="mt-3 space-y-1">
                           {displayedStudents.length === 0 ? (
-                            <div className="py-6 text-center text-xs text-slate-400">
-                              No students enrolled in this class / section.
+                            <div className="py-8 text-center text-xs text-gray-400">
+                              No students found in this class or section.
                             </div>
                           ) : (
                             displayedStudents.slice(0, 4).map((s, idx) => {
@@ -724,22 +714,22 @@ function Dashboard({ initialView = 'dashboard' }) {
                               const studentSection = s.section || s.Section || 'A'
                               const rollNo = s.roll_no || s.Roll_No || idx + 1
                               return (
-                                <div key={s.id || idx} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-none">
+                                <div key={s.id || idx} className="flex items-center justify-between text-xs py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
                                   <div className="flex items-center gap-2.5">
-                                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#eef2f6] text-[#0f1e36] font-bold text-xs">
+                                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-800 font-semibold text-xs">
                                       {name.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                      <p className="font-bold text-slate-900 leading-tight">
+                                      <p className="font-medium text-gray-900 leading-tight">
                                         {name}
                                       </p>
-                                      <p className="text-[10px] text-slate-400">
-                                        Class {studentClass} · Section {studentSection} · Roll #{rollNo}
+                                      <p className="text-[10.5px] text-gray-400">
+                                        Class {studentClass}-{studentSection} · Roll #{rollNo}
                                       </p>
                                     </div>
                                   </div>
-                                  <span className="font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px]">
-                                    Active
+                                  <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                                    Enrolled
                                   </span>
                                 </div>
                               )
@@ -749,127 +739,128 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
 
                       {/* Footer Row */}
-                      <div className="pt-4 border-t border-slate-100 mt-4 text-xs">
+                      <div className="pt-4 border-t border-gray-100 mt-4 text-xs">
                         <button
-                          onClick={() => navigate('/result-view')}
-                          className="font-semibold text-[#1e40af] hover:underline"
+                          onClick={() => navigate('/students')}
+                          className="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
                         >
-                          View all records →
+                          View all student records →
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Needs attention Section */}
-                <div className="space-y-3 pt-2">
-                  <h2 className="text-base font-bold text-[#0f1e36]">
-                    Needs attention
-                  </h2>
-
-                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Schedule Banner */}
+                <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-xl">schedule</span>
+                    </div>
                     <div>
-                      <h3 className="text-sm font-bold text-[#0f1e36]">
-                        Today&apos;s teaching schedule
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        Today&apos;s Class Routine & Timetable
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Manage class routines & faculty schedules
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Manage faculty periods, room allocations, and daily subject bells.
                       </p>
                     </div>
+                  </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 shadow-2xs">
-                        <span>{new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>
-                        <span className="material-symbols-outlined text-xs text-slate-400">calendar_today</span>
-                      </div>
-
-                      <button
-                        onClick={() => navigate('/timetable')}
-                        className="text-xs font-semibold text-[#1e40af] hover:underline"
-                      >
-                        View full timetable →
-                      </button>
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600">
+                      <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <span className="material-symbols-outlined text-xs text-gray-400">calendar_today</span>
                     </div>
+
+                    <button
+                      onClick={() => navigate('/timetable')}
+                      className="text-xs font-semibold text-gray-900 hover:text-gray-600 transition-colors"
+                    >
+                      View Timetable →
+                    </button>
                   </div>
                 </div>
 
               </div>
 
               {/* ================= RIGHT UTILITY COLUMN ================= */}
-              <div className="w-full xl:w-[320px] xl:shrink-0 space-y-6">
+              <div className="w-full xl:w-[320px] xl:shrink-0 space-y-5">
 
-                {/* 1. Principal Sharma User Card */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs space-y-3">
+                {/* 1. Admin Identity Card */}
+                <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e2ecf8] text-[#0f1e36] font-bold text-sm">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white font-medium text-sm">
                       {userInitials}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-[#0f1e36] leading-tight truncate">
+                      <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
                         {displayName}
                       </p>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        Super Admin
+                      <p className="text-xs text-gray-400 truncate mt-0.5">
+                        Super Administrator
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 text-xs">
+                  <div className="pt-2 border-t border-gray-100 text-xs flex items-center justify-between">
+                    <span className="text-gray-400 truncate text-[11px]">{displayEmail}</span>
                     <button
                       onClick={() => navigate('/teachers')}
-                      className="font-semibold text-[#1e40af] hover:underline"
+                      className="font-semibold text-gray-900 hover:text-gray-600 transition-colors"
                     >
-                      View profile →
+                      Staff →
                     </button>
                   </div>
                 </div>
 
-                {/* 2. Calendar Card */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs space-y-3">
+                {/* 2. Interactive Calendar Card */}
+                <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-[#0f1e36]">
-                      Calendar
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {currentMonthYear}
                     </h3>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => changeMonth(-1)}
-                        className="h-7 w-7 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-slate-50 flex items-center justify-center"
+                        className="h-7 w-7 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 flex items-center justify-center"
+                        title="Previous Month"
                       >
                         ‹
                       </button>
                       <button
                         onClick={() => changeMonth(1)}
-                        className="h-7 w-7 rounded-lg border border-slate-200 text-xs text-slate-500 hover:bg-slate-50 flex items-center justify-center"
+                        className="h-7 w-7 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 flex items-center justify-center"
+                        title="Next Month"
                       >
                         ›
                       </button>
                     </div>
                   </div>
 
-                  {/* Legend matching mockup */}
-                  <div className="text-[11px] text-slate-400 flex items-center gap-3">
+                  {/* Legend */}
+                  <div className="text-[10.5px] text-gray-400 flex items-center gap-3 pt-0.5">
                     <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      Exam
+                      <span className="h-1.5 w-1.5 rounded-full bg-gray-900" />
+                      Today
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-rose-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                       Holiday
                     </span>
-                    <span className="text-slate-400">· Select a date to filter</span>
                   </div>
 
                   {/* Days header */}
-                  <div className="grid grid-cols-7 text-center text-xs font-semibold text-slate-400 pt-1">
+                  <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-gray-400 pt-1">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                       <span key={i}>{d}</span>
                     ))}
                   </div>
 
                   {/* Dates grid */}
-                  <div className="grid grid-cols-7 gap-y-1 text-center text-xs font-semibold text-slate-700">
+                  <div className="grid grid-cols-7 gap-y-1 text-center text-xs font-medium text-gray-700">
                     {Array.from({ length: firstDayIndex }).map((_, i) => (
-                      <span key={`b-${i}`} className="h-7 flex items-center justify-center text-slate-300 text-xs">
+                      <span key={`b-${i}`} className="h-7 flex items-center justify-center text-gray-300 text-xs">
                         {prevMonthDays - firstDayIndex + i + 1}
                       </span>
                     ))}
@@ -878,19 +869,16 @@ function Dashboard({ initialView = 'dashboard' }) {
                       const isSelected = dayNum === selectedDay
                       const dateStr = `${calendarDate.getFullYear()}-${String(calendarDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
                       const isHoliday = realHolidays.some((h) => (h.holiday_date || h.start_date) === dateStr)
-                      const isExam = false
 
                       return (
                         <div key={dayNum} className="h-7 flex items-center justify-center">
                           <button
                             onClick={() => setSelectedDay(dayNum)}
                             className={`h-6 w-6 rounded-full text-xs flex items-center justify-center transition-all ${isSelected
-                                ? 'bg-[#132c4e] text-white font-bold'
-                                : isExam
-                                  ? 'bg-amber-100 text-amber-900 font-bold'
-                                  : isHoliday
-                                    ? 'bg-rose-100 text-rose-800 font-bold'
-                                    : 'hover:bg-slate-100'
+                                ? 'bg-gray-900 text-white font-semibold'
+                                : isHoliday
+                                  ? 'bg-rose-50 text-rose-700 font-bold'
+                                  : 'hover:bg-gray-100 text-gray-700'
                               }`}
                           >
                             {dayNum}
@@ -901,59 +889,53 @@ function Dashboard({ initialView = 'dashboard' }) {
                   </div>
                 </div>
 
-                {/* 3. Upcoming events Card */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs space-y-3">
+                {/* 3. Upcoming Events & Holidays Card */}
+                <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-[#0f1e36]">
-                      Upcoming events
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      School Events & Holidays
                     </h3>
                   </div>
-
-                  <select className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none cursor-pointer">
-                    <option value="all">All</option>
-                    <option value="academic">Academic</option>
-                    <option value="holiday">Holiday</option>
-                  </select>
 
                   <div className="space-y-2 pt-1 text-xs">
                     {realHolidays && realHolidays.length > 0 ? (
                       realHolidays.slice(0, 4).map((h) => (
-                        <div key={h.id || h.holiday_date} className="flex items-center justify-between py-1 border-b border-slate-50">
+                        <div key={h.id || h.holiday_date} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-none">
                           <div>
-                            <p className="font-semibold text-slate-800">{h.title || h.name}</p>
-                            <p className="text-[10px] text-slate-400">
+                            <p className="font-medium text-gray-900">{h.title || h.name || h.holiday_name}</p>
+                            <p className="text-[10.5px] text-gray-400">
                               {h.holiday_type || 'Holiday'} · {h.holiday_date ? new Date(h.holiday_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Scheduled'}
                             </p>
                           </div>
-                          <span className="h-2 w-2 rounded-full bg-rose-500" />
+                          <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
                         </div>
                       ))
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400">
-                        No upcoming events or holidays scheduled.
+                      <div className="py-4 text-center text-xs text-gray-400">
+                        No upcoming events scheduled.
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 border-t border-gray-100">
                     <button
                       onClick={() => navigate('/attendance')}
-                      className="text-xs font-semibold text-[#1e40af] hover:underline"
+                      className="text-xs font-semibold text-gray-900 hover:text-gray-600 transition-colors"
                     >
-                      See all →
+                      View all calendar events →
                     </button>
                   </div>
                 </div>
 
-                {/* 4. Pinned notes Card */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs space-y-3">
+                {/* 4. Pinned Notes Card */}
+                <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-[#0f1e36]">
-                      Pinned notes
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Pinned Notes
                     </h3>
                     <button
                       onClick={() => setIsAddingNote(!isAddingNote)}
-                      className="h-7 w-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50"
+                      className="h-6 w-6 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                       title="Add note"
                     >
                       <span className="material-symbols-outlined text-sm">add</span>
@@ -964,23 +946,23 @@ function Dashboard({ initialView = 'dashboard' }) {
                     <form onSubmit={handleAddNote} className="space-y-2">
                       <input
                         type="text"
-                        placeholder="Note title..."
+                        placeholder="Write a quick note..."
                         value={newNoteTitle}
                         onChange={(e) => setNewNoteTitle(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-800 focus:outline-none"
+                        className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-gray-400"
                         autoFocus
                       />
                       <div className="flex justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => setIsAddingNote(false)}
-                          className="px-2 py-0.5 text-xs text-slate-400"
+                          className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          className="rounded bg-[#132c4e] px-2.5 py-0.5 text-xs font-bold text-white"
+                          className="rounded-md bg-gray-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-gray-800"
                         >
                           Save
                         </button>
@@ -991,18 +973,18 @@ function Dashboard({ initialView = 'dashboard' }) {
                   <div className="space-y-1.5">
                     {notes.length > 0 ? (
                       notes.map((n) => (
-                        <div key={n.id} className="group flex items-start justify-between rounded-lg bg-slate-50 p-2 text-xs">
-                          <span className="text-slate-700 font-medium leading-tight">{n.title}</span>
+                        <div key={n.id} className="group flex items-start justify-between rounded-lg bg-gray-50 p-2 text-xs">
+                          <span className="text-gray-700 font-normal leading-tight">{n.title}</span>
                           <button
                             onClick={() => setNotes((prev) => prev.filter((item) => item.id !== n.id))}
-                            className="hidden group-hover:block text-slate-400 hover:text-rose-500 ml-1 text-xs font-bold"
+                            className="hidden group-hover:block text-gray-400 hover:text-rose-500 ml-1 text-xs font-bold"
                           >
                             ×
                           </button>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-slate-400 text-center py-2">No pinned notes. Click + to add a note.</p>
+                      <p className="text-xs text-gray-400 text-center py-2">No pinned notes. Click + to add one.</p>
                     )}
                   </div>
                 </div>

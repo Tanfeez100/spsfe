@@ -570,7 +570,7 @@ export default function SubstitutionAndHandoverTab({
                   <option value="All">All Assigned Classes & Periods</option>
                   {CLASS_OPTIONS.map((c) => (
                     <option key={c} value={c}>
-                      Class {c} Only
+                      {['Nursery', 'LKG', 'UKG'].includes(c) ? `${c} Only` : `Class ${c} Only`}
                     </option>
                   ))}
                 </select>

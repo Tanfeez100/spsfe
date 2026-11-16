@@ -416,11 +416,10 @@ function StudentAttendanceRegister({
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'present')}
-                          className={`h-8 w-8 rounded-md text-xs font-black transition-all ${
-                            currentStatus === 'present'
+                          className={`h-8 w-8 rounded-md text-xs font-black transition-all ${currentStatus === 'present'
                               ? 'bg-[#16a34a] text-white shadow-xs'
                               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           P
                         </button>
@@ -428,11 +427,10 @@ function StudentAttendanceRegister({
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'absent')}
-                          className={`h-8 w-8 rounded-md text-xs font-black transition-all ${
-                            currentStatus === 'absent'
+                          className={`h-8 w-8 rounded-md text-xs font-black transition-all ${currentStatus === 'absent'
                               ? 'bg-[#dc2626] text-white shadow-xs'
                               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           A
                         </button>
@@ -440,11 +438,10 @@ function StudentAttendanceRegister({
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'late')}
-                          className={`h-8 w-8 rounded-md text-xs font-black transition-all ${
-                            currentStatus === 'late'
+                          className={`h-8 w-8 rounded-md text-xs font-black transition-all ${currentStatus === 'late'
                               ? 'bg-[#d97706] text-white shadow-xs'
                               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           L
                         </button>
@@ -452,11 +449,10 @@ function StudentAttendanceRegister({
                         <button
                           type="button"
                           onClick={() => handleStatusChange(student.id, 'half_day')}
-                          className={`h-8 w-9 rounded-md text-xs font-black transition-all ${
-                            currentStatus === 'half_day'
+                          className={`h-8 w-9 rounded-md text-xs font-black transition-all ${currentStatus === 'half_day'
                               ? 'bg-[#2563eb] text-white shadow-xs'
                               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           HD
                         </button>
@@ -747,8 +743,8 @@ function TeacherGpsPunchCanva({ user }) {
               {isCheckedOut
                 ? `Checked Out at ${checkOutTime}`
                 : isCheckedIn
-                ? `Checked In at ${checkInTime}`
-                : 'Not checked in currently'}
+                  ? `Checked In at ${checkInTime}`
+                  : 'Not checked in currently'}
             </p>
 
             {/* Action Buttons */}
@@ -757,21 +753,20 @@ function TeacherGpsPunchCanva({ user }) {
                 type="button"
                 onClick={handlePunchToggle}
                 disabled={punching || isCheckedOut}
-                className={`w-full py-2.5 rounded-xl text-sm font-bold shadow-xs transition ${
-                  isCheckedOut
+                className={`w-full py-2.5 rounded-xl text-sm font-bold shadow-xs transition ${isCheckedOut
                     ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                     : isCheckedIn
-                    ? 'bg-[#132c4e] hover:bg-[#0f1e36] text-white'
-                    : 'bg-[#16a34a] hover:bg-emerald-700 text-white'
-                }`}
+                      ? 'bg-[#132c4e] hover:bg-[#0f1e36] text-white'
+                      : 'bg-[#16a34a] hover:bg-emerald-700 text-white'
+                  }`}
               >
                 {punching
                   ? 'Processing...'
                   : isCheckedOut
-                  ? 'Completed Day (Checked Out)'
-                  : isCheckedIn
-                  ? 'Punch Out (Departure)'
-                  : 'Punch In (Arrival)'}
+                    ? 'Completed Day (Checked Out)'
+                    : isCheckedIn
+                      ? 'Punch Out (Departure)'
+                      : 'Punch In (Arrival)'}
               </button>
 
               <button
@@ -973,19 +968,17 @@ function HolidayCalendarCanva({ user }) {
                     key={dayNum}
                     type="button"
                     onClick={() => handleSelectDay(dayNum)}
-                    className={`min-h-[52px] sm:min-h-[64px] rounded-xl p-2 sm:p-2.5 flex flex-col justify-between text-left transition ${
-                      isSelected
+                    className={`min-h-[52px] sm:min-h-[64px] rounded-xl p-2 sm:p-2.5 flex flex-col justify-between text-left transition ${isSelected
                         ? 'bg-[#132c4e] text-white shadow-xs font-black'
                         : 'border border-slate-200/90 bg-white hover:border-slate-300 text-slate-800 font-bold'
-                    }`}
+                      }`}
                   >
                     <span className="text-xs sm:text-sm">{dayNum}</span>
                     <div className="flex items-center gap-1">
                       {hasHoliday && (
                         <span
-                          className={`h-2 w-2 rounded-full ${
-                            isSelected ? 'bg-amber-300' : 'bg-[#d97706]'
-                          }`}
+                          className={`h-2 w-2 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-[#d97706]'
+                            }`}
                         />
                       )}
                     </div>
@@ -1339,7 +1332,7 @@ function StudentHistory({ user, selected }) {
 function AttendanceSystem({ embedded = false, initialTab = '' }) {
   const [user] = useState(resolveUser)
   const [bootstrap, setBootstrap] = useState({ classes: [], sections: [], assignment: null, assignments: [] })
-  
+
   // Navigation tabs matching the Canva blueprint
   const [activeTab, setActiveTab] = useState(() => {
     if (initialTab) return initialTab
@@ -1368,9 +1361,9 @@ function AttendanceSystem({ embedded = false, initialTab = '' }) {
         const response = await getAttendanceBootstrap()
         const assignment = response.assignment || null
         const assignments = Array.isArray(response.assignments) ? response.assignments : assignment ? [assignment] : []
-        
+
         setBootstrap({
-          classes: response.classes || ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8'],
+          classes: response.classes || ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'],
           sections: response.sections || ['A', 'B', 'C', 'D'],
           assignment,
           assignments,
@@ -1383,7 +1376,7 @@ function AttendanceSystem({ embedded = false, initialTab = '' }) {
         }))
       } catch {
         setBootstrap({
-          classes: ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8'],
+          classes: ['Nursery', 'LKG', 'UKG', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'],
           sections: ['A', 'B', 'C', 'D'],
           assignment: null,
           assignments: [],
@@ -1538,11 +1531,10 @@ function AttendanceSystem({ embedded = false, initialTab = '' }) {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
-                  isActive
+                className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${isActive
                     ? 'bg-[#132c4e] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
