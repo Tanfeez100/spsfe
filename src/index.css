@@ -1212,4 +1212,66 @@
   .text-shadow-subtle {
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
+
+  /* ========================================================
+     ADMIN DASHBOARD FLUID ANIMATIONS & HOVER MICRO-INTERACTIONS
+     ======================================================== */
+  @keyframes dashboardCardFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes wavePulseGlow {
+    0%, 100% {
+      r: 4;
+      stroke-width: 2.5;
+    }
+    50% {
+      r: 6.5;
+      stroke-width: 4;
+    }
+  }
+
+  @keyframes livePulseBadge {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    }
+    50% {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+    }
+  }
+
+  .anim-dashboard-enter {
+    animation: dashboardCardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .dashboard-card-hover {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  }
+
+  .dashboard-card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  }
+
+  .dashboard-kpi-hover {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  }
+
+  .dashboard-kpi-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.1), 0 6px 14px -3px rgba(15, 23, 42, 0.05);
+  }
+
+  .live-badge-pulse {
+    animation: livePulseBadge 2.4s ease-in-out infinite;
+  }
 }

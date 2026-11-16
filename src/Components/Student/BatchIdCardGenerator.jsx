@@ -410,8 +410,8 @@ function BatchIdCardGenerator({
     : 'fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs'
 
   const shellClass = isPage
-    ? 'relative z-10 flex min-h-[calc(100vh-140px)] w-full flex-col overflow-hidden rounded-2xl bg-[#f8fafc] shadow-xs border border-slate-200'
-    : 'relative z-[9999] flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-[#f8fafc] shadow-2xl border border-slate-200'
+    ? 'w-full flex flex-col space-y-4'
+    : 'relative z-[9999] flex max-h-[95vh] w-full max-w-6xl flex-col overflow-y-auto rounded-2xl bg-[#f8fafc] shadow-2xl border border-slate-200 p-5 sm:p-6 space-y-4'
 
   return (
     <div className={containerClass}>
@@ -620,349 +620,304 @@ function BatchIdCardGenerator({
 
       {/* Main Dialog Shell */}
       <div className={shellClass}>
-        {/* ================= 1. MODAL TOP HEADER ================= */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-5 sm:px-7 py-3 sps-print-no-show shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#071d3f] text-white shadow-sm ring-1 ring-[#071d3f]/20">
-              <span className="material-symbols-outlined text-xl text-amber-300">
-                {cardType === 'admit_card' ? 'assignment_turned_in' : 'badge'}
-              </span>
-            </div>
+        {/* ================= 1. BREADCRUMBS & STUDIO TITLE ================= */}
+        <div className="flex flex-col space-y-1.5 sps-print-no-show">
+          <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-xs font-semibold text-slate-400 tracking-wide uppercase mb-0.5">
+            <span className="text-slate-500 hover:text-slate-700">SPS</span>
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-500 hover:text-slate-700">STUDENT MANAGEMENT</span>
+            <span className="text-slate-300">/</span>
+            <span className="text-blue-600 font-bold">ID CARDS STUDIO</span>
+          </nav>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-[#071d3f] tracking-tight">
-                  {cardType === 'admit_card'
-                    ? 'Examination Admit Card Studio'
-                    : 'Student ID Card Studio'}
-                </h2>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
-                  55 × 85 mm · Official CR-80
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {cardType === 'admit_card' ? 'Student Admit Card Studio' : 'Student ID Card Studio'}
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#fef3c7] text-[#92400e] border border-amber-200 uppercase tracking-wide">
+                  CR-80 STANDARD (55×85MM)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{matchingStudents.length} Students Loaded</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Official Star Public School Session 2026–27 · 9 Cards per A4 Sheet · Direct Print & PDF
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
+                Session 2026–27 · Batch Print &amp; Export · 9 Cards per A4 Sheet (3×3 Grid)
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {/* Live Active Counter Badge */}
-            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{matchingStudents.length} Students</span>
-            </div>
-
-            {/* Document Switcher: ID Card vs Admit Card */}
-            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-0.5 text-xs font-bold shadow-inner">
-              <button
-                type="button"
-                onClick={() => setCardType('id_card')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${cardType === 'id_card'
-                    ? 'bg-[#071d3f] text-white shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                title="Generate Student Identity Cards"
-              >
-                <span className="material-symbols-outlined text-[14px]">badge</span>
-                <span>ID Card</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCardType('admit_card')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition-all cursor-pointer ${cardType === 'admit_card'
-                    ? 'bg-[#071d3f] text-white shadow-xs font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                title="Generate Examination Admit Cards"
-              >
-                <span className="material-symbols-outlined text-[14px]">assignment_turned_in</span>
-                <span>Admit Card</span>
-              </button>
-            </div>
-
-            {onClose && (
+            {onClose && !isPage && (
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer ml-1"
+                className="self-start sm:self-center h-8 w-8 rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
                 title="Close Studio"
               >
-                <span className="material-symbols-outlined text-base">close</span>
+                ✕
               </button>
             )}
           </div>
         </div>
 
-        {/* ================= 2. CLASS SELECTION STEP (If not generated) ================= */}
-        {!hasGenerated ? (
-          <div className="flex-1 overflow-y-auto p-6 sm:p-10 flex items-center justify-center">
-            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="text-center space-y-1">
-                <span className="material-symbols-outlined text-4xl text-[#071d3f]">
-                  assignment_ind
-                </span>
-                <h3 className="text-lg font-extrabold text-[#071d3f]">
-                  Select Class to Generate Cards
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Select the class to generate official vertical ID cards. Optimized to fit <strong>up to 9 cards per single A4 paper sheet (55mm × 85mm)</strong>.
-                </p>
-              </div>
+        {/* ================= 2. PRIMARY ACTION BUTTONS ROW ================= */}
+        <div className="flex flex-wrap items-center gap-2.5 sps-print-no-show pt-0.5">
+          {/* Tab: ID Card */}
+          <button
+            type="button"
+            onClick={() => setCardType('id_card')}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${
+              cardType === 'id_card'
+                ? 'bg-white border-blue-500 text-blue-600 ring-2 ring-blue-500/10'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <svg className={`w-4 h-4 ${cardType === 'id_card' ? 'text-blue-600' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="16" rx="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="8" cy="15" r="1.5" fill="currentColor" />
+            </svg>
+            <span>ID Card</span>
+          </button>
 
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                    Class <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:border-[#071d3f] focus:bg-white focus:outline-none"
-                  >
-                    <option value="all">All Classes (Full School)</option>
-                    {CLASS_OPTIONS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          {/* Tab: Admit Card */}
+          <button
+            type="button"
+            onClick={() => setCardType('admit_card')}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${
+              cardType === 'admit_card'
+                ? 'bg-white border-blue-500 text-blue-600 ring-2 ring-blue-500/10'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <svg className={`w-4 h-4 ${cardType === 'admit_card' ? 'text-blue-600' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            <span>Admit Card</span>
+          </button>
 
+          {/* Export PNG */}
+          <button
+            type="button"
+            onClick={handleDownloadPNG}
+            disabled={downloadingPng}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+          >
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{downloadingPng ? 'Exporting...' : 'Export PNG'}</span>
+          </button>
+
+          {/* Download PDF */}
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={downloadingPdf}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+          >
+            <svg className="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 8.5h-1v2H7v-5h2.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5zm5 2h-2v-5h2c.83 0 1.5.67 1.5 1.5v2c0 .83-.67 1.5-1.5 1.5zm4-3.5h-1.5v1h1v1.5h-1V14H17v-5h3v1.5z" />
+            </svg>
+            <span>{downloadingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
+          </button>
+
+          {/* Print All Cards */}
+          <button
+            type="button"
+            onClick={handlePrintAll}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold bg-[#1d4ed8] hover:bg-blue-700 text-white transition-all shadow-md shadow-blue-500/20 active:scale-98 cursor-pointer ml-auto sm:ml-0"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Print All Cards</span>
+          </button>
+        </div>
+
+        {/* ================= 3. FILTER & CONTROL CARD ================= */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs space-y-3.5 sps-print-no-show">
+          {/* Line 1: Class | Section | Template/Theme */}
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            {/* CLASS */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">CLASS</span>
+              <div className="relative" id="class-dropdown-container">
                 <button
                   type="button"
-                  onClick={handleStartGeneration}
-                  className="w-full rounded-xl bg-[#071d3f] hover:bg-[#122e58] py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-slate-900/15 transition-all flex items-center justify-center gap-2"
+                  onClick={() => setIsClassDropdownOpen(!isClassDropdownOpen)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 transition cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-base">verified</span>
+                  <span className="text-slate-500">🎓</span>
                   <span>
-                    Generate Cards for {selectedClass === 'all' ? 'All Classes' : selectedClass} ({matchingStudents.length} Students)
+                    {selectedClass === 'all'
+                      ? 'All Classes (All Sections)'
+                      : `Class ${selectedClass} (All Sections)`}
                   </span>
+                  <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isClassDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
+
+                {isClassDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                      Select Class ({matchingStudents.length} shown)
+                    </div>
+                    <div className="max-h-60 overflow-y-auto py-1">
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedClass('all'); setIsClassDropdownOpen(false); }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${selectedClass === 'all' ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
+                      >
+                        <span>All Classes</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedClass === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                          {effectiveStudents.length > 0 ? `${effectiveStudents.length} Students` : 'All'}
+                        </span>
+                      </button>
+                      {[
+                        'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+                        ...Object.keys(classCounts).filter((c) => c && !['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].includes(c))
+                      ].map((c) => {
+                        const isSel = selectedClass === c
+                        const cLabel = ['Nursery', 'LKG', 'UKG'].includes(c) ? c : c.startsWith('Class') ? c : `Class ${c}`
+                        const count = classCounts[c] || 0
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => { setSelectedClass(c); setIsClassDropdownOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${isSel ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
+                          >
+                            <span>{cLabel}</span>
+                            {count > 0 && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSel ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                {count}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <span className="text-slate-300 font-light hidden sm:inline">|</span>
+
+            {/* SECTION */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">SECTION</span>
+              <div className="inline-flex items-center rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
+                {['all', 'A', 'B'].map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setSelectedSection(sec)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      selectedSection === sec
+                        ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {sec === 'all' ? 'All' : sec}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <span className="text-slate-300 font-light hidden sm:inline">|</span>
+
+            {/* TEMPLATE / THEME */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TEMPLATE / THEME</span>
+              <div className="relative">
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => {
+                    const newId = e.target.value
+                    setSelectedTemplate(newId)
+                    if (docContext?.setActiveTemplate) {
+                      docContext.setActiveTemplate(cardType, newId)
+                    }
+                  }}
+                  className="appearance-none inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 pl-3 pr-8 py-2 text-xs font-bold text-slate-800 transition cursor-pointer focus:outline-none"
+                >
+                  {availableTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      ● {t.name}
+                    </option>
+                  ))}
+                </select>
+                <svg className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
           </div>
-        ) : (
-          /* ================= 3. GENERATED CARDS STUDIO & A4 SHEET PREVIEW ================= */
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* ================= FLOATING STUDIO COMMAND DOCK (Matching Mockup 2 in Light Theme) ================= */}
-            <div className="bg-[#f1f5f9]/70 px-4 sm:px-6 py-2.5 sps-print-no-show shrink-0 border-b border-slate-200/80">
-              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-white border border-slate-200/90 p-2 sm:p-2.5 shadow-md shadow-slate-200/50">
-                {/* 1. Class Selector Dropdown & Section Switcher */}
-                <div className="flex items-center gap-2">
-                  <div className="relative" id="class-dropdown-container">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 pl-1">
-                        CLASS:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsClassDropdownOpen(!isClassDropdownOpen)}
-                        className="inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs font-black text-[#071d3f] shadow-2xs transition-all cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[16px] text-[#071d3f]">school</span>
-                        <span>{selectedClass === 'all' ? 'All Classes' : ['Nursery', 'LKG', 'UKG'].includes(selectedClass) ? selectedClass : `Class ${selectedClass}`}</span>
-                        <span className="material-symbols-outlined text-sm text-slate-400 transition-transform duration-200" style={{ transform: isClassDropdownOpen ? 'rotate(180deg)' : 'none' }}>
-                          expand_more
-                        </span>
-                      </button>
-                    </div>
 
-                    {/* Dropdown Menu Popover */}
-                    {isClassDropdownOpen && (
-                      <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                          Select Class ({matchingStudents.length} shown)
-                        </div>
-                        <div className="max-h-60 overflow-y-auto py-1">
-                          <button
-                            type="button"
-                            onClick={() => { setSelectedClass('all'); setIsClassDropdownOpen(false); }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${selectedClass === 'all' ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
-                          >
-                            <span>All Classes</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedClass === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                              {effectiveStudents.length > 0 ? `${effectiveStudents.length} Students` : 'All'}
-                            </span>
-                          </button>
-                          {[
-                            'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8',
-                            ...Object.keys(classCounts).filter((c) => c && !['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8'].includes(c))
-                          ].map((c) => {
-                            const isSel = selectedClass === c
-                            const cLabel = ['Nursery', 'LKG', 'UKG'].includes(c) ? c : c.startsWith('Class') ? c : `Class ${c}`
-                            const count = classCounts[c] || 0
-                            return (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => { setSelectedClass(c); setIsClassDropdownOpen(false); }}
-                                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${isSel ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
-                              >
-                                <span>{cLabel}</span>
-                                {count > 0 && (
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSel ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                    {count}
-                                  </span>
-                                )}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section Switcher */}
-                  <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs">
-                    <span className="px-1.5 text-[10px] font-black uppercase text-slate-400">Sec:</span>
-                    {['all', 'A', 'B'].map((sec) => (
-                      <button
-                        key={sec}
-                        type="button"
-                        onClick={() => setSelectedSection(sec)}
-                        className={`rounded-lg px-2 py-1 text-xs transition-all cursor-pointer ${selectedSection === sec
-                            ? 'bg-[#071d3f] text-white shadow-2xs font-extrabold'
-                            : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                      >
-                        {sec === 'all' ? 'All' : sec}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Card Design Template Selector */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 pl-1 hidden lg:inline">
-                      DESIGN:
-                    </span>
-                    <div className="relative">
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => {
-                          const newId = e.target.value
-                          setSelectedTemplate(newId)
-                          if (docContext?.setActiveTemplate) {
-                            docContext.setActiveTemplate(cardType, newId)
-                          }
-                        }}
-                        className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 pl-2.5 pr-7 py-1.5 text-xs font-black text-[#071d3f] shadow-2xs focus:border-[#071d3f] focus:outline-none cursor-pointer appearance-none max-w-[170px] sm:max-w-[210px] truncate"
-                        title="Choose Card Design Template"
-                      >
-                        {availableTemplates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-1.5 top-1.5 pointer-events-none text-slate-400 text-sm">
-                        expand_more
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Center Search Bar */}
-                <div className="flex flex-1 items-center justify-center max-w-md">
-                  <div className="relative w-full min-w-[180px] max-w-[320px]">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-slate-400 text-sm pointer-events-none">
-                      search
-                    </span>
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search student name or roll..."
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white focus:bg-white pl-9 pr-7 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 shadow-2xs focus:border-[#071d3f] focus:outline-none focus:ring-2 focus:ring-[#071d3f]/10 transition-all"
-                    />
-                    {searchTerm && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchTerm('')}
-                        className="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-                        title="Clear search"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Live Sheet Zoom Controls */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setZoomLevel((z) => Math.max(75, z - 25))}
-                      disabled={zoomLevel <= 75}
-                      className="p-1 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                      title="Zoom Out Sheet Preview"
-                    >
-                      <span className="material-symbols-outlined text-[15px]">zoom_out</span>
-                    </button>
-                    <span className="px-1.5 text-[10.5px] font-mono font-bold text-slate-700 min-w-[36px] text-center">
-                      {zoomLevel}%
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setZoomLevel((z) => Math.min(150, z + 25))}
-                      disabled={zoomLevel >= 150}
-                      className="p-1 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                      title="Zoom In Sheet Preview"
-                    >
-                      <span className="material-symbols-outlined text-[15px]">zoom_in</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Right Action Cluster (Emerald PDF, Navy/Gold Print, PNG) */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Download PDF Button */}
-                  <button
-                    type="button"
-                    onClick={handleDownloadPDF}
-                    disabled={downloadingPdf}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-3.5 py-1.5 text-xs font-extrabold shadow-sm shadow-emerald-700/20 active:scale-[0.98] disabled:opacity-60 transition-all cursor-pointer"
-                    title="Download all cards as multi-page A4 PDF"
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {downloadingPdf ? 'sync' : 'picture_as_pdf'}
-                    </span>
-                    <span>{downloadingPdf ? 'PDF...' : 'Download PDF'}</span>
-                  </button>
-
-                  {/* Print IDs Button */}
-                  <button
-                    type="button"
-                    onClick={handlePrintAll}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#071d3f] hover:bg-[#122e58] text-white px-3.5 py-1.5 text-xs font-extrabold shadow-sm shadow-[#071d3f]/20 active:scale-[0.98] transition-all cursor-pointer"
-                    title="Print all cards on A4 paper"
-                  >
-                    <span className="material-symbols-outlined text-base text-amber-300">print</span>
-                    <span>Print IDs</span>
-                  </button>
-
-                  {/* PNG Sheet Button */}
-                  <button
-                    type="button"
-                    onClick={handleDownloadPNG}
-                    disabled={downloadingPng}
-                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 text-xs font-bold shadow-2xs active:scale-[0.98] disabled:opacity-60 transition-all cursor-pointer"
-                    title="Download current A4 sheet as High-Resolution PNG"
-                  >
-                    <span className="material-symbols-outlined text-base text-slate-500">
-                      {downloadingPng ? 'sync' : 'image'}
-                    </span>
-                    <span>{downloadingPng ? 'PNG...' : 'PNG'}</span>
-                  </button>
-                </div>
-              </div>
+          {/* Row 2: Search Input & Zoom Controls */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            {/* Search Bar */}
+            <div className="relative flex-1 min-w-[220px] max-w-sm">
+              <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by student name or roll..."
+                className="w-full pl-9 pr-7 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
-            {/* Cards Scrollable Canvas: Shows each A4 Sheet Page */}
-            <div
-              id="sps-printable-id-cards-area"
-              className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-12 bg-slate-200/70"
-            >
+            {/* Zoom Level Controls */}
+            <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setZoomLevel((z) => Math.max(75, z - 25))}
+                disabled={zoomLevel <= 75}
+                className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                title="Zoom Out Sheet Preview"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                </svg>
+              </button>
+              <span className="px-2 text-xs font-mono font-bold text-slate-700 min-w-[42px] text-center">
+                {zoomLevel}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoomLevel((z) => Math.min(150, z + 25))}
+                disabled={zoomLevel >= 150}
+                className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                title="Zoom In Sheet Preview"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Cards Scrollable Canvas: Shows each A4 Sheet Page */}
+        <div
+          id="sps-printable-id-cards-area"
+          className="w-full rounded-2xl border border-slate-200/90 bg-slate-100/70 p-4 sm:p-8 space-y-12 overflow-y-auto min-h-[500px]"
+        >
               {matchingStudents.length === 0 ? (
                 <div className="text-center py-16 text-slate-400">
                   <span className="material-symbols-outlined text-4xl text-slate-300">
@@ -1072,8 +1027,6 @@ function BatchIdCardGenerator({
                 ))
               )}
             </div>
-          </div>
-        )}
       </div>
 
       {/* Full-Resolution Card Inspector Modal */}
