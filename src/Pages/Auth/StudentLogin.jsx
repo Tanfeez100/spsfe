@@ -54,7 +54,7 @@ function StudentLogin() {
   return (
     <div className="gps-auth-page min-h-screen text-slate-900">
       <WebsiteHeader />
-      <main className="pb-10 pt-[104px] sm:pt-[112px]">
+      <main className="pb-10 pt-6 sm:pt-8 lg:pt-10">
         <div className="gps-shell">
           <div className="gps-grid lg:grid-cols-[1fr_1fr]">
             <article className="gps-auth-card p-6 sm:p-8">

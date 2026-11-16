@@ -161,11 +161,28 @@ export const normalizeApiError = (
 
     if (!raw) return "";
 
+    // 1. Explicit login / credential errors: Preserve actual error message from server
+    if (
+      text.includes("invalid credential") ||
+      text.includes("invalid username") ||
+      text.includes("invalid password") ||
+      text.includes("wrong password") ||
+      text.includes("incorrect password") ||
+      text.includes("invalid email") ||
+      text.includes("user not found") ||
+      text.includes("student not found") ||
+      text.includes("passwords do not match") ||
+      text.includes("email & password required") ||
+      text.includes("cannot login")
+    ) {
+      return raw;
+    }
+
     if (
       text.includes("row-level security") ||
       text.includes("violates row-level security")
     ) {
-      return "Permission issue hai. Is action ke liye database policy allow nahi kar rahi. Admin se RLS/service key setup check karwayein.";
+      return "Access denied. Database security policy does not allow this action. Please contact the administrator.";
     }
 
     if (
@@ -173,7 +190,7 @@ export const normalizeApiError = (
       text.includes("could not find the table") ||
       text.includes("pgrst205")
     ) {
-      return "Database table app ko abhi visible nahi hai. Supabase SQL setup run karke schema reload karein.";
+      return "Database table is currently unavailable. Please reload the schema cache or verify database setup.";
     }
 
     if (
@@ -181,26 +198,33 @@ export const normalizeApiError = (
       text.includes("23505") ||
       text.includes("already exists")
     ) {
-      return "Ye record pehle se exist karta hai. Duplicate entry save nahi ho sakti.";
+      return "This record already exists. Duplicate entries cannot be saved.";
     }
 
     if (
       text.includes("invalid input syntax") ||
       text.includes("invalid uuid")
     ) {
-      return "Submitted data format valid nahi hai. Please selected value check karein.";
+      return "Invalid data format submitted. Please check the entered values.";
     }
 
     if (text.includes("foreign key") || text.includes("23503")) {
-      return "Selected record kisi existing data se linked nahi hai. Please correct student/teacher/class select karein.";
+      return "Selected record is not linked to any existing data. Please select a valid student, teacher, or class.";
     }
 
-    if (text.includes("jwt") || text.includes("token") || status === 401) {
-      return "Session expire ho gaya hai. Please dobara login karein.";
+    // 2. Token / Session expiration
+    if (
+      text.includes("jwt") ||
+      text.includes("token") ||
+      text.includes("session expired") ||
+      text.includes("login expired") ||
+      text === "unauthorized"
+    ) {
+      return "Session has expired. Please log in again.";
     }
 
     if (text.includes("network error") || text.includes("failed to fetch")) {
-      return "Server se connection nahi ho pa raha. Backend/server status check karein.";
+      return "Unable to connect to the server. Please check your network connection or server status.";
     }
 
     if (
@@ -209,7 +233,7 @@ export const normalizeApiError = (
         text,
       )
     ) {
-      return "Database setup me issue hai. Admin se schema/policy setup check karwayein.";
+      return "Database configuration error. Please contact the administrator to verify schema and policies.";
     }
 
     return raw;

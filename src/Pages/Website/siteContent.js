@@ -7,12 +7,19 @@ export const schoolProfile = {
     'A calm, future-ready learning campus in Harinagar, Ramnagar (Bettiah), West Champaran where academics, values, routines and parent communication move together.',
   phone: '+91 9006457330',
   phoneHref: 'tel:+919006457330',
-  email: 'a9006457330@gmail.com',
-  emailHref: 'mailto:a9006457330@gmail.com',
-  address: 'Meghwal mathia Bazar, West Champaran, Bihar 845106',
+  email: 'spsharinagar@gmail.com',
+  emailHref: 'mailto:spsharinagar@gmail.com',
+  address: 'Harinagar, Vaishali, Bihar – 844501',
   hours: 'Monday to Saturday, 8:00 AM to 2:00 PM',
-  mapsHref: 'https://maps.google.com/?q=Meghwal+mathia+Bazar+West+Champaran+Bihar+845106',
+  hoursShort: 'Mon – Sat: 8:00 AM – 2:00 PM',
+  mapsHref: 'https://maps.google.com/?q=Harinagar+Vaishali+Bihar+844501',
   whatsappHref: 'https://wa.me/919006457330',
+  socialLinks: {
+    youtube: 'https://youtube.com',
+    facebook: 'https://facebook.com',
+    instagram: 'https://instagram.com',
+    twitter: 'https://x.com',
+  },
 }
 
 export const siteNavLinks = [

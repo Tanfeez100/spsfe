@@ -8,7 +8,7 @@ export const scrollToPageTop = () => {
     document.body.scrollTop = 0
 
     document
-      .querySelectorAll('[data-route-scroll-container="true"]')
+      .querySelectorAll('[data-route-scroll-container="true"], #website-scroll-container')
       .forEach((node) => {
         if (typeof node.scrollTo === 'function') {
           node.scrollTo({ top: 0, left: 0, behavior: 'auto' })

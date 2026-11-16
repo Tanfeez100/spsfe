@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { getAccessToken, getLoginType, getUser } from './Api/auth'
 import SEO from './Components/SEO/SEO'
+import PageLoader from './Components/PageLoader'
 import { scrollToPageTop } from './utils/scrollToPageTop'
 
 const Layout = lazy(() => import('./Components/Layout'))
@@ -18,6 +19,7 @@ const About = lazy(() => import('./Pages/Website/About'))
 const Contact = lazy(() => import('./Pages/Website/Contact'))
 const Galary = lazy(() => import('./Pages/Website/Galary'))
 const Admission = lazy(() => import('./Pages/Website/Admission'))
+const AdmissionEnquiry = lazy(() => import('./Pages/Website/AdmissionEnquiry'))
 const PublicFeePayment = lazy(() => import('./Pages/Website/PublicFeePayment'))
 const PrivacyPolicy = lazy(() => import('./Pages/Website/PrivacyPolicy'))
 
@@ -182,19 +184,13 @@ function App() {
     <Router>
       <RouteScrollManager />
       <ToastContainer />
-      <Suspense
-        fallback={
-          <div className="app-shell min-h-screen flex items-center justify-center px-4">
-            <div className="gps-card w-full max-w-sm p-6 text-center">
-              <p className="text-sm text-slate-300">Loading...</p>
-            </div>
-          </div>
-        }
-      >
+      <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/admission" element={<Admission />} />
+          <Route path="/admission-enquiry" element={<AdmissionEnquiry />} />
+          <Route path="/admission/enquiry-form" element={<AdmissionEnquiry />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/gallery" element={<Galary />} />
           <Route path="/pay-fees" element={<PublicFeePayment />} />
