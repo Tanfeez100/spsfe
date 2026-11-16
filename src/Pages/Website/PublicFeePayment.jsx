@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import WebsiteLayout from '../../Components/Website/WebsiteLayout'
+import ThemeSelect from '../../Components/Website/ThemeSelect'
 import SEO from '../../Components/SEO/SEO'
 import {
   buildPublicReceiptUrl,
@@ -298,40 +299,28 @@ function PublicFeePayment() {
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">
                 Class
-                <select
-                  required
-                  value={form.class}
-                  onChange={(event) => handleChange('class', event.target.value)}
-                  className="gps-site-input mt-1"
-                >
-                  <option value="" disabled>
-                    Select class
-                  </option>
-                  {CLASS_OPTIONS.map((className) => (
-                    <option key={className} value={className}>
-                      {className}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-1">
+                  <ThemeSelect
+                    required
+                    value={form.class}
+                    onChange={(val) => handleChange('class', val)}
+                    options={CLASS_OPTIONS}
+                    placeholder="Select class"
+                  />
+                </div>
               </label>
 
               <label className="text-sm font-semibold text-slate-700">
                 Section
-                <select
-                  required
-                  value={form.section}
-                  onChange={(event) => handleChange('section', event.target.value)}
-                  className="gps-site-input mt-1"
-                >
-                  <option value="" disabled>
-                    Select section
-                  </option>
-                  {SECTION_OPTIONS.map((section) => (
-                    <option key={section} value={section}>
-                      {section}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-1">
+                  <ThemeSelect
+                    required
+                    value={form.section}
+                    onChange={(val) => handleChange('section', val)}
+                    options={SECTION_OPTIONS}
+                    placeholder="Select section"
+                  />
+                </div>
               </label>
 
               <label className="text-sm font-semibold text-slate-700">

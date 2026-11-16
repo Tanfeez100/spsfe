@@ -24,6 +24,7 @@
     "html2canvas-pro": "^2.5.2",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
+    "motion": "^14.14.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

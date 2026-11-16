@@ -41,6 +41,36 @@
     font-family: var(--font-body);
   }
 
+  /* Global School Theme Scrollbar */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #1d7ff2 #f0f7ff;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f0f7ff;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #1d7ff2 0%, #0f3f99 100%);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #1d4ed8 0%, #0b1d3a 100%);
+  }
+
   body {
     color: var(--ry-text);
     -webkit-font-smoothing: antialiased;
@@ -90,7 +120,7 @@
     isolation: isolate;
     background:
       radial-gradient(circle at top left, rgba(29, 78, 216, 0.04), transparent 26%),
-      linear-gradient(180deg, #f9fbff 0%, #f6f2ea 100%);
+      linear-gradient(180deg, #f9fbff 0%, #eaf4ff 100%);
   }
 
   .gps-site-shell {
@@ -172,6 +202,15 @@
     box-shadow: 0 16px 34px rgba(29, 78, 216, 0.24);
   }
 
+  @media (min-width: 1024px) {
+    .scottish-chevron-img {
+      clip-path: polygon(14% 0, 100% 0, 100% 100%, 14% 100%, 0% 50%);
+    }
+    .scottish-chevron-ribbon {
+      clip-path: polygon(14% 0, 21% 0, 7% 50%, 21% 100%, 14% 100%, 0% 50%);
+    }
+  }
+
   .gps-site-button-secondary {
     display: inline-flex;
     align-items: center;
@@ -240,21 +279,32 @@
 
   .gps-site-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.55) rgba(243, 244, 246, 0.9);
+    scrollbar-color: #1d7ff2 #f0f7ff;
   }
 
   .gps-site-scrollbar::-webkit-scrollbar {
-    height: 10px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .gps-site-scrollbar::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 
   .gps-site-scrollbar::-webkit-scrollbar-track {
     border-radius: 999px;
-    background: rgba(226, 232, 240, 0.72);
+    background: #f0f7ff;
   }
 
   .gps-site-scrollbar::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.55);
+    background: linear-gradient(180deg, #1d7ff2 0%, #0f3f99 100%);
+  }
+
+  .gps-site-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #1d4ed8 0%, #0b1d3a 100%);
   }
 
   .gps-site [class*="text-cyan-"],
