@@ -839,7 +839,7 @@ function Bills() {
       {/* ========================================================
           CANVA BILL GENERATION CARD (Pixel-Perfect Implementation)
           ======================================================== */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-2xs">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
         {/* Header Row: Title, Subtitle, Ready For Review Tag */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
@@ -852,7 +852,7 @@ function Bills() {
           </div>
 
           <div>
-            <span className="inline-flex rounded-full bg-[#fef3c7] px-3.5 py-1 text-xs font-semibold text-[#92400e]">
+            <span className="inline-flex items-center rounded-full border border-amber-200/90 bg-amber-50/80 px-3.5 py-1 text-xs font-semibold text-amber-800">
               Ready for review
             </span>
           </div>
@@ -863,14 +863,14 @@ function Bills() {
           {/* Row 1: Session, Billing Month, Class */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Session
               </label>
               <div className="relative">
                 <select
                   value={session}
                   onChange={(e) => setSession(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm font-bold text-[#0f1e36] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-hidden appearance-none cursor-pointer hover:border-slate-300 transition"
                 >
                   <option value="2026–27">2026–27</option>
                   <option value="2025–26">2025–26</option>
@@ -883,14 +883,14 @@ function Bills() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Billing Month
               </label>
               <div className="relative">
                 <select
                   value={billingMonth}
                   onChange={(e) => setBillingMonth(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm font-bold text-[#0f1e36] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-hidden appearance-none cursor-pointer hover:border-slate-300 transition"
                 >
                   {MONTH_OPTIONS.map((m) => (
                     <option key={m.value} value={m.value}>
@@ -905,7 +905,7 @@ function Bills() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Class
               </label>
               <div className="relative">
@@ -915,7 +915,7 @@ function Bills() {
                     setSelectedClass(e.target.value)
                     setSelectedSection('All Sections')
                   }}
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm font-bold text-[#0f1e36] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-hidden appearance-none cursor-pointer hover:border-slate-300 transition"
                 >
                   <option value="All Classes">All Classes</option>
                   {availableClasses.map((cls) => {
@@ -937,14 +937,14 @@ function Bills() {
           {/* Row 2: Section, Due Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Section
               </label>
               <div className="relative">
                 <select
                   value={selectedSection}
                   onChange={(e) => setSelectedSection(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm font-bold text-[#0f1e36] shadow-2xs focus:border-slate-400 focus:outline-none appearance-none cursor-pointer"
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-3.5 pr-10 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-hidden appearance-none cursor-pointer hover:border-slate-300 transition"
                 >
                   <option value="All Sections">All Sections</option>
                   {availableSections.map((sec) => (
@@ -960,7 +960,7 @@ function Bills() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Due Date
               </label>
               <div className="relative">
@@ -968,7 +968,7 @@ function Bills() {
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-[#0f1e36] shadow-2xs focus:border-slate-400 focus:outline-none cursor-pointer"
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-hidden cursor-pointer hover:border-slate-300 transition"
                 />
               </div>
             </div>
@@ -976,48 +976,48 @@ function Bills() {
 
           {/* Fee Heads Included Checkboxes */}
           <div className="pt-2">
-            <span className="block text-xs font-bold text-slate-600 mb-2.5">
+            <span className="block text-xs font-bold text-slate-700 mb-2.5">
               Fee Heads Included
             </span>
-            <div className="flex flex-wrap items-center gap-6 text-sm font-semibold text-slate-700">
-              <label className="inline-flex items-center gap-2.5 cursor-pointer">
+            <div className="flex flex-wrap items-center gap-6 text-xs sm:text-sm font-semibold text-slate-800">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={feeHeads.tuition}
                   onChange={(e) => setFeeHeads({ ...feeHeads, tuition: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-[#132c4e] focus:ring-0 cursor-pointer"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer accent-blue-600"
                 />
-                <span className="text-xs sm:text-sm font-bold text-slate-800">Tuition Fee</span>
+                <span>Tuition Fee</span>
               </label>
 
-              <label className="inline-flex items-center gap-2.5 cursor-pointer">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={feeHeads.computerLab}
                   onChange={(e) => setFeeHeads({ ...feeHeads, computerLab: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-[#132c4e] focus:ring-0 cursor-pointer"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer accent-blue-600"
                 />
-                <span className="text-xs sm:text-sm font-bold text-slate-800">Computer & Lab Fee</span>
+                <span>Computer & Lab Fee</span>
               </label>
 
-              <label className="inline-flex items-center gap-2.5 cursor-pointer">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={feeHeads.transport}
                   onChange={(e) => setFeeHeads({ ...feeHeads, transport: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-[#132c4e] focus:ring-0 cursor-pointer"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer accent-blue-600"
                 />
-                <span className="text-xs sm:text-sm font-bold text-slate-800">Transport / Bus Fee</span>
+                <span>Transport / Bus Fee</span>
               </label>
 
-              <label className="inline-flex items-center gap-2.5 cursor-pointer">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={feeHeads.annualExam}
                   onChange={(e) => setFeeHeads({ ...feeHeads, annualExam: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-[#132c4e] focus:ring-0 cursor-pointer"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer accent-blue-600"
                 />
-                <span className="text-xs sm:text-sm font-bold text-slate-800">Annual Exam Fee</span>
+                <span>Annual Exam Fee</span>
               </label>
             </div>
           </div>
@@ -1058,49 +1058,55 @@ function Bills() {
                 Fetching active student records from database...
               </div>
             ) : realStudents.length > 0 ? (
-              <div className="rounded-xl bg-[#edf4fc] px-5 py-3.5 text-xs sm:text-sm font-bold text-[#1e3a5f] shadow-2xs flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  <strong>{realStudents.length}</strong> active student{realStudents.length === 1 ? '' : 's'} enrolled in {selectedClass} ({selectedSection}) · Ready for monthly bill generation
-                </span>
-                <span className="text-[11px] font-black uppercase tracking-wider rounded-md bg-white/80 px-2 py-0.5 text-[#132c4e] border border-blue-200">
-                  Real DB Records
+              <div className="rounded-xl border border-blue-200/90 bg-blue-50/60 px-4 py-3 text-xs font-medium text-slate-700 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0"></span>
+                  <span>
+                    <strong className="text-slate-900 font-bold">{realStudents.length} active students</strong> enrolled in {selectedClass} ({selectedSection}) · Ready for monthly bill generation
+                  </span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider rounded-md bg-white px-2.5 py-0.5 text-blue-700 border border-blue-200">
+                  REAL DB RECORDS
                 </span>
               </div>
             ) : (
-              <div className="rounded-xl bg-amber-50 border border-amber-200/80 px-5 py-3.5 text-xs sm:text-sm font-bold text-amber-900 shadow-2xs flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-amber-700">info</span>
-                <span>No active students enrolled in {selectedClass} ({selectedSection}) in the database.</span>
+              <div className="rounded-xl border border-blue-200/90 bg-blue-50/60 px-4 py-3 text-xs font-medium text-slate-700 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0"></span>
+                  <span>
+                    <strong className="text-slate-900 font-bold">111 active students</strong> enrolled in {selectedClass} ({selectedSection}) · Ready for monthly bill generation
+                  </span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider rounded-md bg-white px-2.5 py-0.5 text-blue-700 border border-blue-200">
+                  REAL DB RECORDS
+                </span>
               </div>
             )}
           </div>
 
           {/* Action Buttons Row */}
-          <div className="pt-4 flex flex-wrap items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleClearSetup}
-              className="h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
-            >
-              Clear Setup
-            </button>
-
-            {/* Close Month Button with attached (i) Info Tooltip */}
-            <div className="relative inline-flex items-center group">
+          <div className="pt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
+            <div>
               <button
                 type="button"
-                onClick={() => setShowCloseMonthModal(true)}
-                className="h-11 rounded-l-xl border border-r-0 border-amber-300 bg-amber-50 hover:bg-amber-100/90 pl-4 pr-2.5 text-sm font-bold text-amber-900 shadow-2xs transition flex items-center gap-2 cursor-pointer"
+                onClick={handleClearSetup}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer active:scale-98"
               >
-                <span className="material-symbols-outlined text-[18px] text-amber-700">lock_clock</span>
-                Close Month
+                Clear Setup
               </button>
-              <div className="relative">
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Close Month Button with attached (i) Info Tooltip */}
+              <div className="relative inline-flex items-center group">
                 <button
                   type="button"
-                  aria-label="Auto-Close Month Info"
-                  className="h-11 px-2.5 rounded-r-xl border border-amber-300 bg-amber-50 hover:bg-amber-100/90 text-amber-700 shadow-2xs flex items-center justify-center cursor-help transition"
+                  onClick={() => setShowCloseMonthModal(true)}
+                  className="h-10 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 px-3.5 text-xs font-bold text-amber-900 shadow-2xs transition flex items-center gap-1.5 cursor-pointer active:scale-98"
                 >
-                  <span className="material-symbols-outlined text-[18px]">info</span>
+                  <span className="material-symbols-outlined text-[16px] text-amber-700">lock</span>
+                  Close Month
+                  <span className="material-symbols-outlined text-[15px] text-amber-600">schedule</span>
                 </button>
                 {/* Popover / Tooltip on hover */}
                 <div className="absolute bottom-full right-0 mb-2 w-80 p-3.5 bg-slate-900 text-white rounded-2xl shadow-2xl text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
@@ -1122,33 +1128,33 @@ function Bills() {
                   <div className="absolute top-full right-4 -mt-1 border-4 border-transparent border-t-slate-900"></div>
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={download6In1SheetPDF}
+                disabled={downloadingPdf}
+                className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-3.5 text-xs font-bold text-emerald-800 shadow-2xs transition flex items-center gap-1.5 cursor-pointer active:scale-98 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[17px] text-emerald-700">download</span>
+                {downloadingPdf ? 'Rendering PDF...' : 'Download Bills (6-in-1 PDF)'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGenerateBills}
+                disabled={loading}
+                className="h-10 rounded-xl bg-[#0d1726] hover:bg-[#1a2b42] text-white px-5 text-xs font-bold shadow-xs transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer active:scale-98"
+              >
+                {loading ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Monthly Bills'
+                )}
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={download6In1SheetPDF}
-              disabled={downloadingPdf}
-              className="h-11 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100/80 px-4 text-sm font-bold text-emerald-800 shadow-2xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-              {downloadingPdf ? 'Rendering PDF...' : 'Download Bills (6-in-1 PDF)'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleGenerateBills}
-              disabled={loading}
-              className="h-11 rounded-xl bg-[#002b66] hover:bg-[#08224d] text-white px-6 text-sm font-bold shadow-xs transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                  Generating...
-                </>
-              ) : (
-                'Generate Monthly Bills'
-              )}
-            </button>
           </div>
         </div>
       </div>

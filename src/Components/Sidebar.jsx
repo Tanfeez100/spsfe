@@ -189,6 +189,7 @@ const NAV_GROUPS = [
         label: 'Dashboard',
         path: '/dashboard',
         Icon: DashboardIcon,
+        hasDot: true,
       },
     ],
   },
@@ -202,12 +203,22 @@ const NAV_GROUPS = [
         label: 'Student Directory',
         path: '/students',
         Icon: StudentIcon,
+        badge: '1.4k',
       },
       {
         id: 'classPromotion',
         label: 'Class Promotion',
         path: '/class-promotion',
         Icon: ClassPromotionIcon,
+        adminOnly: true,
+      },
+      {
+        id: 'idCards',
+        label: 'ID & Photos',
+        path: '/id-cards',
+        Icon: IdCardIcon,
+        badge: 'New',
+        badgeColor: 'amber',
         adminOnly: true,
       },
       {
@@ -222,13 +233,15 @@ const NAV_GROUPS = [
   {
     id: 'fees',
     number: '03',
-    title: 'FEE MANAGEMENT',
+    title: 'FEE & FINANCE',
     items: [
       {
         id: 'fees',
         label: 'Fee Management',
         path: '/fees',
         Icon: FeesIcon,
+        badge: '97%',
+        badgeColor: 'emerald',
         adminOnly: true,
       },
     ],
@@ -246,9 +259,11 @@ const NAV_GROUPS = [
       },
       {
         id: 'examinationManagement',
-        label: 'Examination',
+        label: 'Examinations',
         path: '/examinations',
         Icon: ExaminationIcon,
+        hasDot: true,
+        dotColor: 'amber',
       },
       {
         id: 'uploadMarks',
@@ -258,7 +273,7 @@ const NAV_GROUPS = [
       },
       {
         id: 'subject',
-        label: 'Subject & Syllabus',
+        label: 'Curriculum & Syllabus',
         path: '/subjects',
         Icon: SubjectIcon,
         adminOnly: true,
@@ -268,13 +283,15 @@ const NAV_GROUPS = [
   {
     id: 'attendanceStaff',
     number: '05',
-    title: 'ATTENDANCE & STAFF',
+    title: 'STAFF & SAFETY',
     items: [
       {
         id: 'attendance',
-        label: 'Attendance & GPS',
+        label: 'Staff Attendance & GPS',
         path: '/attendance',
         Icon: AttendanceIcon,
+        badge: '74/77',
+        badgeColor: 'teal',
       },
       {
         id: 'teachers',
@@ -290,13 +307,6 @@ const NAV_GROUPS = [
     number: '06',
     title: 'ADMINISTRATION',
     items: [
-      {
-        id: 'idCards',
-        label: 'ID / Admit Cards',
-        path: '/id-cards',
-        Icon: IdCardIcon,
-        adminOnly: true,
-      },
       {
         id: 'documentManagement',
         label: 'Document Management',
@@ -463,38 +473,43 @@ function Sidebar({
         />
       )}
 
-      {/* Clean Premium Sidebar with Soft Ice-Blue Wash matching Canva Mockup */}
+      {/* Clean Premium Sidebar with Deep Navy Slate Theme matching reference image */}
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-50 flex h-full ${isCollapsed ? 'w-[72px]' : 'w-64'
-          } shrink-0 flex-col justify-between bg-[#f0f4fc] border-r border-[#e2e8f0] text-slate-700 select-none transition-all duration-200 ease-in-out lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
+        className={`fixed bottom-0 left-0 top-0 z-50 flex h-full ${
+          isCollapsed ? 'w-[72px]' : 'w-64'
+        } shrink-0 flex-col justify-between bg-[#0c1322] border-r border-slate-800/80 text-slate-300 select-none transition-all duration-200 ease-in-out lg:static ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
       >
         <div className="flex h-full flex-col justify-between overflow-y-auto px-3 py-4 scrollbar-none">
-
           <div className="space-y-4">
-            {/* Mobile Drawer Header (Only visible on small mobile screens when drawer is open) */}
-            <div className="flex items-center justify-between p-1.5 lg:hidden border-b border-[#e2e8f0] pb-3 mb-2">
+            {/* Mobile Drawer Header */}
+            <div className="flex items-center justify-between p-1.5 lg:hidden border-b border-slate-800 pb-3 mb-2">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white p-1 border border-[#e2e8f0] shadow-2xs overflow-hidden">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 p-1 text-white font-bold text-xs shadow-2xs overflow-hidden">
                   <img
                     src={schoolLogo}
                     alt="Star Public School"
                     className="h-full w-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.parentElement.innerText = 'SPS'
+                    }}
                   />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-[13px] font-bold text-slate-900 leading-tight truncate">
+                  <h1 className="text-[13px] font-bold text-white leading-tight truncate">
                     Star Public School
                   </h1>
-                  <p className="text-[10px] font-medium text-slate-500 leading-none mt-0.5 truncate">
-                    {isTeacher ? 'Faculty Portal' : 'Admin Console'}
+                  <p className="text-[10px] font-medium text-slate-400 leading-none mt-0.5 truncate">
+                    Central ERP · {isTeacher ? 'Faculty' : 'Campus Admin'}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOpen && setIsOpen(false)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white/80 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                 title="Close sidebar"
               >
                 <span className="material-symbols-outlined text-[20px] leading-none">close</span>
@@ -508,7 +523,7 @@ function Sidebar({
                   {!isCollapsed ? (
                     <div className="px-2.5 pt-2.5 pb-1 flex items-center gap-1.5">
                       {group.number && (
-                        <span className="text-[9.5px] font-extrabold font-mono text-slate-400">
+                        <span className="text-[9.5px] font-bold font-mono text-slate-500">
                           {group.number}
                         </span>
                       )}
@@ -517,7 +532,7 @@ function Sidebar({
                       </p>
                     </div>
                   ) : groupIdx > 0 ? (
-                    <div className="my-2 border-t border-[#e2e8f0]" />
+                    <div className="my-2 border-t border-slate-800/80" />
                   ) : null}
 
                   <div className="space-y-0.5">
@@ -529,24 +544,50 @@ function Sidebar({
                         <button
                           key={item.id}
                           onClick={() => handleNavigate(item.id, item.path)}
-                          className={`group flex w-full items-center rounded-xl text-[13px] transition-all duration-150 ${isCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5 gap-2.5'
-                            } ${isActive
-                              ? 'bg-[#183867] text-white font-bold shadow-xs'
-                              : 'text-slate-600 hover:bg-white/80 hover:text-slate-900 font-semibold'
-                            }`}
+                          className={`group flex w-full items-center rounded-xl text-[13px] transition-all duration-150 ${
+                            isCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5 gap-2.5'
+                          } ${
+                            isActive
+                              ? 'bg-linear-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white font-bold shadow-md shadow-indigo-950/60'
+                              : 'text-slate-300 hover:bg-slate-800/60 hover:text-white font-medium'
+                          }`}
                           title={item.label}
                         >
                           <div
-                            className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-800'
-                              }`}
+                            className={`shrink-0 transition-colors ${
+                              isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                            }`}
                           >
                             <Icon className={`w-[18px] h-[18px] ${isActive ? 'stroke-[2.2]' : 'stroke-[1.8]'}`} />
                           </div>
 
                           {!isCollapsed && (
-                            <span className="truncate text-left tracking-tight">
-                              {item.label}
-                            </span>
+                            <>
+                              <span className="truncate text-left tracking-tight flex-1">
+                                {item.label}
+                              </span>
+
+                              {/* Badges & Indicators */}
+                              {isActive ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
+                              ) : item.badge ? (
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                    item.badgeColor === 'amber'
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                      : item.badgeColor === 'emerald'
+                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                      : item.badgeColor === 'teal'
+                                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                      : 'bg-slate-800 text-slate-300 border border-slate-700/80'
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              ) : item.hasDot ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                              ) : null}
+                            </>
                           )}
                         </button>
                       )
@@ -555,37 +596,28 @@ function Sidebar({
                 </div>
               ))}
             </div>
-
           </div>
 
-          {/* Bottom Footer Section: Dynamic User Profile */}
-          <div className="pt-3 border-t border-[#e2e8f0]">
-            <div className={`flex items-center gap-2.5 ${isCollapsed ? 'justify-center' : 'px-1.5'}`}>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#183867] text-white font-bold text-xs shadow-2xs">
-                {userInitials}
-              </div>
-              {!isCollapsed && (
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate leading-tight">
-                    {displayName}
-                  </p>
-                  <p className="text-[10.5px] font-medium text-slate-500 truncate mt-0.5">
-                    {displayRole}
-                  </p>
+          {/* Bottom Widget: Cloud Sync Active Card */}
+          <div className="pt-3 border-t border-slate-800/80">
+            {!isCollapsed ? (
+              <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 text-left">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                  <span className="material-symbols-outlined text-[15px] leading-none text-amber-400">bolt</span>
+                  <span>Cloud Sync Active</span>
                 </div>
-              )}
-              {!isCollapsed && (
-                <button
-                  onClick={handleLogout}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors rounded-lg cursor-pointer"
-                  title="Logout"
-                >
-                  <span className="material-symbols-outlined text-[18px] leading-none">logout</span>
-                </button>
-              )}
-            </div>
+                <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
+                  Auto synced 2 mins ago. All systems operational.
+                </p>
+              </div>
+            ) : (
+              <div className="flex justify-center" title="Cloud Sync Active: All systems operational">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-amber-400 border border-slate-800">
+                  <span className="material-symbols-outlined text-[18px]">bolt</span>
+                </span>
+              </div>
+            )}
           </div>
-
         </div>
       </aside>
     </>

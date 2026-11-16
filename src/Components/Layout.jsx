@@ -79,73 +79,115 @@ function Layout() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#f0f4fc] text-slate-800 antialiased font-sans flex flex-col">
-      {/* Top Header Bar: 100% Independent of Sidebar Expand & Collapse */}
-      <header className="h-14 shrink-0 bg-[#f0f4fc] border-b border-[#e2e8f0] px-3.5 sm:px-5 flex items-center justify-between select-none z-30">
+    <div className="h-screen w-screen overflow-hidden bg-[#f4f7fb] text-slate-800 antialiased font-sans flex flex-col">
+      {/* Top Header Bar matching reference image */}
+      <header className="h-14 shrink-0 bg-white border-b border-[#e2e8f0] px-3.5 sm:px-6 flex items-center justify-between select-none z-30 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
         <div className="flex items-center gap-3">
           {/* Hamburger Icon Button to Expand/Collapse Sidebar */}
           <button
             type="button"
             onClick={handleToggleSidebar}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-colors cursor-pointer border border-transparent hover:border-[#e2e8f0]"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-[#e2e8f0]"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label="Toggle Navigation Sidebar"
           >
-            <span className="material-symbols-outlined text-[22px] leading-none">menu</span>
+            <span className="material-symbols-outlined text-[21px] leading-none">menu</span>
           </button>
 
-          {/* School Brand Header (Independent of Sidebar Expand/Collapse) */}
+          {/* School Brand Header */}
           <div
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2.5 cursor-pointer rounded-xl p-1 transition-colors hover:bg-white/70"
+            className="flex items-center gap-2.5 cursor-pointer rounded-xl p-1 transition-colors hover:bg-slate-50"
             title="Go to Dashboard"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white p-1 border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white font-black text-sm p-1 shadow-2xs overflow-hidden">
               <img
                 src={schoolLogo}
                 alt="Star Public School"
                 className="h-full w-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.parentElement.innerText = 'SPS'
+                }}
               />
             </div>
             <div className="min-w-0">
-              <h1 className="text-[13.5px] font-bold text-slate-900 leading-tight tracking-tight truncate">
-                Star Public School
-              </h1>
-              <p className="text-[10.5px] font-medium text-slate-500 leading-none mt-0.5 truncate">
-                {isTeacher ? 'Faculty Portal' : 'Admin Console'}
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-[13.5px] font-bold text-slate-900 leading-tight tracking-tight truncate">
+                  Star Public School
+                </h1>
+                <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-700 leading-normal tracking-wide">
+                  CBSE
+                </span>
+              </div>
+              <p className="text-[10px] font-medium text-slate-500 leading-none mt-0.5 truncate">
+                Central ERP · {isTeacher ? 'Faculty Portal' : 'Campus Admin'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Right Side Quick Profile & Logout */}
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/70 border border-[#e2e8f0]/80">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#183867] text-white font-bold text-xs shadow-2xs">
-              {userInitials}
+        {/* Center Search Bar */}
+        <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
+          <div className="relative w-full">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search students, staff, admission IDs, fees..."
+              className="w-full h-8.5 pl-9 pr-12 rounded-xl bg-slate-50/80 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-blue-500 text-xs text-slate-700 placeholder-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 rounded shadow-2xs pointer-events-none">
+              ⌘K
+            </span>
+          </div>
+        </div>
+
+        {/* Right Side: Session status, Notifications, Profile, Logout */}
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          {/* Session live pill */}
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50/90 text-emerald-700 border border-emerald-200/60 text-[11px] font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Session 2026–27 Live</span>
+          </div>
+
+          {/* Notification bell */}
+          <button
+            type="button"
+            className="relative flex h-8.5 w-8.5 items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            title="Notifications"
+          >
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
+          </button>
+
+          {/* Profile pill */}
+          <div className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 transition-colors">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white font-bold text-xs shadow-2xs">
+              {userInitials.charAt(0) || 'T'}
             </div>
-            <div className="min-w-0 text-left">
-              <p className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[140px]">
+            <div className="hidden lg:block min-w-0 text-left">
+              <p className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
                 {displayName}
               </p>
-              <p className="text-[10px] font-medium text-slate-500 leading-none truncate max-w-[140px]">
+              <p className="text-[9.5px] font-medium text-slate-500 leading-none truncate max-w-[120px] mt-0.5">
                 {displayRole}
               </p>
             </div>
+            <button
+              onClick={handleLogout}
+              className="ml-1 flex h-6 w-6 items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+              title="Logout"
+            >
+              <span className="material-symbols-outlined text-[17px] leading-none">logout</span>
+            </button>
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-            title="Logout"
-          >
-            <span className="material-symbols-outlined text-[19px] leading-none">logout</span>
-          </button>
         </div>
       </header>
 
       {/* Main Body Area: Collapsible Sidebar + Content */}
-      <div className="flex-1 flex overflow-hidden min-h-0 bg-[#f8fafc]">
+      <div className="flex-1 flex overflow-hidden min-h-0 bg-[#f4f7fb]">
         <Outlet context={{ sidebarOpen, setSidebarOpen, isCollapsed, setIsCollapsed }} />
       </div>
     </div>
