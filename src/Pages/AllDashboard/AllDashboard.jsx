@@ -8,6 +8,8 @@ import UploadMarks from './UploadMarks'
 import ClassPromotion from './ClassPromotion'
 import UploadPhoto from '../../Components/UploadPhoto/UploadPhoto'
 import FeeManager from '../Fees/FeeManager'
+import { getFeeDashboard } from '../../Api/fees'
+import { getExaminationsApi } from '../../Api/examinations'
 import TeacherManagement from './TeacherManagement'
 import AttendanceSystem from '../Attendance/AttendanceSystem'
 import Sidebar from '../../Components/Sidebar'
@@ -37,6 +39,21 @@ function Dashboard({ initialView = 'dashboard' }) {
   // Real backend metrics
   const [realStudents, setRealStudents] = useState([])
   const [realHolidays, setRealHolidays] = useState([])
+  const [realExams, setRealExams] = useState([])
+  const [feeStats, setFeeStats] = useState({
+    total_collected: 0,
+    collected_this_month: 0,
+    collected_today: 0,
+    transactions_this_month: 0,
+    pending_dues: 0,
+    pending_students_count: 0,
+    total_transactions: 0,
+    online_percentage: 0,
+    cash_percentage: 0,
+    dominant_mode: 'No collections recorded',
+    monthly_trends: [],
+    category_breakdown: [],
+  })
   const [selectedClassFilter, setSelectedClassFilter] = useState('all')
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
   const [selectedMasteryFilter, setSelectedMasteryFilter] = useState('all')
@@ -227,6 +244,40 @@ function Dashboard({ initialView = 'dashboard' }) {
         // Fallback
       }
 
+      // Fetch real examinations
+      try {
+        const examsResp = await getExaminationsApi()
+        const examList = Array.isArray(examsResp)
+          ? examsResp
+          : examsResp?.examinations || examsResp?.data || []
+        setRealExams(examList)
+      } catch {
+        setRealExams([])
+      }
+
+      // Fetch real fee dashboard metrics
+      try {
+        const feeResp = await getFeeDashboard()
+        if (feeResp?.data) {
+          setFeeStats({
+            total_collected: feeResp.data.kpis?.total_collected || 0,
+            collected_this_month: feeResp.data.kpis?.collected_this_month || 0,
+            collected_today: feeResp.data.kpis?.collected_today || 0,
+            transactions_this_month: feeResp.data.kpis?.transactions_this_month || 0,
+            pending_dues: feeResp.data.kpis?.pending_dues || 0,
+            pending_students_count: feeResp.data.kpis?.pending_students_count || 0,
+            total_transactions: feeResp.data.kpis?.total_transactions || 0,
+            online_percentage: feeResp.data.kpis?.online_percentage || 0,
+            cash_percentage: feeResp.data.kpis?.cash_percentage || 0,
+            dominant_mode: feeResp.data.kpis?.dominant_mode || 'No transactions',
+            monthly_trends: Array.isArray(feeResp.data.monthly_trends) ? feeResp.data.monthly_trends : [],
+            category_breakdown: Array.isArray(feeResp.data.category_breakdown) ? feeResp.data.category_breakdown : [],
+          })
+        }
+      } catch {
+        // Fallback
+      }
+
       setDashboardData({
         totalStudents,
         totalClasses,
@@ -361,45 +412,149 @@ function Dashboard({ initialView = 'dashboard' }) {
   const [hoveredAttendanceDay, setHoveredAttendanceDay] = useState(null)
   const [activeTabOverview, setActiveTabOverview] = useState('metrics')
 
-  const monthlyFeeData = [
-    { month: 'Jul', x: 45, yCol: 85, yPend: 115, collected: '₹16.2L', pending: '₹3.9L' },
-    { month: 'Aug', x: 155, yCol: 118, yPend: 95, collected: '₹14.8L', pending: '₹5.3L' },
-    { month: 'Sep', x: 265, yCol: 50, yPend: 128, collected: '₹18.1L', pending: '₹2.0L' },
-    { month: 'Oct', x: 375, yCol: 112, yPend: 98, collected: '₹15.4L', pending: '₹4.7L' },
-    { month: 'Nov (Current)', x: 485, yCol: 46, yPend: 134, collected: '₹18.4L', pending: '₹1.7L' },
-    { month: 'Dec', x: 595, yCol: 108, yPend: 102, collected: '₹17.0L', pending: '₹3.1L' },
-  ]
+  const maxChartVal = useMemo(() => {
+    const trends = feeStats.monthly_trends || []
+    const rawMax = Math.max(
+      ...trends.map((t) => Math.max(t.collected_raw || 0, t.pending_raw || 0)),
+      1000
+    )
+    if (rawMax <= 10000) return 10000
+    if (rawMax <= 25000) return 25000
+    if (rawMax <= 50000) return 50000
+    if (rawMax <= 100000) return 100000
+    return Math.ceil(rawMax / 50000) * 50000
+  }, [feeStats.monthly_trends])
 
-  const upcomingEventsList = [
-    {
-      id: 'e1',
-      month: 'NOV',
-      day: '22',
-      badgeColor: 'amber',
-      title: 'Annual Sports Meet 2026',
-      subtitle: 'Main Campus Grounds · 08:30 AM',
-    },
-    {
-      id: 'e2',
-      month: 'NOV',
-      day: '28',
-      badgeColor: 'purple',
-      title: 'Unit Test 2 Commences',
-      subtitle: 'Standards 6th to 10th',
-    },
-    {
-      id: 'e3',
-      month: 'DEC',
-      day: '02',
-      badgeColor: 'blue',
-      title: 'Parent-Teacher Meeting (PTM)',
-      subtitle: 'All sections · Classrooms',
-    },
-  ]
+  const monthlyFeeData = useMemo(() => {
+    const trends = feeStats.monthly_trends || []
+    const xCoords = [95, 202, 309, 416, 523, 630]
+    const baselineY = 130
+    const topY = 25
+    const chartHeight = baselineY - topY
+
+    if (trends.length === 0) {
+      const defaultMonths = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov (Current)']
+      return defaultMonths.map((m, idx) => ({
+        month: m,
+        x: xCoords[idx],
+        yCol: baselineY,
+        yPend: baselineY,
+        collected: '₹0',
+        pending: '₹0',
+        collected_raw: 0,
+        pending_raw: 0,
+      }))
+    }
+
+    return trends.slice(0, 6).map((item, idx) => {
+      const x = xCoords[idx] || 95 + idx * 107
+      const colRatio = Math.min(1, Math.max(0, (item.collected_raw || 0) / maxChartVal))
+      const pendRatio = Math.min(1, Math.max(0, (item.pending_raw || 0) / maxChartVal))
+      const yCol = Math.round(baselineY - colRatio * chartHeight)
+      const yPend = Math.round(baselineY - pendRatio * chartHeight)
+
+      return {
+        month: item.month,
+        x,
+        yCol,
+        yPend,
+        collected: item.collected || `₹${Number(item.collected_raw || 0).toLocaleString('en-IN')}`,
+        pending: item.pending || `₹${Number(item.pending_raw || 0).toLocaleString('en-IN')}`,
+        collected_raw: item.collected_raw || 0,
+        pending_raw: item.pending_raw || 0,
+      }
+    })
+  }, [feeStats.monthly_trends, maxChartVal])
+
+  const getSmoothSvgPath = (points, yKey) => {
+    if (!points || points.length === 0) return ''
+    if (points.length === 1) return `M ${points[0].x},${points[0][yKey]}`
+    let path = `M ${points[0].x},${points[0][yKey]}`
+    for (let i = 0; i < points.length - 1; i++) {
+      const current = points[i]
+      const next = points[i + 1]
+      const cpX1 = current.x + (next.x - current.x) / 2
+      const cpY1 = current[yKey]
+      const cpX2 = current.x + (next.x - current.x) / 2
+      const cpY2 = next[yKey]
+      path += ` C ${cpX1},${cpY1} ${cpX2},${cpY2} ${next.x},${next[yKey]}`
+    }
+    return path
+  }
+
+  const getSmoothAreaPath = (points, yKey, baselineY = 130) => {
+    if (!points || points.length === 0) return ''
+    const linePart = getSmoothSvgPath(points, yKey)
+    const lastX = points[points.length - 1].x
+    const firstX = points[0].x
+    return `${linePart} L ${lastX},${baselineY} L ${firstX},${baselineY} Z`
+  }
+
+  const formatAmountK = (val) => {
+    if (val >= 100000) return `${(val / 100000).toFixed(1)}L`
+    if (val >= 1000) return `${Math.round(val / 1000)}k`
+    return String(val)
+  }
+
+  const upcomingEventsList = useMemo(() => {
+    const list = []
+    ;(realExams || []).forEach((ex) => {
+      const d = new Date(ex.start_date || ex.created_at)
+      if (!isNaN(d.getTime())) {
+        list.push({
+          id: `exam-${ex.id}`,
+          dateObj: d,
+          month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+          day: String(d.getDate()).padStart(2, '0'),
+          badgeColor: 'purple',
+          title: ex.name || 'Examination',
+          subtitle: ex.description || `Session ${ex.academic_session || ''} · ${ex.exam_type || 'Exam'}`,
+        })
+      }
+    })
+
+    ;(realHolidays || []).forEach((h) => {
+      const d = new Date(h.holiday_date || h.date)
+      if (!isNaN(d.getTime())) {
+        list.push({
+          id: `hol-${h.id || h.holiday_name}`,
+          dateObj: d,
+          month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+          day: String(d.getDate()).padStart(2, '0'),
+          badgeColor: 'amber',
+          title: h.holiday_name || h.title || 'Holiday',
+          subtitle: h.description || 'Campus holiday',
+        })
+      }
+    })
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return list
+      .filter((e) => e.dateObj >= today)
+      .sort((a, b) => a.dateObj - b.dateObj)
+      .slice(0, 4)
+  }, [realExams, realHolidays])
+
+  const activeCategories = useMemo(() => {
+    if (feeStats.category_breakdown && feeStats.category_breakdown.length > 0) {
+      return feeStats.category_breakdown
+    }
+    return [
+      { key: 'tuition', name: 'Tuition Fees', sub: 'Standard & Academic', amount: '₹0', amount_raw: 0, percent: 0, color: '#3b82f6' },
+      { key: 'transport', name: 'Transport Fees', sub: 'Bus & Transit routes', amount: '₹0', amount_raw: 0, percent: 0, color: '#f59e0b' },
+      { key: 'lab', name: 'Lab & Library', sub: 'Practical & Books', amount: '₹0', amount_raw: 0, percent: 0, color: '#10b981' },
+      { key: 'exam', name: 'Exam & Activity', sub: 'Assessment & Sports', amount: '₹0', amount_raw: 0, percent: 0, color: '#8b5cf6' },
+    ]
+  }, [feeStats.category_breakdown])
+
+  const totalCategoryAmount = useMemo(() => {
+    return activeCategories.reduce((sum, c) => sum + (c.amount_raw || 0), 0)
+  }, [activeCategories])
 
   // User display name
-  const displayName = currentUser?.fullName || currentUser?.name || 'ta2nfeez'
-  const displayEmail = currentUser?.email || 'admin@starpublicschool.com'
+  const displayName = currentUser?.fullName || currentUser?.name || 'Administrator'
+  const displayEmail = currentUser?.email || 'admin@school.internal'
   const userInitials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -456,7 +611,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                         <span className="text-2xl inline-block hover:rotate-12 hover:scale-110 transition-transform cursor-default">👋</span>
                       </h1>
                       <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed pt-0.5 max-w-2xl">
-                        Here is your campus pulse today: <span className="font-bold text-slate-800">{attendanceStats.rate || 96.4}%</span> student attendance, <span className="font-bold text-slate-800">3</span> upcoming exams scheduled, and <span className="font-bold text-slate-800">₹1.45L</span> fee cleared today.
+                        Here is your campus pulse today: <span className="font-bold text-slate-800">{attendanceStats.rate > 0 ? `${attendanceStats.rate}%` : 'N/A'}</span> student attendance, <span className="font-bold text-slate-800">{realExams.length}</span> upcoming exam{realExams.length === 1 ? '' : 's'} scheduled, and <span className="font-bold text-slate-800">₹{Number(feeStats.collected_this_month || 0).toLocaleString('en-IN')}</span> fee collected this month.
                       </p>
                     </div>
 
@@ -570,14 +725,14 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
                       <div className="mt-2.5">
                         <p className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">
-                          {dashboardData.totalStudents > 0 ? dashboardData.totalStudents.toLocaleString() : '1,482'}
+                          {dashboardData.totalStudents.toLocaleString()}
                         </p>
                         <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500">
                           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md group-hover:bg-blue-200/80 transition-colors">
-                            ↑ 12% <span className="font-normal text-slate-500">vs last term</span>
+                            {realStudents.filter((s) => (s.status || 'active').toLowerCase() === 'active').length} Active
                           </span>
                           <span className="text-[11px] text-slate-500 font-medium">
-                            {dashboardData.studentsByClass.length ? `${dashboardData.studentsByClass.length * 2} Sections` : '36 Sections'}
+                            {dashboardData.studentsByClass.length} Classes · {dashboardData.studentsBySection.length} Sections
                           </span>
                         </div>
                       </div>
@@ -595,14 +750,16 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
                       <div className="mt-2.5">
                         <p className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-amber-600 transition-colors">
-                          {dashboardData.totalClasses > 0 ? dashboardData.totalClasses : '36'}
+                          {dashboardData.totalClasses}
                         </p>
                         <div className="mt-2.5 flex items-center justify-between text-xs">
                           <span className="text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md group-hover:bg-amber-200/80 transition-colors">
-                            Nursery to 10th
+                            {dashboardData.studentsByClass.length > 0
+                              ? `${dashboardData.studentsByClass[0]?.name || ''} to ${dashboardData.studentsByClass[dashboardData.studentsByClass.length - 1]?.name || ''}`
+                              : 'Active Standards'}
                           </span>
                           <span className="text-[11px] font-medium text-slate-500">
-                            100% Occupied
+                            {dashboardData.totalStudents} Enrolled
                           </span>
                         </div>
                       </div>
@@ -620,14 +777,14 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
                       <div className="mt-2.5">
                         <p className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-emerald-600 transition-colors">
-                          {dashboardData.totalTeachers > 0 ? dashboardData.totalTeachers : '74'}
+                          {dashboardData.totalTeachers}
                         </p>
                         <div className="mt-2.5 flex items-center justify-between text-xs">
                           <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md group-hover:bg-emerald-200/80 transition-colors">
-                            71 Present today
+                            {dashboardData.totalTeachers} Staff Registered
                           </span>
                           <span className="text-[11px] font-medium text-slate-500">
-                            96% on duty
+                            {dashboardData.totalTeachers > 0 ? 'Faculty on Roll' : 'No staff added'}
                           </span>
                         </div>
                       </div>
@@ -645,14 +802,16 @@ function Dashboard({ initialView = 'dashboard' }) {
                       </div>
                       <div className="mt-2.5">
                         <p className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-purple-600 transition-colors">
-                          91.4%
+                          {feeStats.total_collected + feeStats.pending_dues > 0
+                            ? `${Math.round((feeStats.total_collected / (feeStats.total_collected + feeStats.pending_dues)) * 100)}%`
+                            : '0%'}
                         </p>
                         <div className="mt-2.5 flex items-center justify-between text-xs">
                           <span className="text-[11px] font-bold text-purple-800 bg-purple-100/80 px-2 py-0.5 rounded-md group-hover:bg-purple-200/80 transition-colors">
-                            ₹18.4L collected
+                            ₹{Number(feeStats.total_collected || 0).toLocaleString('en-IN')} collected
                           </span>
                           <span className="text-[11px] font-medium text-slate-500">
-                            Target ₹20.1L
+                            Dues ₹{Number(feeStats.pending_dues || 0).toLocaleString('en-IN')}
                           </span>
                         </div>
                       </div>
@@ -722,23 +881,34 @@ function Dashboard({ initialView = 'dashboard' }) {
                     {/* Smooth SVG Area Chart */}
                     <div className="relative w-full pt-2">
                       {/* Floating Tooltip directly on hover */}
-                      {hoveredMonth !== null && (
+                      {hoveredMonth !== null && monthlyFeeData[hoveredMonth] && (
                         <div
-                          style={{ left: `${(monthlyFeeData[hoveredMonth].x / 650) * 100}%` }}
+                          style={{
+                            left: `${(monthlyFeeData[hoveredMonth].x / 660) * 100}%`,
+                          }}
                           className="absolute -top-3 -translate-x-1/2 -translate-y-full z-30 pointer-events-none transition-all duration-150 animate-fade-in-up"
                         >
-                          <div className="bg-slate-900 text-white rounded-xl px-3 py-2 shadow-2xl border border-slate-700 text-left whitespace-nowrap space-y-1">
-                            <p className="text-[11px] font-bold text-slate-300 border-b border-slate-800 pb-1 flex items-center justify-between gap-3">
+                          <div className="bg-slate-900 text-white rounded-xl px-3.5 py-2.5 shadow-2xl border border-slate-700 text-left whitespace-nowrap space-y-1.5">
+                            <p className="text-[11px] font-bold text-slate-300 border-b border-slate-800 pb-1 flex items-center justify-between gap-4">
                               <span>{monthlyFeeData[hoveredMonth].month}</span>
-                              <span className="text-emerald-400 font-extrabold text-[10px]">91.5% Clr</span>
+                              <span className="text-emerald-400 font-extrabold text-[10.5px]">
+                                {(() => {
+                                  const tot =
+                                    (monthlyFeeData[hoveredMonth].collected_raw || 0) +
+                                    (monthlyFeeData[hoveredMonth].pending_raw || 0)
+                                  return tot > 0
+                                    ? `${Math.round(((monthlyFeeData[hoveredMonth].collected_raw || 0) / tot) * 100)}% Cleared`
+                                    : '0% Cleared'
+                                })()}
+                              </span>
                             </p>
-                            <div className="flex items-center gap-3 text-[10.5px] pt-0.5">
-                              <span className="flex items-center gap-1 text-blue-400 font-bold">
-                                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                            <div className="flex items-center gap-3.5 text-xs pt-0.5">
+                              <span className="flex items-center gap-1.5 text-blue-400 font-bold">
+                                <span className="h-2 w-2 rounded-full bg-blue-400" />
                                 Col: {monthlyFeeData[hoveredMonth].collected}
                               </span>
-                              <span className="flex items-center gap-1 text-rose-400 font-bold">
-                                <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                              <span className="flex items-center gap-1.5 text-rose-400 font-bold">
+                                <span className="h-2 w-2 rounded-full bg-rose-400" />
                                 Pend: {monthlyFeeData[hoveredMonth].pending}
                               </span>
                             </div>
@@ -746,33 +916,40 @@ function Dashboard({ initialView = 'dashboard' }) {
                         </div>
                       )}
 
-                      <svg viewBox="0 0 650 170" className="w-full h-44 overflow-visible">
+                      <svg viewBox="0 0 660 165" className="w-full h-44 overflow-visible">
                         <defs>
                           {/* Collected Blue Gradient */}
                           <linearGradient id="blueWaveGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.28" />
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.32" />
                             <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
                           </linearGradient>
 
                           {/* Pending Pink Gradient */}
                           <linearGradient id="roseWaveGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.22" />
+                            <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.25" />
                             <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
                           </linearGradient>
                         </defs>
 
-                        {/* Horizontal Grid lines */}
-                        <line x1="25" y1="35" x2="625" y2="35" stroke="#f1f5f9" strokeDasharray="3 3" />
-                        <line x1="25" y1="85" x2="625" y2="85" stroke="#f1f5f9" strokeDasharray="3 3" />
-                        <line x1="25" y1="135" x2="625" y2="135" stroke="#f1f5f9" strokeDasharray="3 3" />
+                        {/* Y-Axis Currency Labels & Grid lines */}
+                        <g className="text-[10px] fill-slate-400 font-semibold select-none">
+                          <text x="8" y="29">₹{formatAmountK(maxChartVal)}</text>
+                          <line x1="60" y1="25" x2="648" y2="25" stroke="#f1f5f9" strokeDasharray="3 3" />
+
+                          <text x="8" y="81">₹{formatAmountK(maxChartVal / 2)}</text>
+                          <line x1="60" y1="77" x2="648" y2="77" stroke="#f1f5f9" strokeDasharray="3 3" />
+
+                          <text x="8" y="134">₹0</text>
+                          <line x1="60" y1="130" x2="648" y2="130" stroke="#e2e8f0" strokeWidth="1.2" />
+                        </g>
 
                         {/* Vertical Guideline on Hover */}
-                        {hoveredMonth !== null && (
+                        {hoveredMonth !== null && monthlyFeeData[hoveredMonth] && (
                           <line
                             x1={monthlyFeeData[hoveredMonth].x}
-                            y1="25"
+                            y1="20"
                             x2={monthlyFeeData[hoveredMonth].x}
-                            y2="155"
+                            y2="130"
                             stroke="#94a3b8"
                             strokeWidth="1.5"
                             strokeDasharray="3 3"
@@ -780,33 +957,33 @@ function Dashboard({ initialView = 'dashboard' }) {
                           />
                         )}
 
-                        {/* Pending Area & Stroke */}
+                        {/* Smooth Pending Wave Area & Line */}
                         <path
-                          d="M 45,115 C 90,115 110,95 155,95 C 200,95 220,128 265,128 C 310,128 330,98 375,98 C 420,98 440,134 485,134 C 530,134 550,102 595,102 L 595,150 L 45,150 Z"
+                          d={getSmoothAreaPath(monthlyFeeData, 'yPend', 130)}
                           fill="url(#roseWaveGrad)"
                         />
                         <path
-                          d="M 45,115 C 90,115 110,95 155,95 C 200,95 220,128 265,128 C 310,128 330,98 375,98 C 420,98 440,134 485,134 C 530,134 550,102 595,102"
+                          d={getSmoothSvgPath(monthlyFeeData, 'yPend')}
                           fill="none"
                           stroke="#f43f5e"
                           strokeWidth="2.8"
                           strokeLinecap="round"
                         />
 
-                        {/* Collected Area & Stroke */}
+                        {/* Smooth Collected Wave Area & Line */}
                         <path
-                          d="M 45,85 C 90,85 110,118 155,118 C 200,118 220,50 265,50 C 310,50 330,112 375,112 C 420,112 440,46 485,46 C 530,46 550,108 595,108 L 595,150 L 45,150 Z"
+                          d={getSmoothAreaPath(monthlyFeeData, 'yCol', 130)}
                           fill="url(#blueWaveGrad)"
                         />
                         <path
-                          d="M 45,85 C 90,85 110,118 155,118 C 200,118 220,50 265,50 C 310,50 330,112 375,112 C 420,112 440,46 485,46 C 530,46 550,108 595,108"
+                          d={getSmoothSvgPath(monthlyFeeData, 'yCol')}
                           fill="none"
                           stroke="#2563eb"
                           strokeWidth="2.8"
                           strokeLinecap="round"
                         />
 
-                        {/* Interactive Data Points with Pulse Effects on Hover */}
+                        {/* Interactive Data Points with Hover Glow */}
                         {monthlyFeeData.map((pt, idx) => {
                           const isHovered = hoveredMonth === idx
                           return (
@@ -817,13 +994,13 @@ function Dashboard({ initialView = 'dashboard' }) {
                               className="cursor-pointer"
                             >
                               {/* Transparent touch target */}
-                              <rect x={pt.x - 20} y="20" width="40" height="135" fill="transparent" />
+                              <rect x={pt.x - 22} y="15" width="44" height="125" fill="transparent" />
 
                               {/* Hover Glow Rings */}
                               {isHovered && (
                                 <>
-                                  <circle cx={pt.x} cy={pt.yCol} r="10" fill="#2563eb" opacity="0.25" className="animate-ping" />
-                                  <circle cx={pt.x} cy={pt.yPend} r="10" fill="#f43f5e" opacity="0.25" className="animate-ping" />
+                                  <circle cx={pt.x} cy={pt.yCol} r="11" fill="#2563eb" opacity="0.25" className="animate-ping" />
+                                  <circle cx={pt.x} cy={pt.yPend} r="11" fill="#f43f5e" opacity="0.25" className="animate-ping" />
                                 </>
                               )}
 
@@ -831,10 +1008,10 @@ function Dashboard({ initialView = 'dashboard' }) {
                               <circle
                                 cx={pt.x}
                                 cy={pt.yCol}
-                                r={isHovered ? 6.5 : 4.5}
+                                r={isHovered ? 7 : 4.5}
                                 fill="#2563eb"
                                 stroke="#ffffff"
-                                strokeWidth={isHovered ? 3 : 2.5}
+                                strokeWidth={isHovered ? 3.5 : 2.5}
                                 className="transition-all duration-200"
                               />
 
@@ -842,47 +1019,36 @@ function Dashboard({ initialView = 'dashboard' }) {
                               <circle
                                 cx={pt.x}
                                 cy={pt.yPend}
-                                r={isHovered ? 6.5 : 4.5}
+                                r={isHovered ? 7 : 4.5}
                                 fill="#f43f5e"
                                 stroke="#ffffff"
-                                strokeWidth={isHovered ? 3 : 2.5}
+                                strokeWidth={isHovered ? 3.5 : 2.5}
                                 className="transition-all duration-200"
                               />
+
+                              {/* Month X-Axis Label inside SVG for pixel-perfect centering */}
+                              <text
+                                x={pt.x}
+                                y="152"
+                                textAnchor="middle"
+                                className={`text-[11px] select-none transition-all duration-150 ${
+                                  isHovered
+                                    ? 'fill-blue-600 font-black scale-105'
+                                    : pt.month.includes('Current')
+                                    ? 'fill-blue-600 font-bold'
+                                    : 'fill-slate-500 font-semibold'
+                                }`}
+                              >
+                                {pt.month}
+                              </text>
                             </g>
                           )
                         })}
                       </svg>
-
-                      {/* X-Axis Month Labels */}
-                      <div className="grid grid-cols-6 text-center text-xs font-semibold pt-1 px-3">
-                        {monthlyFeeData.map((pt, idx) => {
-                          const isHovered = hoveredMonth === idx
-                          return (
-                            <div
-                              key={idx}
-                              onMouseEnter={() => setHoveredMonth(idx)}
-                              onMouseLeave={() => setHoveredMonth(null)}
-                              className="flex flex-col items-center cursor-pointer group py-1"
-                            >
-                              <span
-                                className={`px-2 py-0.5 rounded-lg transition-all ${
-                                  isHovered
-                                    ? 'bg-blue-600 text-white shadow-xs font-bold scale-105'
-                                    : pt.month.includes('Current')
-                                    ? 'font-bold text-blue-600'
-                                    : 'text-slate-500 group-hover:text-slate-900'
-                                }`}
-                              >
-                                {pt.month}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
                     </div>
                   </div>
 
-                  {/* Category Breakdown: Interactive Donut Chart + 4 Fee Heads */}
+                  {/* Category Breakdown: Interactive Donut Chart + Fee Heads */}
                   <div className="pt-4 border-t border-slate-100">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -895,208 +1061,133 @@ function Dashboard({ initialView = 'dashboard' }) {
                       {/* Interactive Donut Chart */}
                       <div className="relative flex items-center justify-center shrink-0 w-40 h-40 group cursor-pointer">
                         <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-                          {/* Circumference = 2 * PI * 54 = 339.29 */}
-                          {/* Segment 1: Tuition 55% = 186.61 */}
+                          {/* Background Track Circle */}
                           <circle
                             cx="80"
                             cy="80"
                             r="54"
                             fill="none"
-                            stroke="#3b82f6"
-                            strokeWidth={hoveredCategory === 'tuition' ? 18 : 14}
-                            strokeDasharray="186.61 339.29"
-                            strokeDashoffset="0"
-                            strokeLinecap="round"
-                            opacity={hoveredCategory && hoveredCategory !== 'tuition' ? 0.45 : 1}
-                            onMouseEnter={() => setHoveredCategory('tuition')}
-                            onMouseLeave={() => setHoveredCategory(null)}
-                            className="transition-all duration-200 cursor-pointer"
+                            stroke="#f1f5f9"
+                            strokeWidth="15"
                           />
-                          {/* Segment 2: Transport 18% = 61.07 */}
+                          {/* Inner center circle */}
                           <circle
                             cx="80"
                             cy="80"
-                            r="54"
-                            fill="none"
-                            stroke="#f59e0b"
-                            strokeWidth={hoveredCategory === 'transport' ? 18 : 14}
-                            strokeDasharray="61.07 339.29"
-                            strokeDashoffset="-186.61"
-                            strokeLinecap="round"
-                            opacity={hoveredCategory && hoveredCategory !== 'transport' ? 0.45 : 1}
-                            onMouseEnter={() => setHoveredCategory('transport')}
-                            onMouseLeave={() => setHoveredCategory(null)}
-                            className="transition-all duration-200 cursor-pointer"
+                            r="42"
+                            fill="#ffffff"
+                            stroke="#f8fafc"
+                            strokeWidth="1.5"
                           />
-                          {/* Segment 3: Lab & Library 15% = 50.89 */}
-                          <circle
-                            cx="80"
-                            cy="80"
-                            r="54"
-                            fill="none"
-                            stroke="#10b981"
-                            strokeWidth={hoveredCategory === 'lab' ? 18 : 14}
-                            strokeDasharray="50.89 339.29"
-                            strokeDashoffset="-247.68"
-                            strokeLinecap="round"
-                            opacity={hoveredCategory && hoveredCategory !== 'lab' ? 0.45 : 1}
-                            onMouseEnter={() => setHoveredCategory('lab')}
-                            onMouseLeave={() => setHoveredCategory(null)}
-                            className="transition-all duration-200 cursor-pointer"
-                          />
-                          {/* Segment 4: Exam & Activity 12% = 40.71 */}
-                          <circle
-                            cx="80"
-                            cy="80"
-                            r="54"
-                            fill="none"
-                            stroke="#8b5cf6"
-                            strokeWidth={hoveredCategory === 'exam' ? 18 : 14}
-                            strokeDasharray="40.71 339.29"
-                            strokeDashoffset="-298.57"
-                            strokeLinecap="round"
-                            opacity={hoveredCategory && hoveredCategory !== 'exam' ? 0.45 : 1}
-                            onMouseEnter={() => setHoveredCategory('exam')}
-                            onMouseLeave={() => setHoveredCategory(null)}
-                            className="transition-all duration-200 cursor-pointer"
-                          />
+                          {(() => {
+                            let cumulativeOffset = 0
+                            return activeCategories.map((cat) => {
+                              const dash = Math.max(0, (cat.percent / 100) * 339.29)
+                              const offset = -cumulativeOffset
+                              cumulativeOffset += dash
+                              return (
+                                <circle
+                                  key={cat.key}
+                                  cx="80"
+                                  cy="80"
+                                  r="54"
+                                  fill="none"
+                                  stroke={cat.color}
+                                  strokeWidth={hoveredCategory === cat.key ? 18 : 14}
+                                  strokeDasharray={`${dash} 339.29`}
+                                  strokeDashoffset={offset}
+                                  strokeLinecap="round"
+                                  opacity={hoveredCategory && hoveredCategory !== cat.key ? 0.35 : 1}
+                                  onMouseEnter={() => setHoveredCategory(cat.key)}
+                                  onMouseLeave={() => setHoveredCategory(null)}
+                                  className="transition-all duration-200 cursor-pointer"
+                                />
+                              )
+                            })
+                          })()}
                         </svg>
 
                         {/* Donut Center Label: Dynamic based on hover */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none transition-all duration-200">
-                          {hoveredCategory === 'tuition' ? (
-                            <>
-                              <span className="text-[9.5px] font-black text-blue-600 uppercase tracking-wider">TUITION</span>
-                              <span className="text-lg font-black text-slate-900 leading-tight">₹11.0L</span>
-                              <span className="text-[10px] font-bold text-blue-600">55% Share</span>
-                            </>
-                          ) : hoveredCategory === 'transport' ? (
-                            <>
-                              <span className="text-[9.5px] font-black text-amber-600 uppercase tracking-wider">TRANSPORT</span>
-                              <span className="text-lg font-black text-slate-900 leading-tight">₹3.6L</span>
-                              <span className="text-[10px] font-bold text-amber-600">18% Share</span>
-                            </>
-                          ) : hoveredCategory === 'lab' ? (
-                            <>
-                              <span className="text-[9.5px] font-black text-emerald-600 uppercase tracking-wider">LAB/LIBRARY</span>
-                              <span className="text-lg font-black text-slate-900 leading-tight">₹3.0L</span>
-                              <span className="text-[10px] font-bold text-emerald-600">15% Share</span>
-                            </>
-                          ) : hoveredCategory === 'exam' ? (
-                            <>
-                              <span className="text-[9.5px] font-black text-purple-600 uppercase tracking-wider">EXAM/SPORTS</span>
-                              <span className="text-lg font-black text-slate-900 leading-tight">₹2.4L</span>
-                              <span className="text-[10px] font-bold text-purple-600">12% Share</span>
-                            </>
+                          {hoveredCategory ? (
+                            (() => {
+                              const cat =
+                                activeCategories.find((c) => c.key === hoveredCategory) ||
+                                activeCategories[0]
+                              return (
+                                <>
+                                  <span
+                                    className="text-[9.5px] font-black uppercase tracking-wider"
+                                    style={{ color: cat.color }}
+                                  >
+                                    {cat.name}
+                                  </span>
+                                  <span className="text-lg font-black text-slate-900 leading-tight">
+                                    {cat.amount}
+                                  </span>
+                                  <span className="text-[10px] font-bold" style={{ color: cat.color }}>
+                                    {cat.percent}% Share
+                                  </span>
+                                </>
+                              )
+                            })()
                           ) : (
                             <>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL FEE</span>
-                              <span className="text-lg font-black text-slate-900 leading-tight">₹20.1L</span>
-                              <span className="text-[10px] font-medium text-slate-400">4 Categories</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                TOTAL FEE
+                              </span>
+                              <span className="text-lg font-black text-slate-900 leading-tight">
+                                ₹{Number(totalCategoryAmount || feeStats.total_collected || 0).toLocaleString('en-IN')}
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-400">
+                                {activeCategories.filter((c) => c.amount_raw > 0).length || activeCategories.length} Categories
+                              </span>
                             </>
                           )}
                         </div>
                       </div>
 
-                      {/* 4 Category Stat Pills with Dynamic Hover Linkage */}
+                      {/* Dynamic Category Stat Pills with Hover Linkage */}
                       <div className="grid grid-cols-2 gap-4 flex-1 w-full text-xs">
-                        {/* Head 1 */}
-                        <div
-                          onMouseEnter={() => setHoveredCategory('tuition')}
-                          onMouseLeave={() => setHoveredCategory(null)}
-                          className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                            hoveredCategory === 'tuition'
-                              ? 'bg-blue-50/80 border-blue-400 shadow-sm -translate-y-1'
-                              : 'bg-slate-50/70 border-slate-200/60 hover:bg-blue-50/40 hover:border-blue-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                              <span className="h-2 w-2 rounded-full bg-blue-600" />
-                              Tuition Fees
-                            </span>
-                            <span className="font-extrabold text-blue-600">55%</span>
+                        {activeCategories.map((cat) => (
+                          <div
+                            key={cat.key}
+                            onMouseEnter={() => setHoveredCategory(cat.key)}
+                            onMouseLeave={() => setHoveredCategory(null)}
+                            className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
+                              hoveredCategory === cat.key
+                                ? 'bg-blue-50/80 border-blue-400 shadow-sm -translate-y-1'
+                                : 'bg-slate-50/70 border-slate-200/60 hover:bg-blue-50/40 hover:border-blue-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1.5 font-bold text-slate-900">
+                                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                {cat.name}
+                              </span>
+                              <span className="font-extrabold" style={{ color: cat.color }}>
+                                {cat.percent}%
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1 text-slate-500 text-[11px]">
+                              <span>{cat.sub}</span>
+                              <span className="font-bold text-slate-800">{cat.amount}</span>
+                            </div>
+                            {/* Visual Progress Bar */}
+                            <div className="w-full bg-slate-200/60 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{ width: `${Math.max(2, cat.percent)}%`, backgroundColor: cat.color }}
+                              />
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between mt-1 text-slate-500 text-[11px]">
-                            <span>Standard & Academic</span>
-                            <span className="font-bold text-slate-800">₹11.0L</span>
-                          </div>
-                        </div>
-
-                        {/* Head 2 */}
-                        <div
-                          onMouseEnter={() => setHoveredCategory('transport')}
-                          onMouseLeave={() => setHoveredCategory(null)}
-                          className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                            hoveredCategory === 'transport'
-                              ? 'bg-amber-50/80 border-amber-400 shadow-sm -translate-y-1'
-                              : 'bg-slate-50/70 border-slate-200/60 hover:bg-amber-50/40 hover:border-amber-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                              <span className="h-2 w-2 rounded-full bg-amber-500" />
-                              Transport Fees
-                            </span>
-                            <span className="font-extrabold text-amber-600">18%</span>
-                          </div>
-                          <div className="flex items-center justify-between mt-1 text-slate-500 text-[11px]">
-                            <span>Bus & Transit routes</span>
-                            <span className="font-bold text-slate-800">₹3.6L</span>
-                          </div>
-                        </div>
-
-                        {/* Head 3 */}
-                        <div
-                          onMouseEnter={() => setHoveredCategory('lab')}
-                          onMouseLeave={() => setHoveredCategory(null)}
-                          className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                            hoveredCategory === 'lab'
-                              ? 'bg-emerald-50/80 border-emerald-400 shadow-sm -translate-y-1'
-                              : 'bg-slate-50/70 border-slate-200/60 hover:bg-emerald-50/40 hover:border-emerald-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                              Lab & Library
-                            </span>
-                            <span className="font-extrabold text-emerald-600">15%</span>
-                          </div>
-                          <div className="flex items-center justify-between mt-1 text-slate-500 text-[11px]">
-                            <span>Practical & Books</span>
-                            <span className="font-bold text-slate-800">₹3.0L</span>
-                          </div>
-                        </div>
-
-                        {/* Head 4 */}
-                        <div
-                          onMouseEnter={() => setHoveredCategory('exam')}
-                          onMouseLeave={() => setHoveredCategory(null)}
-                          className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                            hoveredCategory === 'exam'
-                              ? 'bg-purple-50/80 border-purple-400 shadow-sm -translate-y-1'
-                              : 'bg-slate-50/70 border-slate-200/60 hover:bg-purple-50/40 hover:border-purple-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                              <span className="h-2 w-2 rounded-full bg-purple-500" />
-                              Exam & Activity
-                            </span>
-                            <span className="font-extrabold text-purple-600">12%</span>
-                          </div>
-                          <div className="flex items-center justify-between mt-1 text-slate-500 text-[11px]">
-                            <span>Assessment & Sports</span>
-                            <span className="font-bold text-slate-800">₹2.4L</span>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 4. Weekly Attendance Analytics Card matching Reference Image */}
+                {/* 4. Weekly Attendance Analytics Card */}
                 <div className="dashboard-card-hover anim-dashboard-enter rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
@@ -1105,7 +1196,7 @@ function Dashboard({ initialView = 'dashboard' }) {
                           Weekly Attendance Analytics
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10.5px] font-bold">
-                          {attendanceStats.rate || 96.4}% Avg
+                          {attendanceStats.rate > 0 ? `${attendanceStats.rate}% Avg` : 'N/A'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
@@ -1130,65 +1221,77 @@ function Dashboard({ initialView = 'dashboard' }) {
                     </div>
                   </div>
 
-                  {/* Rounded Bar Chart with Interactive Hover on Each Bar */}
+                  {/* Rounded Pillar Bar Chart with Full Tracks & Interactive Hover */}
                   <div className="pt-6">
-                    <div className="grid grid-cols-6 gap-3 sm:gap-6 items-end h-36 px-2">
-                      {[
-                        { day: 'Mon', rate: 95 },
-                        { day: 'Tue', rate: 96 },
-                        { day: 'Wed', rate: 94 },
-                        { day: 'Thu', rate: 97 },
-                        { day: 'Fri', rate: 95 },
-                        { day: 'Sat (Live)', rate: 89, isLive: true },
-                      ].map((item, idx) => (
-                        <div
-                          key={idx}
-                          onMouseEnter={() => setHoveredAttendanceDay(idx)}
-                          onMouseLeave={() => setHoveredAttendanceDay(null)}
-                          className="flex flex-col items-center gap-2 h-full justify-end group relative cursor-pointer"
-                        >
-                          {/* Floating badge for live today */}
-                          {item.isLive && (
-                            <div className="live-badge-pulse absolute -top-8 left-1/2 -translate-x-1/2 bg-emerald-50 text-emerald-700 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-sm whitespace-nowrap">
-                              89% Today
+                    <div className="grid grid-cols-6 gap-2.5 sm:gap-4 items-end h-40 px-2">
+                      {(() => {
+                        const todayDayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]
+                        return (attendanceStats.dailyTrend || []).map((item, idx) => {
+                          const isLive = item.day === todayDayName
+                          return (
+                            <div
+                              key={idx}
+                              onMouseEnter={() => setHoveredAttendanceDay(idx)}
+                              onMouseLeave={() => setHoveredAttendanceDay(null)}
+                              className="flex flex-col items-center gap-2 h-full justify-end group relative cursor-pointer"
+                            >
+                              {/* Floating badge for live today */}
+                              {isLive && (
+                                <div className="live-badge-pulse absolute -top-8 left-1/2 -translate-x-1/2 bg-emerald-50 text-emerald-700 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-sm whitespace-nowrap z-10">
+                                  {item.rate}% Today
+                                </div>
+                              )}
+
+                              {/* Hover tooltip for other days */}
+                              {!isLive && hoveredAttendanceDay === idx && (
+                                <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap animate-fade-in-up">
+                                  {item.rate}% Present
+                                </div>
+                              )}
+
+                              {/* Percentage Label */}
+                              <span
+                                className={`text-[11px] font-bold transition-all ${
+                                  isLive
+                                    ? 'text-emerald-700 font-extrabold scale-110'
+                                    : hoveredAttendanceDay === idx
+                                    ? 'text-blue-600 font-bold scale-110'
+                                    : 'text-slate-400 group-hover:text-slate-800'
+                                }`}
+                              >
+                                {item.rate}%
+                              </span>
+
+                              {/* Pillar Track Background + Fill */}
+                              <div className="w-full max-w-[42px] h-28 bg-slate-100/90 rounded-2xl p-1 flex flex-col justify-end items-center relative transition-all group-hover:bg-slate-200/70 border border-slate-200/50 shadow-2xs">
+                                <div
+                                  style={{ height: `${Math.max(8, item.rate)}%` }}
+                                  className={`w-full rounded-xl transition-all duration-300 ${
+                                    isLive
+                                      ? 'bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/25'
+                                      : hoveredAttendanceDay === idx
+                                      ? 'bg-gradient-to-t from-blue-700 via-blue-600 to-sky-400 shadow-sm shadow-blue-500/20'
+                                      : 'bg-gradient-to-t from-blue-600 to-sky-500'
+                                  }`}
+                                />
+                              </div>
+
+                              {/* Weekday Label */}
+                              <span
+                                className={`text-xs transition-colors ${
+                                  isLive
+                                    ? 'font-black text-emerald-700'
+                                    : hoveredAttendanceDay === idx
+                                    ? 'font-bold text-blue-600'
+                                    : 'font-medium text-slate-600'
+                                }`}
+                              >
+                                {item.day}
+                              </span>
                             </div>
-                          )}
-
-                          {/* Hover tooltip for other days */}
-                          {!item.isLive && hoveredAttendanceDay === idx && (
-                            <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap animate-fade-in-up">
-                              {item.rate}% Present
-                            </div>
-                          )}
-
-                          <span className={`text-[10px] font-bold transition-all ${
-                            hoveredAttendanceDay === idx ? 'text-blue-600 scale-110' : 'text-slate-400 group-hover:text-slate-900'
-                          }`}>
-                            {item.rate}%
-                          </span>
-
-                          <div
-                            style={{ height: `${Math.max(20, item.rate - 10)}%` }}
-                            className={`w-full max-w-[36px] rounded-t-xl transition-all duration-200 origin-bottom group-hover:scale-y-105 group-hover:shadow-md ${
-                              item.isLive
-                                ? 'bg-linear-to-t from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/25'
-                                : 'bg-blue-600 group-hover:bg-blue-700'
-                            }`}
-                          />
-
-                          <span
-                            className={`text-[11px] transition-colors ${
-                              item.isLive
-                                ? 'font-black text-emerald-700'
-                                : hoveredAttendanceDay === idx
-                                ? 'font-bold text-blue-600'
-                                : 'font-medium text-slate-600'
-                            }`}
-                          >
-                            {item.day}
-                          </span>
-                        </div>
-                      ))}
+                          )
+                        })
+                      })()}
                     </div>
                   </div>
 
@@ -1276,10 +1379,27 @@ function Dashboard({ initialView = 'dashboard' }) {
                     ))}
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                       const dayNum = i + 1
-                      const isToday = dayNum === 16 || dayNum === new Date().getDate()
+                      const isToday =
+                        dayNum === new Date().getDate() &&
+                        calendarDate.getMonth() === new Date().getMonth() &&
+                        calendarDate.getFullYear() === new Date().getFullYear()
                       const isSelected = dayNum === selectedDay
-                      const isEventDay = dayNum === 22
-                      const isHolidayDay = dayNum === 28
+                      const isEventDay = realExams.some((e) => {
+                        const d = new Date(e.start_date || e.created_at)
+                        return (
+                          d.getDate() === dayNum &&
+                          d.getMonth() === calendarDate.getMonth() &&
+                          d.getFullYear() === calendarDate.getFullYear()
+                        )
+                      })
+                      const isHolidayDay = realHolidays.some((h) => {
+                        const d = new Date(h.holiday_date || h.date)
+                        return (
+                          d.getDate() === dayNum &&
+                          d.getMonth() === calendarDate.getMonth() &&
+                          d.getFullYear() === calendarDate.getFullYear()
+                        )
+                      })
 
                       return (
                         <div key={dayNum} className="h-7 flex items-center justify-center">
@@ -1312,40 +1432,46 @@ function Dashboard({ initialView = 'dashboard' }) {
                       Upcoming Events & Tests
                     </h3>
                     <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                      3 Listed
+                      {upcomingEventsList.length} Listed
                     </span>
                   </div>
 
                   <div className="space-y-2.5">
-                    {upcomingEventsList.map((ev) => (
-                      <div
-                        key={ev.id}
-                        onClick={() => navigate('/attendance')}
-                        className="flex items-start gap-3 text-xs group cursor-pointer hover:bg-slate-50 hover:translate-x-1.5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-slate-200/60 hover:shadow-2xs"
-                      >
-                        <div
-                          className={`flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-xl font-black text-center group-hover:scale-105 transition-transform ${
-                            ev.badgeColor === 'amber'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : ev.badgeColor === 'purple'
-                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                              : 'bg-sky-50 text-sky-700 border border-sky-200'
-                          }`}
-                        >
-                          <span className="text-[9px] uppercase leading-none font-bold">{ev.month}</span>
-                          <span className="text-sm leading-none font-black mt-0.5">{ev.day}</span>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">
-                            {ev.title}
-                          </p>
-                          <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
-                            {ev.subtitle}
-                          </p>
-                        </div>
+                    {upcomingEventsList.length === 0 ? (
+                      <div className="py-6 text-center text-xs text-slate-400">
+                        No upcoming events or tests scheduled.
                       </div>
-                    ))}
+                    ) : (
+                      upcomingEventsList.map((ev) => (
+                        <div
+                          key={ev.id}
+                          onClick={() => navigate(ev.badgeColor === 'purple' ? '/examinations' : '/attendance')}
+                          className="flex items-start gap-3 text-xs group cursor-pointer hover:bg-slate-50 hover:translate-x-1.5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-slate-200/60 hover:shadow-2xs"
+                        >
+                          <div
+                            className={`flex flex-col items-center justify-center h-10 w-10 shrink-0 rounded-xl font-black text-center group-hover:scale-105 transition-transform ${
+                              ev.badgeColor === 'amber'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : ev.badgeColor === 'purple'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                : 'bg-sky-50 text-sky-700 border border-sky-200'
+                            }`}
+                          >
+                            <span className="text-[9px] uppercase leading-none font-bold">{ev.month}</span>
+                            <span className="text-sm leading-none font-black mt-0.5">{ev.day}</span>
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">
+                              {ev.title}
+                            </p>
+                            <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
+                              {ev.subtitle}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">

@@ -1,21 +1,50 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { getFeeList } from '../../Api/fees'
 import * as XLSX from 'xlsx'
 import { CLASS_OPTIONS, SECTION_OPTIONS, normalizeSchoolClass } from '../../constants/schoolOptions'
 import { downloadInvoiceSlipPDF } from '../../utils/pdf/invoiceSlipPdf'
 
+const getAvatarColor = (name = '', roll = '') => {
+  const colors = [
+    { bg: 'bg-blue-100', text: 'text-blue-700' },
+    { bg: 'bg-purple-100', text: 'text-purple-700' },
+    { bg: 'bg-teal-100', text: 'text-teal-700' },
+    { bg: 'bg-amber-100', text: 'text-amber-700' },
+    { bg: 'bg-rose-100', text: 'text-rose-700' },
+    { bg: 'bg-indigo-100', text: 'text-indigo-700' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  ]
+  const str = String(name || roll || '')
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
+const getInitials = (name = '') => {
+  if (!name) return '--'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return parts[0].slice(0, 2).toUpperCase()
+}
+
 function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
   const PAGE_SIZE = 15
   const [feeList, setFeeList] = useState([])
-  const [filteredFeeList, setFilteredFeeList] = useState([])
   const [loading, setLoading] = useState(false)
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState('')
   const [error, setError] = useState('')
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('')
   const [classFilter, setClassFilter] = useState('')
   const [sectionFilter, setSectionFilter] = useState('')
   const [monthFilter, setMonthFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'paid', 'unpaid', 'partial'
-  const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
 
   const handleDownloadInvoiceDirect = async (billId) => {
@@ -26,98 +55,147 @@ function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
       await downloadInvoiceSlipPDF(billId)
     } catch (err) {
       console.error('Invoice download failed:', err)
-      setError(`Invoice download failed: ${err.message || 'Unknown error'}. You can also open the Invoice tab to view or print.`)
+      setError(`Invoice download failed: ${err.message || 'Unknown error'}.`)
     } finally {
       setDownloadingInvoiceId('')
     }
   }
 
-  // Apply status filter when statusFilter or feeList changes
+  // Fetch real fee list from backend database
+  const fetchFeeList = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const feeListResponse = await getFeeList({
+        class: normalizeSchoolClass(classFilter),
+        section: sectionFilter,
+        month: monthFilter,
+      })
+
+      let list = []
+      if (feeListResponse?.data && Array.isArray(feeListResponse.data)) {
+        list = feeListResponse.data
+      } else if (feeListResponse?.fees && Array.isArray(feeListResponse.fees)) {
+        list = feeListResponse.fees
+      } else if (Array.isArray(feeListResponse)) {
+        list = feeListResponse
+      }
+
+      setFeeList(list)
+    } catch (err) {
+      console.error('Error fetching fee list data:', err)
+      setFeeList([])
+      if (err?.response?.data?.message) {
+        setError(err.response.data.message)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load data on component mount and when dropdown filters change
   useEffect(() => {
-    if (statusFilter === 'all') {
-      setFilteredFeeList(feeList)
-    } else {
-      const filtered = feeList.filter((fee) => {
-        const totalFee = fee.total_fee || 0
-        const paidAmount = fee.total_paid || fee.paid_amount || 0
-        const netPayable = fee.net_payable || fee.balance || (totalFee - paidAmount)
-        const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
+    fetchFeeList()
+  }, [classFilter, sectionFilter, monthFilter])
+
+  // Real-time synchronization when bills or payments are updated
+  useEffect(() => {
+    const handleSync = () => {
+      fetchFeeList()
+    }
+    window.addEventListener('fee:bills-updated', handleSync)
+    window.addEventListener('fee:payment-recorded', handleSync)
+    return () => {
+      window.removeEventListener('fee:bills-updated', handleSync)
+      window.removeEventListener('fee:payment-recorded', handleSync)
+    }
+  }, [classFilter, sectionFilter, monthFilter])
+
+  // Reset page when any filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, classFilter, sectionFilter, monthFilter, statusFilter])
+
+  // Status Counts
+  const counts = useMemo(() => {
+    let paid = 0
+    let unpaid = 0
+    let partial = 0
+
+    feeList.forEach((fee) => {
+      const totalFee = parseFloat(fee.total_fee || 0)
+      const paidAmount = fee.direct_paid !== undefined ? parseFloat(fee.direct_paid || 0) : parseFloat(fee.total_paid || fee.paid_amount || 0)
+      const advanceUsed = parseFloat(fee.advance_used || 0)
+      const netPayable = fee.net_payable !== undefined ? parseFloat(fee.net_payable) : Math.max(0, totalFee - (paidAmount + advanceUsed))
+      const billStatus = (fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')).toLowerCase()
+
+      if (billStatus === 'paid' || (totalFee > 0 && netPayable <= 0)) {
+        paid++
+      } else if (billStatus === 'partial' || (paidAmount > 0 && netPayable > 0)) {
+        partial++
+      } else {
+        unpaid++
+      }
+    })
+
+    return {
+      all: feeList.length,
+      paid,
+      unpaid,
+      partial,
+    }
+  }, [feeList])
+
+  // Filtered fee list based on Search & Status Pill
+  const filteredFeeList = useMemo(() => {
+    let result = feeList
+
+    // 1. Status Filter
+    if (statusFilter !== 'all') {
+      result = result.filter((fee) => {
+        const totalFee = parseFloat(fee.total_fee || 0)
+        const paidAmount = fee.direct_paid !== undefined ? parseFloat(fee.direct_paid || 0) : parseFloat(fee.total_paid || fee.paid_amount || 0)
+        const advanceUsed = parseFloat(fee.advance_used || 0)
+        const netPayable = fee.net_payable !== undefined ? parseFloat(fee.net_payable) : Math.max(0, totalFee - (paidAmount + advanceUsed))
+        const billStatus = (fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')).toLowerCase()
 
         if (statusFilter === 'paid') {
-          return billStatus === 'paid' || netPayable === 0 || netPayable < 0
+          return billStatus === 'paid' || (totalFee > 0 && netPayable <= 0)
         } else if (statusFilter === 'unpaid') {
-          return billStatus === 'unpaid' && netPayable > 0
+          return (billStatus === 'unpaid' || billStatus === 'pending') && (netPayable > 0 || totalFee === 0) && paidAmount === 0
         } else if (statusFilter === 'partial') {
           return billStatus === 'partial' || (paidAmount > 0 && netPayable > 0)
         }
         return true
       })
-      setFilteredFeeList(filtered)
     }
-  }, [statusFilter, feeList])
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [classFilter, sectionFilter, monthFilter, statusFilter, feeList])
-
-  // Load data on component mount and when filters change
-  useEffect(() => {
-    fetchFeeList()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classFilter, sectionFilter, monthFilter])
-
-  const fetchFeeList = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      console.log('Fetching fee list with parameters:', {
-        classFilter,
-        sectionFilter,
-        monthFilter,
-      });
-
-      // Fetch fee list data
-      const feeListResponse = await getFeeList({
-        class: normalizeSchoolClass(classFilter),
-        section: sectionFilter,
-        month: monthFilter,
-      });
-
-      let feeList = [];
-
-      // Handle different response structures - prioritize data extraction
-      if (feeListResponse.data && Array.isArray(feeListResponse.data)) {
-        feeList = feeListResponse.data;
-      } else if (feeListResponse.fees && Array.isArray(feeListResponse.fees)) {
-        feeList = feeListResponse.fees;
-      } else if (feeListResponse.success && feeListResponse.data && Array.isArray(feeListResponse.data)) {
-        feeList = feeListResponse.data;
-      } else if (feeListResponse.success && feeListResponse.fees && Array.isArray(feeListResponse.fees)) {
-        feeList = feeListResponse.fees;
-      } else if (Array.isArray(feeListResponse)) {
-        feeList = feeListResponse;
-      } else {
-        // If no data but message exists, show message but don't treat as error if it's just informational
-        if (feeListResponse.message && !feeListResponse.data) {
-          setError(feeListResponse.message);
-        }
-        feeList = [];
-      }
-
-      console.log('Fee list response:', feeListResponse);
-      console.log('Fee list data extracted:', feeList);
-      setFeeList(feeList);
-      setTotalCount(feeList.length);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err?.message || 'Failed to fetch data');
-      setFeeList([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
+    // 2. Search Query Filter
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase().trim()
+      result = result.filter((fee) => {
+        const name = (fee.student_name || '').toLowerCase()
+        const father = (fee.father_name || '').toLowerCase()
+        const roll = String(fee.roll_no || '').toLowerCase()
+        const billId = String(fee.bill_id || '').toLowerCase()
+        const adm = String(fee.admission_no || fee.adm_no || '').toLowerCase()
+        return name.includes(q) || father.includes(q) || roll.includes(q) || billId.includes(q) || adm.includes(q)
+      })
     }
-  }
 
+    return result
+  }, [feeList, statusFilter, searchTerm])
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredFeeList.length / PAGE_SIZE))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE
+  const endIndex = Math.min(startIndex + PAGE_SIZE, filteredFeeList.length)
+  const paginatedFeeList = filteredFeeList.slice(startIndex, endIndex)
+  const showingStart = filteredFeeList.length === 0 ? 0 : startIndex + 1
+  const showingEnd = endIndex
+
+  // Export to Excel
   const handleDownloadExcel = () => {
     if (filteredFeeList.length === 0) {
       setError('No data available to download')
@@ -125,12 +203,6 @@ function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
     }
 
     try {
-      const filters = []
-      if (classFilter) filters.push(`Class: ${classFilter}`)
-      if (sectionFilter) filters.push(`Section: ${sectionFilter}`)
-      if (monthFilter) filters.push(`Month: ${monthFilter}`)
-      if (statusFilter !== 'all') filters.push(`Status: ${statusFilter}`)
-
       const header = [
         'Student',
         'Father Name',
@@ -138,26 +210,24 @@ function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
         'Class',
         'Section',
         'Month',
-        'Tuition',
-        'Exam',
-        'Annual',
-        'Computer',
-        'Transport',
-        'Prev Due',
+        'Tuition Fee',
+        'Exam Fee',
+        'Annual Fee',
+        'Computer Fee',
+        'Transport Fee',
+        'Previous Due',
         'Total Fee',
-        'Paid',
+        'Paid Amount',
         'Advance Used',
-        'Due / Adv',
+        'Net Payable',
         'Status',
       ]
 
       const rows = filteredFeeList.map((fee) => {
         const totalFee = parseFloat(fee.total_fee) || 0
-        const paidAmount = fee.direct_paid !== undefined ? (parseFloat(fee.direct_paid) || 0) : (parseFloat(fee.total_paid || fee.paid_amount) || 0)
+        const paidAmount = fee.direct_paid !== undefined ? parseFloat(fee.direct_paid) || 0 : parseFloat(fee.total_paid || fee.paid_amount) || 0
         const advanceUsed = parseFloat(fee.advance_used) || 0
         const netPayable = fee.net_payable !== undefined ? parseFloat(fee.net_payable) : Math.max(0, totalFee - (paidAmount + advanceUsed))
-        const advanceGen = parseFloat(fee.advance_generated) || (paidAmount > totalFee ? paidAmount - totalFee : 0)
-        const dueAdvValue = netPayable > 0 ? netPayable : (advanceGen > 0 ? -advanceGen : 0)
         const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
 
         return [
@@ -176,58 +246,14 @@ function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
           totalFee,
           paidAmount,
           advanceUsed,
-          dueAdvValue,
+          netPayable,
           String(billStatus).charAt(0).toUpperCase() + String(billStatus).slice(1),
         ]
       })
 
-      const totals = {
-        tuition: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.tuition_fee) || 0), 0),
-        exam: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.exam_fee) || 0), 0),
-        annual: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0),
-        computer: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.computer_fee) || 0), 0),
-        transport: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.transport_fee) || 0), 0),
-        prevDue: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0),
-        totalFee: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0),
-        totalPaid: filteredFeeList.reduce((sum, f) => {
-          const pa = f.direct_paid !== undefined ? (parseFloat(f.direct_paid) || 0) : (parseFloat(f.total_paid || f.paid_amount) || 0)
-          return sum + pa
-        }, 0),
-        advanceUsed: filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.advance_used) || 0), 0),
-        netPayable: filteredFeeList.reduce((sum, f) => {
-          const tf = parseFloat(f.total_fee) || 0
-          const pa = f.direct_paid !== undefined ? (parseFloat(f.direct_paid) || 0) : (parseFloat(f.total_paid || f.paid_amount) || 0)
-          const adv = parseFloat(f.advance_used) || 0
-          const np = f.net_payable !== undefined ? parseFloat(f.net_payable) : Math.max(0, tf - (pa + adv))
-          return sum + np
-        }, 0),
-      }
-
-      rows.push([
-        `Total (${filteredFeeList.length})`,
-        '',
-        '',
-        '',
-        '',
-        '',
-        totals.tuition,
-        totals.exam,
-        totals.annual,
-        totals.computer,
-        totals.transport,
-        totals.prevDue,
-        totals.totalFee,
-        totals.totalPaid,
-        totals.advanceUsed,
-        totals.netPayable,
-        '',
-      ])
-
       const aoa = [
-        ['Fee List Report'],
-        filters.length > 0 ? [`Filters: ${filters.join(', ')}`] : ['Filters: (none)'],
-        [`Total Records: ${filteredFeeList.length}`],
-        [`Generated: ${new Date().toLocaleString()}`],
+        ['Star Public School - Official Fee List Records'],
+        [`Academic Year: 2026-27 | Generated: ${new Date().toLocaleString()}`],
         [],
         header,
         ...rows,
@@ -237,452 +263,479 @@ function FeeList({ onViewInvoice, onViewReceipt, onPayFee }) {
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Fee List')
 
-      const filename = `fee-list-${classFilter || 'all'}-${sectionFilter || 'all'}-${monthFilter || 'all'}-${statusFilter}-${new Date().toISOString().split('T')[0]}.xlsx`
+      const filename = `Star_Public_School_Fee_List_${new Date().toISOString().split('T')[0]}.xlsx`
       XLSX.writeFile(wb, filename)
     } catch (err) {
       setError('Failed to generate Excel: ' + (err?.message || 'Unknown error'))
     }
   }
 
-  const totalPages = Math.max(1, Math.ceil(filteredFeeList.length / PAGE_SIZE))
-  const safeCurrentPage = Math.min(currentPage, totalPages)
-  const startIndex = (safeCurrentPage - 1) * PAGE_SIZE
-  const endIndex = Math.min(startIndex + PAGE_SIZE, filteredFeeList.length)
-  const paginatedFeeList = filteredFeeList.slice(startIndex, endIndex)
-  const showingStart = filteredFeeList.length === 0 ? 0 : startIndex + 1
-  const showingEnd = filteredFeeList.length === 0 ? 0 : endIndex
+  // Handle Reset
+  const handleResetFilters = () => {
+    setClassFilter('')
+    setSectionFilter('')
+    setMonthFilter('')
+    setStatusFilter('all')
+    setSearchTerm('')
+    setCurrentPage(1)
+  }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Fee List</h3>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {feeList.length > 0 && (
-            <>
-              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 sm:px-3 py-1.5 rounded-full truncate">
-                Total: {totalCount} {totalCount === 1 ? 'record' : 'records'}
+    <div className="space-y-4">
+      {/* Main Card Container */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xs">
+        
+        {/* Top Header Row */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-5 border-b border-slate-100">
+          {/* Title & Metadata */}
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">Fee List</h2>
+            <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs font-semibold">
+              {filteredFeeList.length} records
+            </span>
+            <span className="text-slate-300">|</span>
+            <span className="text-xs font-medium text-slate-400">
+              Academic Year 2026–27
+            </span>
+          </div>
+
+          {/* Search Bar & Export Button */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Real-time Search */}
+            <div className="relative min-w-[260px] sm:min-w-[320px]">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">
+                search
               </span>
-              {statusFilter !== 'all' && filteredFeeList.length !== feeList.length && (
-                <span className="text-xs sm:text-sm text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/20 px-2 sm:px-3 py-1.5 rounded-full font-medium truncate border border-teal-200 dark:border-teal-700/50">
-                  Showing: {filteredFeeList.length}
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by student name, roll or admission ID..."
+                className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-xs font-medium text-slate-800 placeholder-slate-400 shadow-2xs focus:border-blue-500 focus:outline-none transition"
+              />
+              {searchTerm ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              ) : (
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
+                  ⌘K
                 </span>
               )}
-            </>
-          )}
-          {filteredFeeList.length > 0 && (
+            </div>
+
+            {/* Export to Excel Button */}
             <button
               type="button"
               onClick={handleDownloadExcel}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap text-sm justify-center font-semibold"
+              className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition flex items-center gap-2 cursor-pointer active:scale-98"
             >
-              <span className="material-symbols-outlined text-sm">table_chart</span>
-              <span className="hidden sm:inline">Download Excel</span>
-              <span className="sm:hidden">XLSX</span>
+              <span className="material-symbols-outlined text-[17px]">table_chart</span>
+              Export to Excel
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-        <div>
-          <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Class</label>
-          <select
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-          >
-            <option value="">All Classes</option>
-            {CLASS_OPTIONS.map((className) => (
-              <option key={className} value={className}>
-                {className}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Section</label>
-          <select
-            value={sectionFilter}
-            onChange={(e) => setSectionFilter(e.target.value)}
-            className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-          >
-            <option value="">All Sections</option>
-            {SECTION_OPTIONS.map((section) => (
-              <option key={section} value={section}>
-                {section}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Month</label>
-          <input
-            type="month"
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-            className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-cyan-200/30 dark:border-cyan-700/50 rounded-lg bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-          />
-        </div>
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex items-end">
-          <button
-            onClick={() => {
-              setClassFilter('')
-              setSectionFilter('')
-              setMonthFilter('')
-              setStatusFilter('all')
-              setFeeList([])
-              setFilteredFeeList([])
-              setCurrentPage(1)
-            }}
-            className="w-full px-2 sm:px-4 py-1.5 sm:py-2 text-sm border border-teal-200 dark:border-teal-700/50 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/10 text-teal-700 dark:text-teal-300 transition-colors"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2 sm:p-3">
-          <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">{error}</p>
-        </div>
-      )}
-
-      {/* Status Filter - Always Visible */}
-      {feeList.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-              <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Filter:</span>
-              <div className="flex flex-wrap items-center gap-1 sm:gap-2 flex-1">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${statusFilter === 'all'
-                      ? 'bg-[#0f766e] text-white shadow-sm shadow-teal-500/20'
-                      : 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/10 border border-teal-200 dark:border-teal-700/50'
-                    }`}
-                >
-                  <span className="material-symbols-outlined text-xs">apps</span>
-                  <span>All</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${statusFilter === 'all' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
-                    }`}>
-                    {feeList.length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setStatusFilter('paid')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${statusFilter === 'paid'
-                      ? 'bg-[#0f766e] text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-teal-200 dark:border-teal-700/50'
-                    }`}
-                >
-                  <span className="material-symbols-outlined text-xs">check_circle</span>
-                  <span className="hidden sm:inline">Paid</span>
-                  <span className="sm:hidden">P</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${statusFilter === 'paid' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-emerald-900/20'
-                    }`}>
-                    {feeList.filter(f => {
-                      const netPayable = f.net_payable || f.balance || ((f.total_fee || 0) - (f.total_paid || 0))
-                      return f.bill_status === 'paid' || netPayable === 0 || netPayable < 0
-                    }).length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setStatusFilter('unpaid')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${statusFilter === 'unpaid'
-                      ? 'bg-[#be123c] text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-rose-200 dark:border-rose-700/50'
-                    }`}
-                >
-                  <span className="material-symbols-outlined text-xs">cancel</span>
-                  <span className="hidden sm:inline">Unpaid</span>
-                  <span className="sm:hidden">U</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${statusFilter === 'unpaid' ? 'bg-white/20' : 'bg-rose-50 dark:bg-rose-900/20'
-                    }`}>
-                    {feeList.filter(f => {
-                      const netPayable = f.net_payable || f.balance || ((f.total_fee || 0) - (f.total_paid || 0))
-                      return f.bill_status === 'unpaid' && netPayable > 0
-                    }).length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setStatusFilter('partial')}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${statusFilter === 'partial'
-                      ? 'bg-[#b45309] text-white shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50'
-                    }`}
-                >
-                  <span className="material-symbols-outlined text-xs">pending</span>
-                  <span className="hidden sm:inline">Partial</span>
-                  <span className="sm:hidden">Pt</span>
-                  <span className={`px-1 py-0.5 rounded text-xs font-semibold ${statusFilter === 'partial' ? 'bg-white/20' : 'bg-amber-50 dark:bg-amber-900/20'
-                    }`}>
-                    {feeList.filter(f => {
-                      const paidAmount = f.total_paid || f.paid_amount || 0
-                      const netPayable = f.net_payable || f.balance || ((f.total_fee || 0) - paidAmount)
-                      return f.bill_status === 'partial' || (paidAmount > 0 && netPayable > 0)
-                    }).length}
-                  </span>
-                </button>
-              </div>
-            </div>
-            {statusFilter !== 'all' && (
-              <button
-                onClick={() => setStatusFilter('all')}
-                className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1 whitespace-nowrap"
-              >
-                <span className="material-symbols-outlined text-sm">close</span>
-                <span>Clear</span>
-              </button>
-            )}
           </div>
         </div>
-      )}
 
-      {/* Table */}
-      {loading ? (
-        <div className="space-y-2 py-2">
-          {[1, 2, 3, 4].map((row) => (
-            <div key={row} className="h-10 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
-          ))}
+        {/* Second Filter Bar Row */}
+        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Dropdown Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Class Filter */}
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                Class
+              </span>
+              <select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Classes</option>
+                {CLASS_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Section Filter */}
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                Section
+              </span>
+              <select
+                value={sectionFilter}
+                onChange={(e) => setSectionFilter(e.target.value)}
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-none cursor-pointer"
+              >
+                <option value="">All Sections</option>
+                {SECTION_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    Section {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Billing Month Filter */}
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                Billing Month
+              </span>
+              <input
+                type="month"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs focus:border-blue-500 focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {/* Reset Button */}
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="h-9 px-3.5 mt-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                title="Reset all filters"
+              >
+                <span className="material-symbols-outlined text-[16px] text-slate-500">
+                  refresh
+                </span>
+                Reset
+              </button>
+            </div>
+          </div>
+
+          {/* Status Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+              STATUS:
+            </span>
+
+            {/* All */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === 'all'
+                  ? 'bg-[#0b1329] text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All <span className="font-semibold">{counts.all}</span>
+            </button>
+
+            {/* Paid */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter('paid')}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === 'paid'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${statusFilter === 'paid' ? 'bg-white' : 'bg-emerald-500'}`}></span>
+              Paid <span className="font-semibold">{counts.paid}</span>
+            </button>
+
+            {/* Unpaid */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter('unpaid')}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === 'unpaid'
+                  ? 'bg-rose-600 text-white shadow-2xs'
+                  : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${statusFilter === 'unpaid' ? 'bg-white' : 'bg-rose-500'}`}></span>
+              Unpaid <span className="font-semibold">{counts.unpaid}</span>
+            </button>
+
+            {/* Partial */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter('partial')}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === 'partial'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${statusFilter === 'partial' ? 'bg-white' : 'bg-amber-500'}`}></span>
+              Partial <span className="font-semibold">{counts.partial}</span>
+            </button>
+          </div>
         </div>
-      ) : filteredFeeList.length === 0 && feeList.length > 0 ? (
-        <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">
-          No fees found with status "{statusFilter}". Try selecting a different status filter.
-        </p>
-      ) : filteredFeeList.length === 0 ? (
-        <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">
-          {classFilter || monthFilter ? 'No fees found. Try adjusting filters.' : 'No fees found. Data will appear here when available.'}
-        </p>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
-            <table className="fee-list-table w-full">
-              <thead>
-                <tr className="!bg-[#38bdf8] border-b-2 border-sky-200/60 dark:border-sky-700/50">
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-bold !text-white sticky left-0 !bg-[#38bdf8] z-10 border-r border-sky-200/40 dark:border-sky-700/50">Student</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Roll</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden sm:table-cell">Class</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white hidden md:table-cell">Section</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Month</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Tuition</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Exam</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Annual</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden xl:table-cell">Computer</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden xl:table-cell">Transport</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Prev Due</th>
-                  <th className="fee-total-heading px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white !bg-[#38bdf8]">Total</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Paid</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white hidden lg:table-cell">Advance</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold !text-white">Due/Adv</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white">Status</th>
-                  <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold !text-white sticky right-0 !bg-[#38bdf8] border-l border-sky-200/40 dark:border-sky-700/50">Action</th>
+
+        {/* Error Notification */}
+        {error && (
+          <div className="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">error</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Live Table */}
+        <div className="mt-5 overflow-x-auto rounded-xl border border-slate-100 bg-white">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <th className="py-3 px-4">STUDENT DETAILS</th>
+                <th className="py-3 px-3 text-center">ROLL</th>
+                <th className="py-3 px-3 text-center">CLASS &amp; SEC</th>
+                <th className="py-3 px-3 text-center">MONTH</th>
+                <th className="py-3 px-3 text-right">TUITION</th>
+                <th className="py-3 px-3 text-right">EXAM</th>
+                <th className="py-3 px-3 text-right">ANNUAL</th>
+                <th className="py-3 px-3 text-right">COMPUTER</th>
+                <th className="py-3 px-3 text-right">TRANSPORT</th>
+                <th className="py-3 px-3 text-right text-amber-600">PREV DUE</th>
+                <th className="py-3 px-3 text-right">TOTAL</th>
+                <th className="py-3 px-3 text-right text-emerald-700">PAID</th>
+                <th className="py-3 px-4 text-center">ACTION</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan="13" className="py-12 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-[28px] animate-spin text-slate-400">sync</span>
+                      <p className="text-xs font-medium">Loading real fee records from database...</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {paginatedFeeList.map((fee, index) => {
-                  const totalFee = fee.total_fee || 0
-                  const paidAmount = fee.direct_paid !== undefined ? (parseFloat(fee.direct_paid) || 0) : (parseFloat(fee.total_paid || fee.paid_amount) || 0)
-                  const advanceUsed = parseFloat(fee.advance_used) || 0
+              ) : paginatedFeeList.length === 0 ? (
+                <tr>
+                  <td colSpan="13" className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                      <div className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[24px]">receipt_long</span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">No fee records found</p>
+                      <p className="text-xs text-slate-400">
+                        {searchTerm || classFilter || monthFilter || statusFilter !== 'all'
+                          ? 'Try adjusting your search criteria or resetting filters.'
+                          : 'No fee bills have been generated yet in database.'}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedFeeList.map((fee, idx) => {
+                  const totalFee = parseFloat(fee.total_fee || 0)
+                  const paidAmount = fee.direct_paid !== undefined ? parseFloat(fee.direct_paid || 0) : parseFloat(fee.total_paid || fee.paid_amount || 0)
+                  const advanceUsed = parseFloat(fee.advance_used || 0)
                   const netPayable = fee.net_payable !== undefined ? parseFloat(fee.net_payable) : Math.max(0, totalFee - (paidAmount + advanceUsed))
-                  const advanceGen = fee.advance_generated || (paidAmount > totalFee ? paidAmount - totalFee : 0)
-                  const billStatus = fee.bill_status || (netPayable === 0 ? 'paid' : 'unpaid')
-                  const isPaid = billStatus === 'paid' || netPayable === 0
+                  const isPaid = (fee.bill_status === 'paid') || (totalFee > 0 && netPayable <= 0)
+
+                  const rollFormatted = fee.roll_no ? String(fee.roll_no).padStart(2, '0') : '--'
+                  const avatarColor = getAvatarColor(fee.student_name, fee.roll_no)
+                  const initials = getInitials(fee.student_name)
 
                   return (
-                    <tr key={fee.bill_id || fee.student_id || index} className="border-b text-xs sm:text-sm border-cyan-200/30 dark:border-cyan-700/50 hover:bg-cyan-50/30 dark:hover:bg-cyan-900/10 transition-colors">
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-slate-900 dark:text-white font-medium sticky left-0 bg-white dark:bg-slate-800 z-10 border-r border-cyan-200/30 dark:border-cyan-700/50 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
-                        <div>
-                          <div className="font-semibold truncate text-xs sm:text-sm">{fee.student_name || '--'}</div>
-                          {fee.father_name && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{fee.father_name}</div>
-                          )}
+                    <tr
+                      key={fee.bill_id || `${fee.student_id}_${idx}`}
+                      className="hover:bg-slate-50/70 transition-colors"
+                    >
+                      {/* Student Details (Avatar + Name + Father Name) */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 ${avatarColor.bg} ${avatarColor.text}`}
+                          >
+                            {initials}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900 text-xs">
+                              {fee.student_name || '--'}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                              F: {fee.father_name || '--'}
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white">{fee.roll_no || '--'}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white font-medium hidden sm:table-cell">{fee.class || '--'}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white hidden md:table-cell">{fee.section || '--'}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white font-medium whitespace-nowrap">{fee.month || '--'}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.tuition_fee) || 0).toLocaleString('en-IN')}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.exam_fee) || 0).toLocaleString('en-IN')}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden lg:table-cell">₹{(parseFloat(fee.annual_fee) || 0).toLocaleString('en-IN')}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden xl:table-cell">₹{(parseFloat(fee.computer_fee) || 0).toLocaleString('en-IN')}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-700 dark:text-slate-300 hidden xl:table-cell">₹{(parseFloat(fee.transport_fee) || 0).toLocaleString('en-IN')}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-orange-600 dark:text-orange-400 font-medium hidden lg:table-cell">₹{(parseFloat(fee.previous_due) || 0).toLocaleString('en-IN')}</td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white font-bold bg-teal-50/80 dark:bg-teal-900/10">
+
+                      {/* Roll */}
+                      <td className="py-3 px-3 text-center text-xs font-semibold text-slate-700">
+                        {rollFormatted}
+                      </td>
+
+                      {/* Class & Sec */}
+                      <td className="py-3 px-3 text-center">
+                        <span className="inline-block rounded-lg bg-slate-100 border border-slate-200/60 px-2 py-0.5 text-xs font-bold text-slate-700">
+                          {normalizeSchoolClass(fee.class) || '--'}-{fee.section || 'A'}
+                        </span>
+                      </td>
+
+                      {/* Month */}
+                      <td className="py-3 px-3 text-center text-xs font-mono font-medium text-slate-600">
+                        {fee.month || '--'}
+                      </td>
+
+                      {/* Tuition */}
+                      <td className="py-3 px-3 text-right text-xs text-slate-600 font-medium">
+                        ₹{(parseFloat(fee.tuition_fee) || 0).toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Exam */}
+                      <td className="py-3 px-3 text-right text-xs text-slate-600 font-medium">
+                        ₹{(parseFloat(fee.exam_fee) || 0).toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Annual */}
+                      <td className="py-3 px-3 text-right text-xs text-slate-600 font-medium">
+                        ₹{(parseFloat(fee.annual_fee) || 0).toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Computer */}
+                      <td className="py-3 px-3 text-right text-xs text-slate-600 font-medium">
+                        ₹{(parseFloat(fee.computer_fee) || 0).toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Transport */}
+                      <td className="py-3 px-3 text-right text-xs text-slate-600 font-medium">
+                        ₹{(parseFloat(fee.transport_fee) || 0).toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Prev Due */}
+                      <td className="py-3 px-3 text-right text-xs font-semibold text-amber-600">
+                        ₹{(parseFloat(fee.previous_due) || 0).toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Total */}
+                      <td className="py-3 px-3 text-right text-xs font-black text-slate-900">
                         ₹{totalFee.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
+
+                      {/* Paid */}
+                      <td className="py-3 px-3 text-right text-xs font-bold text-emerald-600">
                         ₹{paidAmount.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-purple-600 dark:text-purple-400 font-medium hidden lg:table-cell">
-                        ₹{(parseFloat(advanceUsed) || 0).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right font-bold whitespace-nowrap">
-                        {netPayable > 0 ? (
-                          <span className="text-red-600 dark:text-red-400">
-                            ₹{netPayable.toLocaleString('en-IN')}
-                          </span>
-                        ) : advanceGen > 0 ? (
-                          <span className="text-green-600 dark:text-green-400 font-bold">
-                            -₹{advanceGen.toLocaleString('en-IN')}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600 dark:text-slate-400">
-                            ₹0
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center">
-                        {billStatus === 'paid' || isPaid ? (
-                          <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Paid</span>
-                        ) : billStatus === 'partial' ? (
-                          <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Partial</span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold whitespace-nowrap inline-block">Unpaid</span>
-                        )}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-center sticky right-0 bg-white dark:bg-slate-800 border-l border-cyan-200/30 dark:border-cyan-700/50 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]">
-                        <div className="flex items-center gap-1 justify-center flex-wrap">
-                          {/* Show Pay button for unpaid or partial */}
-                          {(billStatus === 'unpaid' || billStatus === 'partial' || netPayable > 0) && (
+
+                      {/* Action */}
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* If Unpaid or Partial, Show Pay button */}
+                          {!isPaid && onPayFee && (
                             <button
-                              onClick={() => onPayFee && onPayFee({
-                                class: fee.class,
-                                section: fee.section,
-                                roll_number: fee.roll_no,
-                                month: fee.month,
-                                student_name: fee.student_name,
-                                total_fee: totalFee,
-                                paid_amount: paidAmount,
-                                net_payable: netPayable
-                              })}
-                              className="inline-flex min-w-[64px] items-center justify-center px-3 py-1.5 bg-orange-500 hover:bg-orange-500/90 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-orange-500/20"
-                              title="Pay Fee"
+                              type="button"
+                              onClick={() =>
+                                onPayFee({
+                                  class: fee.class,
+                                  section: fee.section,
+                                  roll_number: fee.roll_no,
+                                  month: fee.month,
+                                  student_name: fee.student_name,
+                                  total_fee: totalFee,
+                                  paid_amount: paidAmount,
+                                  net_payable: netPayable,
+                                })
+                              }
+                              className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 text-xs font-bold shadow-2xs transition active:scale-95 cursor-pointer"
+                              title="Pay fee at counter"
                             >
                               Pay
                             </button>
                           )}
 
-                          {/* View Receipt button for paid or partial */}
-                          {(billStatus === 'paid' || billStatus === 'partial' || netPayable === 0 || netPayable < 0 || paidAmount > 0) && (
-                            <div className="inline-flex items-center gap-1">
+                          {/* If Paid or Partial, Show Receipt view and PDF download */}
+                          {(isPaid || paidAmount > 0) && (
+                            <>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (onViewReceipt) {
-                                    onViewReceipt(fee)
-                                  } else if (onViewInvoice) {
-                                    onViewInvoice(fee.bill_id)
-                                  }
+                                  if (onViewReceipt) onViewReceipt(fee)
+                                  else if (onViewInvoice) onViewInvoice(fee.bill_id)
                                 }}
-                                className="inline-flex min-w-[70px] items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20 cursor-pointer"
-                                title="View / Print Fee Receipt"
+                                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                                title="View Receipt"
                               >
-                                <span className="material-symbols-outlined text-[14px]">receipt_long</span>
-                                Receipt
+                                <span className="material-symbols-outlined text-[18px]">
+                                  visibility
+                                </span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDownloadInvoiceDirect(fee.bill_id)}
                                 disabled={downloadingInvoiceId === fee.bill_id}
-                                className="inline-flex items-center justify-center p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-xs font-bold transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
-                                title="Direct Download Fee Receipt PDF"
+                                className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                                title="Download PDF Receipt"
                               >
-                                <span className={`material-symbols-outlined text-[14px] ${downloadingInvoiceId === fee.bill_id ? 'animate-spin' : ''}`}>
+                                <span
+                                  className={`material-symbols-outlined text-[18px] ${
+                                    downloadingInvoiceId === fee.bill_id ? 'animate-spin' : ''
+                                  }`}
+                                >
                                   {downloadingInvoiceId === fee.bill_id ? 'sync' : 'download'}
                                 </span>
                               </button>
-                            </div>
+                            </>
                           )}
                         </div>
                       </td>
                     </tr>
                   )
-                })}
-              </tbody>
-              {/* Summary Row */}
-              {filteredFeeList.length > 0 && (
-                <tfoot>
-                  <tr className="bg-teal-50 dark:bg-teal-900/20 border-t-2 border-teal-200 dark:border-teal-700/50 font-bold text-xs sm:text-sm">
-                    <td colSpan={5} className="px-2 sm:px-4 py-2 sm:py-3 text-right text-slate-900 dark:text-white">
-                      Total ({filteredFeeList.length}):
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.tuition_fee) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.exam_fee) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.annual_fee) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden xl:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.computer_fee) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden xl:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.transport_fee) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-slate-900 dark:text-white hidden lg:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.previous_due) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right bg-teal-100/80 dark:bg-teal-900/20 text-slate-900 dark:text-white font-bold">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.total_fee) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-green-600 dark:text-green-400 font-bold">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (f.direct_paid !== undefined ? (parseFloat(f.direct_paid) || 0) : (parseFloat(f.total_paid) || 0)), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-purple-600 dark:text-purple-400 font-bold hidden lg:table-cell">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.advance_used) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-right text-red-600 dark:text-red-400 font-bold">
-                      ₹{filteredFeeList.reduce((sum, f) => sum + (parseFloat(f.net_payable) || 0), 0).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-slate-900 dark:text-white">
-                      <span className="text-xs">
-                        {filteredFeeList.filter(f => f.bill_status === 'paid' || (f.net_payable || 0) === 0 || (f.net_payable || 0) < 0).length}/{filteredFeeList.length}
-                      </span>
-                    </td>
-                    <td className="px-2 sm:px-3 py-2 sm:py-3 sticky right-0 bg-teal-50 dark:bg-teal-900/20"></td>
-                  </tr>
-                </tfoot>
+                })
               )}
-            </table>
-          </div>
-          {filteredFeeList.length > PAGE_SIZE && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/30">
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                Showing {showingStart}-{showingEnd} of {filteredFeeList.length} records
-              </p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                  disabled={safeCurrentPage === 1}
-                  className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Previous
-                </button>
-                <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                  Page {safeCurrentPage} of {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                  disabled={safeCurrentPage === totalPages}
-                  className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Bottom Pagination Controls */}
+        {filteredFeeList.length > PAGE_SIZE && (
+          <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 pt-2 border-t border-slate-100">
+            <div>
+              Showing <span className="font-bold text-slate-800">{showingStart}</span> to{' '}
+              <span className="font-bold text-slate-800">{showingEnd}</span> of{' '}
+              <span className="font-bold text-slate-800">{filteredFeeList.length}</span> records
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage === 1}
+                className="h-8 px-3 rounded-lg border border-slate-200 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+                <button
+                  key={pg}
+                  type="button"
+                  onClick={() => setCurrentPage(pg)}
+                  className={`h-8 w-8 rounded-lg font-bold text-xs transition cursor-pointer ${
+                    safeCurrentPage === pg
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {pg}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="h-8 px-3 rounded-lg border border-slate-200 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 export default FeeList
-

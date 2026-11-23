@@ -265,7 +265,7 @@ export default function TeacherDashboardView({
   }, [students, searchTerm])
 
   const nextHoliday = useMemo(() => {
-    if (!holidays.length) return { name: 'Diwali Break', date: 'Upcoming Holiday' }
+    if (!holidays.length) return { name: 'No upcoming holidays', date: 'Calendar' }
     const today = new Date().toISOString().split('T')[0]
     const upcoming = holidays.find((h) => (h.holiday_date || h.date) >= today)
     if (upcoming) {

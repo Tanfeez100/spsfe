@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas-pro'
 import { jsPDF } from 'jspdf'
 import { useDocumentTemplates } from '../../context/DocumentTemplateContext'
 import { DOCUMENT_TEMPLATES } from '../../constants/documentTemplateRegistry'
+import StaffBatchIdCardGenerator from '../Teacher/StaffBatchIdCardGenerator'
 
 // Safe constructor helper for jsPDF across Vite / ESM environments
 const createJsPdf = (options) => {
@@ -69,6 +70,7 @@ function BatchIdCardGenerator({
   const [selectedSection, setSelectedSection] = useState('all')
   const [validTillYear, setValidTillYear] = useState('2027')
   const [cardType, setCardType] = useState('id_card') // 'id_card' | 'admit_card'
+  const [activeTab, setActiveTab] = useState('id_card') // 'id_card' | 'admit_card' | 'staff' | 'templates'
   const [orientation, setOrientation] = useState('vertical') // Default: Vertical (55mm x 85mm)
   const [cardsPerPage, setCardsPerPage] = useState(9) // Standard: 9 cards per A4 page (3x3 grid)
   const [searchTerm, setSearchTerm] = useState('')
@@ -417,6 +419,20 @@ function BatchIdCardGenerator({
     <div className={containerClass}>
       {/* ================= WYSIWYG EXACT A4 PHYSICAL PRINT & SCREEN STYLES ================= */}
       <style>{`
+        /* KPI Lite Gradient Cards */
+        .kpi-card-blue {
+          background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+        }
+        .kpi-card-emerald {
+          background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+        }
+        .kpi-card-amber {
+          background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%);
+        }
+        .kpi-card-purple {
+          background: linear-gradient(135deg, #f3e8ff 0%, #ffffff 100%);
+        }
+
         /* --- SCREEN RULES --- */
         .sps-a4-sheet {
           width: 210mm;
@@ -620,38 +636,89 @@ function BatchIdCardGenerator({
 
       {/* Main Dialog Shell */}
       <div className={shellClass}>
-        {/* ================= 1. BREADCRUMBS & STUDIO TITLE ================= */}
-        <div className="flex flex-col space-y-1.5 sps-print-no-show">
-          <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-xs font-semibold text-slate-400 tracking-wide uppercase mb-0.5">
-            <span className="text-slate-500 hover:text-slate-700">SPS</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-500 hover:text-slate-700">STUDENT MANAGEMENT</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-blue-600 font-bold">ID CARDS STUDIO</span>
-          </nav>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  {cardType === 'admit_card' ? 'Student Admit Card Studio' : 'Student ID Card Studio'}
-                </h1>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#fef3c7] text-[#92400e] border border-amber-200 uppercase tracking-wide">
-                  CR-80 STANDARD (55×85MM)
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>{matchingStudents.length} Students Loaded</span>
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-                Session 2026–27 · Batch Print &amp; Export · 9 Cards per A4 Sheet (3×3 Grid)
-              </p>
+        {/* ================= 1. BREADCRUMBS, TITLE & ACTIONS ================= */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between sps-print-no-show">
+          <div>
+            <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <span>SPS</span>
+              <span>/</span>
+              <span>STUDENT MANAGEMENT</span>
+              <span>/</span>
+              <span className="text-blue-600 font-bold">
+                {activeTab === 'admit_card'
+                  ? 'ADMIT CARDS STUDIO'
+                  : activeTab === 'staff'
+                  ? 'STAFF ID STUDIO'
+                  : activeTab === 'templates'
+                  ? 'TEMPLATE GALLERY'
+                  : 'ID CARDS STUDIO'}
+              </span>
             </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#0f1e36] tracking-tight">
+                {activeTab === 'admit_card'
+                  ? 'Student Admit Card Studio'
+                  : activeTab === 'staff'
+                  ? 'Faculty & Staff ID Cards'
+                  : activeTab === 'templates'
+                  ? 'Document Template Gallery'
+                  : 'Student ID Card Studio'}
+              </h1>
+              <span className="inline-flex items-center rounded-lg border border-amber-200 bg-[#fef3c7] px-2.5 py-0.5 text-xs font-bold text-[#92400e] tracking-wide uppercase">
+                CR-80 STANDARD (55×85MM)
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-0.5 text-xs font-bold text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{matchingStudents.length} Students Loaded</span>
+              </span>
+            </div>
+            <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+              Session 2026–27 · Batch Print &amp; Export · 9 Cards per A4 Sheet (3×3 Grid)
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handlePrintAll}
+              className="flex h-10 items-center gap-2 rounded-xl bg-[#0d1726] px-4 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-[#1a2b42] hover:shadow-md transition-all duration-200 cursor-pointer active:scale-98"
+            >
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>Print All Cards</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              disabled={downloadingPdf}
+              className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs sm:text-sm font-bold text-slate-800 shadow-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer active:scale-98 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 8.5h-1v2H7v-5h2.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5zm5 2h-2v-5h2c.83 0 1.5.67 1.5 1.5v2c0 .83-.67 1.5-1.5 1.5zm4-3.5h-1.5v1h1v1.5h-1V14H17v-5h3v1.5z" />
+              </svg>
+              <span>{downloadingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadPNG}
+              disabled={downloadingPng}
+              className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs sm:text-sm font-bold text-slate-800 shadow-xs hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer active:scale-98 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{downloadingPng ? 'Exporting...' : 'Export PNG'}</span>
+            </button>
+
             {onClose && !isPage && (
               <button
                 type="button"
                 onClick={onClose}
-                className="self-start sm:self-center h-8 w-8 rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
                 title="Close Studio"
               >
                 ✕
@@ -660,258 +727,456 @@ function BatchIdCardGenerator({
           </div>
         </div>
 
-        {/* ================= 2. PRIMARY ACTION BUTTONS ROW ================= */}
-        <div className="flex flex-wrap items-center gap-2.5 sps-print-no-show pt-0.5">
-          {/* Tab: ID Card */}
+        {/* ================= 2. TOP 4 METRIC / KPI CARDS ================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sps-print-no-show">
+          {/* Card 1: TOTAL STUDENTS */}
+          <div className="kpi-card-emerald rounded-2xl border border-emerald-100/80 p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-800/80">
+                TOTAL STUDENTS LOADED
+              </span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <span className="material-symbols-outlined text-[18px]">school</span>
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {effectiveStudents.length.toLocaleString('en-IN')}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <span className="material-symbols-outlined text-[15px]">check_circle</span>
+              <span>{matchingStudents.length} cards in current view</span>
+            </div>
+          </div>
+
+          {/* Card 2: ACTIVE CLASS & BATCH */}
+          <div className="kpi-card-blue rounded-2xl border border-blue-100/80 p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-800/80">
+                ACTIVE CLASS &amp; BATCH
+              </span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                <span className="material-symbols-outlined text-[18px]">groups</span>
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {selectedClass === 'all'
+                  ? 'All Classes'
+                  : selectedClass.startsWith('Class')
+                  ? selectedClass
+                  : `Class ${selectedClass}`}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+              <span className="material-symbols-outlined text-[15px]">verified</span>
+              <span>Section {selectedSection === 'all' ? 'All (A & B)' : selectedSection} · Session 2026–27</span>
+            </div>
+          </div>
+
+          {/* Card 3: PRINT SPECIFICATION */}
+          <div className="kpi-card-amber rounded-2xl border border-amber-100/80 p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-800/80">
+                PRINT SPECIFICATION
+              </span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                <span className="material-symbols-outlined text-[18px]">aspect_ratio</span>
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {cardsPerPage === 9 ? '9 Cards / A4' : '6 Cards / A4'}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+              <span className="material-symbols-outlined text-[15px]">crop</span>
+              <span>CR-80 (55×85mm) · {a4Pages.length} Sheet{a4Pages.length > 1 ? 's' : ''} Ready</span>
+            </div>
+          </div>
+
+          {/* Card 4: ACTIVE TEMPLATE */}
+          <div className="kpi-card-purple rounded-2xl border border-purple-100/80 p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-purple-800/80">
+                ACTIVE THEME / FORMAT
+              </span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+                <span className="material-symbols-outlined text-[18px]">palette</span>
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2 truncate">
+              <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">
+                {availableTemplates.find((t) => t.id === selectedTemplate)?.name || 'Modern Blue'}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="h-1.5 flex-1 rounded-full bg-slate-100 overflow-hidden flex">
+                <div className="h-full bg-blue-600 w-3/4 rounded-full"></div>
+                <div className="h-full bg-amber-500 w-1/4 rounded-full"></div>
+              </div>
+              <span className="text-[11px] font-semibold text-purple-700">CBSE Format</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= 3. HORIZONTAL NAVIGATION TABS ================= */}
+        <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-2xs sps-print-no-show">
           <button
             type="button"
-            onClick={() => setCardType('id_card')}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${
-              cardType === 'id_card'
-                ? 'bg-white border-blue-500 text-blue-600 ring-2 ring-blue-500/10'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            onClick={() => {
+              setActiveTab('id_card')
+              setCardType('id_card')
+            }}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'id_card'
+                ? 'bg-[#0d1726] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <svg className={`w-4 h-4 ${cardType === 'id_card' ? 'text-blue-600' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="16" rx="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="8" cy="15" r="1.5" fill="currentColor" />
-            </svg>
-            <span>ID Card</span>
+            <span className="material-symbols-outlined text-[17px]">badge</span>
+            <span>ID Cards Studio</span>
           </button>
 
-          {/* Tab: Admit Card */}
           <button
             type="button"
-            onClick={() => setCardType('admit_card')}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs ${
-              cardType === 'admit_card'
-                ? 'bg-white border-blue-500 text-blue-600 ring-2 ring-blue-500/10'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            onClick={() => {
+              setActiveTab('admit_card')
+              setCardType('admit_card')
+            }}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'admit_card'
+                ? 'bg-[#0d1726] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <svg className={`w-4 h-4 ${cardType === 'admit_card' ? 'text-blue-600' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-            <span>Admit Card</span>
+            <span className="material-symbols-outlined text-[17px]">assignment_ind</span>
+            <span>Admit Card Studio</span>
           </button>
 
-          {/* Export PNG */}
           <button
             type="button"
-            onClick={handleDownloadPNG}
-            disabled={downloadingPng}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+            onClick={() => setActiveTab('staff')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'staff'
+                ? 'bg-[#0d1726] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
           >
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span>{downloadingPng ? 'Exporting...' : 'Export PNG'}</span>
+            <span className="material-symbols-outlined text-[17px]">person</span>
+            <span>Faculty &amp; Staff ID</span>
           </button>
 
-          {/* Download PDF */}
           <button
             type="button"
-            onClick={handleDownloadPDF}
-            disabled={downloadingPdf}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+            onClick={() => setActiveTab('templates')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'templates'
+                ? 'bg-[#0d1726] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
           >
-            <svg className="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 8.5h-1v2H7v-5h2.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5zm5 2h-2v-5h2c.83 0 1.5.67 1.5 1.5v2c0 .83-.67 1.5-1.5 1.5zm4-3.5h-1.5v1h1v1.5h-1V14H17v-5h3v1.5z" />
-            </svg>
-            <span>{downloadingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
-          </button>
-
-          {/* Print All Cards */}
-          <button
-            type="button"
-            onClick={handlePrintAll}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold bg-[#1d4ed8] hover:bg-blue-700 text-white transition-all shadow-md shadow-blue-500/20 active:scale-98 cursor-pointer ml-auto sm:ml-0"
-          >
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            <span>Print All Cards</span>
+            <span className="material-symbols-outlined text-[17px]">palette</span>
+            <span>Template Gallery</span>
           </button>
         </div>
 
-        {/* ================= 3. FILTER & CONTROL CARD ================= */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs space-y-3.5 sps-print-no-show">
-          {/* Line 1: Class | Section | Template/Theme */}
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            {/* CLASS */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">CLASS</span>
-              <div className="relative" id="class-dropdown-container">
-                <button
-                  type="button"
-                  onClick={() => setIsClassDropdownOpen(!isClassDropdownOpen)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 transition cursor-pointer"
-                >
-                  <span className="text-slate-500">🎓</span>
-                  <span>
-                    {selectedClass === 'all'
-                      ? 'All Classes (All Sections)'
-                      : `Class ${selectedClass} (All Sections)`}
-                  </span>
-                  <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isClassDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+        {/* Tab 3: Faculty & Staff View */}
+        {activeTab === 'staff' && (
+          <div className="w-full">
+            <StaffBatchIdCardGenerator isPage={true} />
+          </div>
+        )}
 
-                {isClassDropdownOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                      Select Class ({matchingStudents.length} shown)
-                    </div>
-                    <div className="max-h-60 overflow-y-auto py-1">
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedClass('all'); setIsClassDropdownOpen(false); }}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${selectedClass === 'all' ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
-                      >
-                        <span>All Classes</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedClass === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                          {effectiveStudents.length > 0 ? `${effectiveStudents.length} Students` : 'All'}
-                        </span>
-                      </button>
-                      {[
-                        'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
-                        ...Object.keys(classCounts).filter((c) => c && !['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].includes(c))
-                      ].map((c) => {
-                        const isSel = selectedClass === c
-                        const cLabel = ['Nursery', 'LKG', 'UKG'].includes(c) ? c : c.startsWith('Class') ? c : `Class ${c}`
-                        const count = classCounts[c] || 0
-                        return (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => { setSelectedClass(c); setIsClassDropdownOpen(false); }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${isSel ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
-                          >
-                            <span>{cLabel}</span>
-                            {count > 0 && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSel ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                {count}
-                              </span>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+        {/* Tab 4: Template Gallery View */}
+        {activeTab === 'templates' && (
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-6">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">Official Document Design Gallery</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Select your preferred official Star Public School theme for student ID cards and admit cards.
+              </p>
             </div>
-
-            <span className="text-slate-300 font-light hidden sm:inline">|</span>
-
-            {/* SECTION */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">SECTION</span>
-              <div className="inline-flex items-center rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
-                {['all', 'A', 'B'].map((sec) => (
-                  <button
-                    key={sec}
-                    type="button"
-                    onClick={() => setSelectedSection(sec)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                      selectedSection === sec
-                        ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
-                        : 'text-slate-500 hover:text-slate-800'
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {availableTemplates.map((tpl) => {
+                const isActive = selectedTemplate === tpl.id
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => {
+                      setSelectedTemplate(tpl.id)
+                      if (docContext?.setActiveTemplate) {
+                        docContext.setActiveTemplate(cardType, tpl.id)
+                      }
+                      emitToast('success', `Switched theme to ${tpl.name}`, 'Theme Updated')
+                    }}
+                    className={`rounded-2xl border p-4 transition-all cursor-pointer flex flex-col justify-between ${
+                      isActive
+                        ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20 shadow-md'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
                     }`}
                   >
-                    {sec === 'all' ? 'All' : sec}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          {tpl.layout || 'CR-80'}
+                        </span>
+                        {isActive ? (
+                          <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            ✓ Active
+                          </span>
+                        ) : (
+                          <span
+                            className="w-3.5 h-3.5 rounded-full border border-slate-300"
+                            style={{ backgroundColor: tpl.accent || '#071d3f' }}
+                          />
+                        )}
+                      </div>
+                      <h3 className="font-extrabold text-sm text-slate-900">{tpl.name}</h3>
+                      <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-3">
+                        {tpl.description}
+                      </p>
+                    </div>
 
-            <span className="text-slate-300 font-light hidden sm:inline">|</span>
-
-            {/* TEMPLATE / THEME */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TEMPLATE / THEME</span>
-              <div className="relative">
-                <select
-                  value={selectedTemplate}
-                  onChange={(e) => {
-                    const newId = e.target.value
-                    setSelectedTemplate(newId)
-                    if (docContext?.setActiveTemplate) {
-                      docContext.setActiveTemplate(cardType, newId)
-                    }
-                  }}
-                  className="appearance-none inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 pl-3 pr-8 py-2 text-xs font-bold text-slate-800 transition cursor-pointer focus:outline-none"
-                >
-                  {availableTemplates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      ● {t.name}
-                    </option>
-                  ))}
-                </select>
-                <svg className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Search Input & Zoom Controls */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            {/* Search Bar */}
-            <div className="relative flex-1 min-w-[220px] max-w-sm">
-              <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by student name or roll..."
-                className="w-full pl-9 pr-7 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* Zoom Level Controls */}
-            <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setZoomLevel((z) => Math.max(75, z - 25))}
-                disabled={zoomLevel <= 75}
-                className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                title="Zoom Out Sheet Preview"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-                </svg>
-              </button>
-              <span className="px-2 text-xs font-mono font-bold text-slate-700 min-w-[42px] text-center">
-                {zoomLevel}%
-              </span>
-              <button
-                type="button"
-                onClick={() => setZoomLevel((z) => Math.min(150, z + 25))}
-                disabled={zoomLevel >= 150}
-                className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
-                title="Zoom In Sheet Preview"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-                </svg>
-              </button>
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-600">{tpl.badge || 'CBSE'}</span>
+                      <button
+                        type="button"
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                          isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {isActive ? 'In Use' : 'Apply'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Tab 1 & 2: ID Cards / Admit Cards Filter & Sheet Display */}
+        {(activeTab === 'id_card' || activeTab === 'admit_card') && (
+          <>
+            {/* ================= 4. FILTER & CONTROL CARD ================= */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-4 sps-print-no-show">
+              {/* Row 1: Class | Section | Template/Theme | Valid Till */}
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                {/* CLASS */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">CLASS</span>
+                  <div className="relative" id="class-dropdown-container">
+                    <button
+                      type="button"
+                      onClick={() => setIsClassDropdownOpen(!isClassDropdownOpen)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 transition cursor-pointer"
+                    >
+                      <span className="text-slate-500">🎓</span>
+                      <span>
+                        {selectedClass === 'all'
+                          ? 'All Classes (All Sections)'
+                          : `Class ${selectedClass} (All Sections)`}
+                      </span>
+                      <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isClassDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {isClassDropdownOpen && (
+                      <div className="absolute left-0 top-full mt-2 w-56 rounded-2xl border border-slate-200 bg-white shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                          Select Class ({matchingStudents.length} shown)
+                        </div>
+                        <div className="max-h-60 overflow-y-auto py-1">
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedClass('all'); setIsClassDropdownOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${selectedClass === 'all' ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
+                          >
+                            <span>All Classes</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedClass === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              {effectiveStudents.length > 0 ? `${effectiveStudents.length} Students` : 'All'}
+                            </span>
+                          </button>
+                          {[
+                            'Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+                            ...Object.keys(classCounts).filter((c) => c && !['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].includes(c))
+                          ].map((c) => {
+                            const isSel = selectedClass === c
+                            const cLabel = ['Nursery', 'LKG', 'UKG'].includes(c) ? c : c.startsWith('Class') ? c : `Class ${c}`
+                            const count = classCounts[c] || 0
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => { setSelectedClass(c); setIsClassDropdownOpen(false); }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-left transition-colors cursor-pointer ${isSel ? 'bg-[#071d3f] text-white' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                <span>{cLabel}</span>
+                                {count > 0 && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSel ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                    {count}
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <span className="text-slate-300 font-light hidden sm:inline">|</span>
+
+                {/* SECTION */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">SECTION</span>
+                  <div className="inline-flex items-center rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
+                    {['all', 'A', 'B'].map((sec) => (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => setSelectedSection(sec)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                          selectedSection === sec
+                            ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {sec === 'all' ? 'All' : sec}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <span className="text-slate-300 font-light hidden sm:inline">|</span>
+
+                {/* TEMPLATE / THEME */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TEMPLATE / THEME</span>
+                  <div className="relative">
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => {
+                        const newId = e.target.value
+                        setSelectedTemplate(newId)
+                        if (docContext?.setActiveTemplate) {
+                          docContext.setActiveTemplate(cardType, newId)
+                        }
+                      }}
+                      className="appearance-none inline-flex items-center gap-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 pl-3 pr-8 py-2 text-xs font-bold text-slate-800 transition cursor-pointer focus:outline-none"
+                    >
+                      {availableTemplates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          ● {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <svg className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                <span className="text-slate-300 font-light hidden sm:inline">|</span>
+
+                {/* VALID TILL SESSION */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">VALID TILL</span>
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
+                    March {validTillYear}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 2: Search Input & Zoom Controls & Grid Density */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-100">
+                {/* Search Bar */}
+                <div className="relative flex-1 min-w-[220px] max-w-sm">
+                  <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by student name or roll..."
+                    className="w-full pl-9 pr-7 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Grid layout toggle */}
+                  <div className="inline-flex items-center rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setCardsPerPage(9)}
+                      className={`rounded-lg px-3 py-1.5 transition-all cursor-pointer ${
+                        cardsPerPage === 9
+                          ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      3×3 (9 Cards)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardsPerPage(6)}
+                      className={`rounded-lg px-3 py-1.5 transition-all cursor-pointer ${
+                        cardsPerPage === 6
+                          ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      2×3 (6 Cards)
+                    </button>
+                  </div>
+
+                  {/* Zoom Level Controls */}
+                  <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel((z) => Math.max(75, z - 25))}
+                      disabled={zoomLevel <= 75}
+                      className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                      title="Zoom Out Sheet Preview"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                      </svg>
+                    </button>
+                    <span className="px-2 text-xs font-mono font-bold text-slate-700 min-w-[42px] text-center">
+                      {zoomLevel}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel((z) => Math.min(150, z + 25))}
+                      disabled={zoomLevel >= 150}
+                      className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30 cursor-pointer"
+                      title="Zoom In Sheet Preview"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
         {/* Cards Scrollable Canvas: Shows each A4 Sheet Page */}
         <div
@@ -1027,6 +1292,8 @@ function BatchIdCardGenerator({
                 ))
               )}
             </div>
+          </>
+        )}
       </div>
 
       {/* Full-Resolution Card Inspector Modal */}

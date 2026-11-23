@@ -97,53 +97,12 @@ export default function IdCardGeneratorPage() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 space-y-4">
-          {/* Top Tab Toggle: Students vs Staff */}
-          <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-2xs">
-            <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
-              <button
-                onClick={() => handleTabChange('students')}
-                className={`rounded-lg px-4 py-2 transition-all flex items-center gap-2 cursor-pointer ${
-                  activeTab === 'students'
-                    ? 'bg-[#071d3f] text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span className="material-symbols-outlined text-base">school</span>
-                <span>Student ID & Admit Cards ({students.length})</span>
-              </button>
-              <button
-                onClick={() => handleTabChange('staff')}
-                className={`rounded-lg px-4 py-2 transition-all flex items-center gap-2 cursor-pointer ${
-                  activeTab === 'staff'
-                    ? 'bg-[#071d3f] text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span className="material-symbols-outlined text-base">badge</span>
-                <span>Faculty & Staff ID Cards ({teachers.length})</span>
-              </button>
-            </div>
-
-            <div className="text-xs text-slate-500 font-medium px-2">
-              Official Star Public School CR80 Standard Specification
-            </div>
-          </div>
-
-          {/* Tab Views */}
-          {activeTab === 'students' ? (
-            <BatchIdCardGenerator
-              isOpen={true}
-              isPage={true}
-              students={students}
-              initialClass="1"
-            />
-          ) : (
-            <StaffBatchIdCardGenerator
-              isOpen={true}
-              isPage={true}
-              teachers={teachers}
-            />
-          )}
+          <BatchIdCardGenerator
+            isOpen={true}
+            isPage={true}
+            students={students}
+            initialClass="1"
+          />
         </div>
       </div>
     </>

@@ -24,80 +24,37 @@ function FeeManager() {
   const [dashboardError, setDashboardError] = useState('')
   const [dashboardData, setDashboardData] = useState({
     kpis: {
-      total_collected: 1842500,
-      collected_this_month: 365000,
-      transactions_this_month: 48,
-      pending_dues: 124000,
-      pending_students_count: 18,
-      total_transactions: 142,
-      online_percentage: 78,
-      cash_percentage: 22,
-      dominant_mode: '78% Online · 22% Cash',
+      total_collected: 0,
+      collected_this_month: 0,
+      transactions_this_month: 0,
+      pending_dues: 0,
+      pending_students_count: 0,
+      total_transactions: 0,
+      online_percentage: 0,
+      cash_percentage: 0,
+      dominant_mode: 'Loading...',
     },
-    recent_transactions: [
-      {
-        id: '2026-0841',
-        receipt_no: 'REC-2026-0841',
-        student: 'Khushi Mehta',
-        adm_no: 'SPS-1-A-001',
-        class: 'Class 1-A',
-        amount: '₹4,500',
-        amount_raw: 4500,
-        mode: 'UPI / PhonePe',
-        date: '16 Nov 2026, 10:45 AM',
-        status: 'Successful',
-      },
-      {
-        id: '2026-0842',
-        receipt_no: 'REC-2026-0842',
-        student: 'Tejas Agarwal',
-        adm_no: 'SPS-1-A-002',
-        class: 'Class 1-A',
-        amount: '₹4,500',
-        amount_raw: 4500,
-        mode: 'Cash (Counter 1)',
-        date: '16 Nov 2026, 09:30 AM',
-        status: 'Successful',
-      },
-      {
-        id: '2026-0843',
-        receipt_no: 'REC-2026-0843',
-        student: 'Aadhya Sharma',
-        adm_no: 'SPS-2-B-015',
-        class: 'Class 2-B',
-        amount: '₹5,200',
-        amount_raw: 5200,
-        mode: 'NetBanking',
-        date: '15 Nov 2026, 04:12 PM',
-        status: 'Successful',
-      },
-      {
-        id: '2026-0844',
-        receipt_no: 'REC-2026-0844',
-        student: 'Aarav Patel',
-        adm_no: 'SPS-3-A-042',
-        class: 'Class 3-A',
-        amount: '₹4,800',
-        amount_raw: 4800,
-        mode: 'Debit Card POS',
-        date: '15 Nov 2026, 02:18 PM',
-        status: 'Successful',
-      },
-    ],
-    class_wise_realization: [
-      { name: 'Class LKG', collected: '₹2,85,000', total: '₹3,10,000', percent: 92, color: 'bg-emerald-500' },
-      { name: 'Class UKG', collected: '₹2,64,000', total: '₹3,00,000', percent: 88, color: 'bg-emerald-500' },
-      { name: 'Class 1', collected: '₹3,15,000', total: '₹3,40,000', percent: 93, color: 'bg-emerald-500' },
-      { name: 'Class 2', collected: '₹2,90,000', total: '₹3,20,000', percent: 91, color: 'bg-emerald-500' },
-      { name: 'Class 3', collected: '₹3,40,000', total: '₹3,60,000', percent: 94, color: 'bg-emerald-500' },
-      { name: 'Class 4', collected: '₹3,48,500', total: '₹3,80,000', percent: 92, color: 'bg-emerald-500' },
-    ],
-    defaulters: [
-      { bill_id: 'DEF-01', student: 'Rohan Verma', class: 'Class 5-B', due: '₹4,500', days_overdue: 14 },
-      { bill_id: 'DEF-02', student: 'Ananya Gupta', class: 'Class 3-A', due: '₹3,200', days_overdue: 21 },
-      { bill_id: 'DEF-03', student: 'Kabir Singh', class: 'Class 8-C', due: '₹5,800', days_overdue: 7 },
-    ],
+    recent_transactions: [],
+    class_wise_realization: [],
+    defaulters: [],
   })
+
+  // Dynamic Average Realization
+  const avgRealization = useMemo(() => {
+    const list = dashboardData.class_wise_realization || []
+    if (list.length === 0) return '0%'
+    const totalCollected = list.reduce((sum, item) => sum + (item.collected_raw || 0), 0)
+    const totalTarget = list.reduce((sum, item) => sum + (item.total_raw || 0), 0)
+    if (totalTarget > 0) {
+      return `${Math.round((totalCollected / totalTarget) * 100)}%`
+    }
+    const nonZero = list.filter((i) => (i.percent || 0) > 0)
+    if (nonZero.length > 0) {
+      const avg = Math.round(nonZero.reduce((sum, i) => sum + i.percent, 0) / nonZero.length)
+      return `${avg}%`
+    }
+    return '0%'
+  }, [dashboardData.class_wise_realization])
 
   // Filters & Search for recent transactions
   const [filterSearch, setFilterSearch] = useState('')
@@ -112,26 +69,22 @@ function FeeManager() {
     try {
       const res = await getFeeDashboard()
       if (res?.data) {
-        setDashboardData((prev) => ({
-          ...prev,
-          ...res.data,
-          kpis: {
-            ...prev.kpis,
-            ...(res.data.kpis || {}),
+        setDashboardData({
+          kpis: res.data.kpis || {
+            total_collected: 0,
+            collected_this_month: 0,
+            transactions_this_month: 0,
+            pending_dues: 0,
+            pending_students_count: 0,
+            total_transactions: 0,
+            online_percentage: 0,
+            cash_percentage: 0,
+            dominant_mode: 'No collections recorded',
           },
-          recent_transactions:
-            res.data.recent_transactions && res.data.recent_transactions.length > 0
-              ? res.data.recent_transactions
-              : prev.recent_transactions,
-          class_wise_realization:
-            res.data.class_wise_realization && res.data.class_wise_realization.length > 0
-              ? res.data.class_wise_realization
-              : prev.class_wise_realization,
-          defaulters:
-            res.data.defaulters && res.data.defaulters.length > 0
-              ? res.data.defaulters
-              : prev.defaulters,
-        }))
+          recent_transactions: Array.isArray(res.data.recent_transactions) ? res.data.recent_transactions : [],
+          class_wise_realization: Array.isArray(res.data.class_wise_realization) ? res.data.class_wise_realization : [],
+          defaulters: Array.isArray(res.data.defaulters) ? res.data.defaulters : [],
+        })
       }
     } catch (err) {
       console.error('Failed to fetch fee dashboard data:', err)
@@ -142,10 +95,20 @@ function FeeManager() {
   }
 
   useEffect(() => {
-    if (activeTab === 'dashboard') {
+    fetchDashboardData()
+  }, [activeTab])
+
+  useEffect(() => {
+    const handleRefresh = () => {
       fetchDashboardData()
     }
-  }, [activeTab])
+    window.addEventListener('fee:bills-updated', handleRefresh)
+    window.addEventListener('fee:payment-recorded', handleRefresh)
+    return () => {
+      window.removeEventListener('fee:bills-updated', handleRefresh)
+      window.removeEventListener('fee:payment-recorded', handleRefresh)
+    }
+  }, [])
 
   const handlePayFee = (feeData) => {
     setPaymentData(feeData)
@@ -153,7 +116,7 @@ function FeeManager() {
   }
 
   const handleSendReminders = () => {
-    const count = dashboardData.kpis?.pending_students_count || 18
+    const count = dashboardData.kpis?.pending_students_count || 0
     window.dispatchEvent(
       new CustomEvent('app:toast', {
         detail: {
@@ -169,24 +132,25 @@ function FeeManager() {
   }
 
   const handlePrintSlip = (rec) => {
+    const rawAmt = Number(rec.amount_raw) || Number(String(rec.amount || '').replace(/[^0-9.]/g, '')) || 0
     setActiveReceipt({
       id: rec.id || rec.receipt_no,
       bill_id: rec.id || rec.receipt_no,
-      bill_number: rec.receipt_no || (rec.id ? `REC-${rec.id}` : 'REC-2026-0841'),
+      bill_number: rec.receipt_no || (rec.id ? `REC-${rec.id}` : '--'),
       student: rec.student,
       student_name: rec.student,
       adm_no: rec.adm_no || '',
       class: rec.class,
       date: rec.date,
-      amount: rec.amount_raw || rec.amount || '₹4,500',
+      amount: `₹${rawAmt.toLocaleString('en-IN')}`,
       mode: rec.mode || 'Cash',
       items: [
-        { fee_name: 'Monthly Tuition Fee', amount: rec.amount_raw || 4500 },
+        { fee_name: 'Fee Payment', amount: rawAmt },
       ],
       summary: {
-        total_amount: rec.amount_raw || 4500,
+        total_amount: rawAmt,
         advance_used: 0,
-        net_payable: rec.amount_raw || 4500,
+        net_payable: rawAmt,
         status: 'Paid',
       },
     })
@@ -419,94 +383,96 @@ function FeeManager() {
           ======================================================== */}
       {activeTab !== 'structure' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Collected */}
-        <div className="group relative overflow-hidden rounded-2xl border border-emerald-100/90 bg-gradient-to-br from-emerald-50/60 via-emerald-50/20 to-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TOTAL COLLECTED</span>
-            <div className="h-9 w-9 rounded-xl bg-emerald-100/80 text-emerald-600 flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+          {/* Card 1: Total Collected */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">TOTAL COLLECTED</span>
+              <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+              </div>
             </div>
+            <div className="mt-3 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              ₹{(dashboardData.kpis?.total_collected ?? 0).toLocaleString('en-IN')}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <span className="text-emerald-600 font-bold">✓</span>
+              <span>{dashboardData.kpis?.total_transactions ?? 0} payments processed</span>
+            </div>
+            {/* Bottom Accent Line */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
           </div>
-          <div className="mt-3 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            ₹{(dashboardData.kpis?.total_collected || 1842500).toLocaleString('en-IN')}
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span className="text-emerald-600 font-bold">✓</span>
-            <span>{dashboardData.kpis?.total_transactions || 142} payments processed</span>
-          </div>
-          {/* Bottom Accent Line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
-        </div>
 
-        {/* Card 2: Collected This Month */}
-        <div className="group relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-br from-blue-50/60 via-sky-50/20 to-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">COLLECTED THIS MONTH</span>
-            <div className="h-9 w-9 rounded-xl bg-blue-100/80 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="material-symbols-outlined text-[20px]">account_balance</span>
+          {/* Card 2: Collected This Month */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">COLLECTED THIS MONTH</span>
+              <div className="h-9 w-9 rounded-xl bg-blue-50 border border-blue-200/60 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <span className="material-symbols-outlined text-[20px]">apartment</span>
+              </div>
             </div>
+            <div className="mt-3 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              ₹{(dashboardData.kpis?.collected_this_month ?? 0).toLocaleString('en-IN')}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <span className="text-blue-600 font-bold">↗</span>
+              <span>{dashboardData.kpis?.transactions_this_month ?? 0} transactions this month</span>
+            </div>
+            {/* Bottom Accent Line */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
           </div>
-          <div className="mt-3 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            ₹{(dashboardData.kpis?.collected_this_month || 365000).toLocaleString('en-IN')}
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span className="text-blue-600 font-bold">↗</span>
-            <span>{dashboardData.kpis?.transactions_this_month || 48} transactions this month</span>
-          </div>
-          {/* Bottom Accent Line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
-        </div>
 
-        {/* Card 3: Pending Dues */}
-        <div className="group relative overflow-hidden rounded-2xl border border-rose-100/90 bg-gradient-to-br from-rose-50/60 via-red-50/20 to-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">PENDING DUES</span>
-            <div className="h-9 w-9 rounded-xl bg-rose-100/80 text-rose-600 flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="material-symbols-outlined text-[20px]">assignment_late</span>
+          {/* Card 3: Pending Dues */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">PENDING DUES</span>
+              <div className="h-9 w-9 rounded-xl bg-rose-50 border border-rose-200/60 text-rose-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <span className="material-symbols-outlined text-[20px]">warning</span>
+              </div>
             </div>
+            <div className="mt-3 text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
+              ₹{(dashboardData.kpis?.pending_dues ?? 0).toLocaleString('en-IN')}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <span className="text-rose-600 font-bold">▲</span>
+              <span>{dashboardData.kpis?.pending_students_count ?? 0} students pending</span>
+            </div>
+            {/* Bottom Accent Line */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
           </div>
-          <div className="mt-3 text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
-            ₹{(dashboardData.kpis?.pending_dues || 124000).toLocaleString('en-IN')}
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span className="text-rose-600 font-bold">⚠</span>
-            <span>{dashboardData.kpis?.pending_students_count || 18} students pending</span>
-          </div>
-          {/* Bottom Accent Line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
-        </div>
 
-        {/* Card 4: Payment Modes */}
-        <div className="group relative overflow-hidden rounded-2xl border border-amber-100/90 bg-gradient-to-br from-amber-50/60 via-orange-50/20 to-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">PAYMENT MODES</span>
-            <div className="h-9 w-9 rounded-xl bg-amber-100/80 text-amber-600 flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="material-symbols-outlined text-[20px]">sync</span>
+          {/* Card 4: Payment Modes */}
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">PAYMENT MODES</span>
+              <div className="h-9 w-9 rounded-xl bg-amber-50 border border-amber-200/60 text-amber-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <span className="material-symbols-outlined text-[20px]">sync</span>
+              </div>
+            </div>
+            <div className="mt-3 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              {dashboardData.kpis?.total_transactions === 0
+                ? '100% Cash'
+                : `${dashboardData.kpis?.online_percentage ?? 0}% Online · ${dashboardData.kpis?.cash_percentage ?? (100 - (dashboardData.kpis?.online_percentage ?? 0))}% Cash`}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+              <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+              <span>UPI, NetBanking &amp; Counters Active</span>
+            </div>
+            {/* Bottom Dual-Color Progress Bar */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 flex">
+              <div
+                className="bg-blue-600 h-full transition-all duration-300"
+                style={{ width: `${dashboardData.kpis?.online_percentage ?? 0}%` }}
+                title="Online Payments"
+              ></div>
+              <div
+                className="bg-amber-500 h-full transition-all duration-300"
+                style={{ width: `${dashboardData.kpis?.cash_percentage ?? (100 - (dashboardData.kpis?.online_percentage ?? 0))}%` }}
+                title="Cash Collections"
+              ></div>
             </div>
           </div>
-          <div className="mt-3 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {dashboardData.kpis?.online_percentage || 78}% Online · {dashboardData.kpis?.cash_percentage || 22}% Cash
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-            <span>UPI, NetBanking & Counters Active</span>
-          </div>
-          {/* Bottom Dual-Color Progress Bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 flex">
-            <div
-              className="bg-blue-600 h-full"
-              style={{ width: `${dashboardData.kpis?.online_percentage || 78}%` }}
-              title="Online Payments"
-            ></div>
-            <div
-              className="bg-amber-500 h-full"
-              style={{ width: `${dashboardData.kpis?.cash_percentage || 22}%` }}
-              title="Cash Collections"
-            ></div>
-          </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* ========================================================
           NAVIGATION TABS (Clean horizontal pill bar matching design)
@@ -687,9 +653,9 @@ function FeeManager() {
                     </tr>
                   ) : (
                     displayedTransactions.map((rec) => {
-                      const receiptNum = rec.receipt_no || (rec.id ? `REC-${rec.id}` : 'REC-2026-0841')
-                      const studentName = rec.student || rec.student_name || 'Khushi Mehta'
-                      const admNum = rec.adm_no || (rec.roll_no ? `SPS-${rec.class}-${rec.roll_no}` : 'SPS-1-A-001')
+                      const receiptNum = rec.receipt_no || (rec.id ? `REC-${rec.id}` : '--')
+                      const studentName = rec.student || rec.student_name || '--'
+                      const admNum = rec.adm_no || (rec.roll_no ? `Roll: ${rec.roll_no}` : '--')
 
                       return (
                         <tr key={rec.id || receiptNum} className="hover:bg-slate-50/80 transition-colors">
@@ -779,47 +745,20 @@ function FeeManager() {
                 >
                   Previous
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(1)}
-                  className={`h-7 w-7 rounded-lg text-xs font-bold transition ${
-                    currentPage === 1
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(2)}
-                  className={`h-7 w-7 rounded-lg text-xs font-bold transition ${
-                    currentPage === 2
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(3)}
-                  className={`h-7 w-7 rounded-lg text-xs font-bold transition ${
-                    currentPage === 3
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  3
-                </button>
-                <span className="px-1 text-slate-400">...</span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(36)}
-                  className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
-                >
-                  36
-                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`h-7 w-7 rounded-lg text-xs font-bold transition ${
+                      currentPage === pageNum
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -848,27 +787,33 @@ function FeeManager() {
                   </p>
                 </div>
                 <span className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-                  Avg: 91.6%
+                  Avg: {avgRealization}
                 </span>
               </div>
 
               <div className="mt-5 space-y-4">
-                {dashboardData.class_wise_realization.map((item) => (
-                  <div key={item.name} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-700">{item.name}</span>
-                      <span className="text-slate-900 font-bold">
-                        {item.collected} / {item.total} ({item.percent}%)
-                      </span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${item.color || 'bg-emerald-500'} transition-all duration-500`}
-                        style={{ width: `${item.percent}%` }}
-                      />
-                    </div>
+                {dashboardData.class_wise_realization.length === 0 ? (
+                  <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                    No class realization records found for this academic session.
                   </div>
-                ))}
+                ) : (
+                  dashboardData.class_wise_realization.map((item) => (
+                    <div key={item.name} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span className="text-slate-700">{item.name}</span>
+                        <span className="text-slate-900 font-bold">
+                          {item.collected} / {item.total} ({item.percent}%)
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${item.color || 'bg-emerald-500'} transition-all duration-500`}
+                          style={{ width: `${item.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -883,7 +828,7 @@ function FeeManager() {
                     </h3>
                   </div>
                   <span className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700">
-                    {dashboardData.kpis?.pending_students_count || 18} Defaulters
+                    {dashboardData.kpis?.pending_students_count ?? dashboardData.defaulters.length} Defaulters
                   </span>
                 </div>
 
@@ -898,30 +843,58 @@ function FeeManager() {
                         Status Report Active
                       </div>
                       <p className="mt-1 text-xs text-slate-600 leading-relaxed font-medium">
-                        Sabhi eligible students ki fee verification clear ho chuki hai. Sirf {dashboardData.kpis?.pending_students_count || 18} students ke dues pending hain jinhe reminders bheje ja sakte hain.
+                        {(dashboardData.kpis?.pending_students_count ?? 0) === 0
+                          ? 'Sabhi eligible students ki fee verification clear ho chuki hai. Koi pending dues nahi hain.'
+                          : `Sabhi eligible students ki fee verification clear ho chuki hai. Sirf ${dashboardData.kpis?.pending_students_count ?? dashboardData.defaulters.length} students ke dues pending hain jinhe reminders bheje ja sakte hain.`}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Defaulters sample preview list */}
-                <div className="mt-4 space-y-2.5">
-                  {dashboardData.defaulters.map((item, idx) => (
-                    <div
-                      key={item.bill_id || idx}
-                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 flex items-center justify-between"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-800 text-xs">{item.student}</div>
-                        <div className="text-[11px] text-slate-500">
-                          {item.class} · Due {item.due}
+                {/* Defaulters list */}
+                <div className="mt-4 space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                  {dashboardData.defaulters.length === 0 ? (
+                    <div className="py-6 text-center text-xs font-semibold text-slate-400">
+                      No pending fee defaulters. All records are settled.
+                    </div>
+                  ) : (
+                    dashboardData.defaulters.map((item, idx) => (
+                      <div
+                        key={item.bill_id || idx}
+                        className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 flex items-center justify-between hover:bg-slate-100/70 transition"
+                      >
+                        <div>
+                          <div className="font-bold text-slate-800 text-xs">{item.student}</div>
+                          <div className="text-[11px] text-slate-500">
+                            {item.class} · Due {item.due}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-rose-100/80 px-2.5 py-0.5 text-[11px] font-bold text-rose-700">
+                            {item.days_overdue > 0 ? `${item.days_overdue} days` : 'Due'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const rawClass = item.class ? item.class.replace('Class ', '').split('-')[0].trim() : ''
+                              const rawSection = item.class && item.class.includes('-') ? item.class.split('-')[1].trim() : 'A'
+                              handlePayFee({
+                                class: rawClass,
+                                section: rawSection,
+                                roll_number: item.roll_no,
+                                month: item.month,
+                                net_payable: item.due_raw,
+                              })
+                            }}
+                            className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-2 py-0.5 text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer"
+                            title="Collect payment in Pay Counter"
+                          >
+                            Collect
+                          </button>
                         </div>
                       </div>
-                      <span className="rounded-full bg-rose-100/80 px-2.5 py-0.5 text-[11px] font-bold text-rose-700">
-                        {item.days_overdue > 0 ? `${item.days_overdue} days` : 'Due'}
-                      </span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -942,7 +915,7 @@ function FeeManager() {
       {/* ========================================================
           SUB-VIEWS ROUTING (Preserved 100%)
           ======================================================== */}
-      {activeTab === 'bills' && <Bills />}
+      {activeTab === 'bills' && <Bills onCollectFee={handlePayFee} />}
       {activeTab === 'pay' && (
         <PayFees
           initialData={paymentData}

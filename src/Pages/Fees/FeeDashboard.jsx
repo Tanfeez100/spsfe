@@ -90,24 +90,12 @@ function FeeDashboard({ onPayStudent }) {
       setError('')
 
       try {
-        const requests = yearOptions.flatMap((year) =>
-          MONTHS.map(async (month) => {
-            const monthKey = `${year}-${month.key}`
-            try {
-              const response = await getFeeList(classFilter, sectionFilter, monthKey)
-              return extractRows(response).map((row) => ({
-                ...row,
-                month: row.month || monthKey,
-                ledger_year: year,
-              }))
-            } catch {
-              return []
-            }
-          })
-        )
-
-        const results = await Promise.all(requests)
-        if (!cancelled) setRecords(results.flat())
+        const response = await getFeeList(classFilter, sectionFilter, '')
+        const rows = extractRows(response).map((row) => ({
+          ...row,
+          ledger_year: Number(String(row.month || '').slice(0, 4)) || currentYear,
+        }))
+        if (!cancelled) setRecords(rows)
       } catch (err) {
         if (!cancelled) {
           setRecords([])
@@ -120,10 +108,18 @@ function FeeDashboard({ onPayStudent }) {
 
     fetchLedger()
 
+    const handleSync = () => {
+      fetchLedger()
+    }
+    window.addEventListener('fee:bills-updated', handleSync)
+    window.addEventListener('fee:payment-recorded', handleSync)
+
     return () => {
       cancelled = true
+      window.removeEventListener('fee:bills-updated', handleSync)
+      window.removeEventListener('fee:payment-recorded', handleSync)
     }
-  }, [yearOptions, classFilter, sectionFilter])
+  }, [classFilter, sectionFilter, currentYear])
 
   useEffect(() => {
     setSelectedId('')

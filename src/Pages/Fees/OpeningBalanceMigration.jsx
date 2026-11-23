@@ -609,10 +609,10 @@ function OpeningBalanceMigration() {
   if (!isAdmin) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Opening Balance Migration</h3>
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
-          <p className="text-sm font-semibold text-red-700 dark:text-red-300">Admin-only access</p>
-          <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+        <h3 className="text-base font-bold text-slate-900">Opening Balance Migration</h3>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+          <p className="text-sm font-semibold text-rose-700">Admin-only access</p>
+          <p className="text-xs text-rose-600 mt-1">
             You do not have permission to access Fees Migration Setup.
           </p>
         </div>
@@ -621,46 +621,74 @@ function OpeningBalanceMigration() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Header & Status */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Migration Setup</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            Migration Setup
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
             Opening Balance Migration for Fees module
           </p>
         </div>
         {migrationHistory.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 text-xs font-bold">
-            <span className="material-symbols-outlined text-sm">check_circle</span>
-            {migrationHistory.length} Migration{migrationHistory.length !== 1 ? 's' : ''}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 text-xs font-bold shadow-2xs">
+            <span className="material-symbols-outlined text-[15px]">check_circle</span>
+            {migrationHistory.length} Migration{migrationHistory.length !== 1 ? 's' : ''} Completed
           </span>
         )}
       </div>
 
-      <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
-        <div className="flex items-start gap-2">
-          <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
-          <div>
-            <p className="text-sm font-bold text-blue-700 dark:text-blue-300">Multiple uploads are allowed.</p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              Review the uploaded data carefully. Migration history is saved for reference.
-            </p>
-          </div>
+      {/* Blue Guidance Box */}
+      <div className="bg-blue-50/80 border border-blue-200/80 rounded-xl p-3.5 flex items-start gap-3">
+        <div className="p-1 bg-blue-100 text-blue-700 rounded-full shrink-0 mt-0.5">
+          <span className="material-symbols-outlined text-[16px] block">info</span>
+        </div>
+        <div className="text-xs text-blue-900">
+          <span className="font-bold text-blue-950">Multiple uploads are allowed.</span>
+          <span className="text-blue-700 ml-1">
+            Review the uploaded data carefully. Migration history is saved for reference.
+          </span>
         </div>
       </div>
 
+      {/* Migration History (if available) */}
       {migrationHistory.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Recent Migrations</p>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-slate-500">history</span>
+              Recent Migrations History
+            </h3>
+            <span className="text-xs text-slate-400 font-medium">
+              {migrationHistory.length} record{migrationHistory.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
             {migrationHistory.map((report) => (
-              <div key={report.id} className="rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/20 p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{report.month}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{formatDateTime(report.completedAt)}</p>
+              <div
+                key={report.id}
+                className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3 hover:bg-emerald-50/70 transition flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-emerald-800">{report.month}</span>
+                    <span className="text-[10px] font-semibold text-slate-400">·</span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {formatDateTime(report.completedAt)}
+                    </span>
                   </div>
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{report.totalStudents} students</p>
+                  {report.uploadedFileName && (
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      File: <span className="font-medium text-slate-700">{report.uploadedFileName}</span>
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-0.5 rounded-full">
+                    {report.total_migrated || report.totalStudents || 0} students migrated
+                  </span>
                 </div>
               </div>
             ))}
@@ -668,66 +696,80 @@ function OpeningBalanceMigration() {
         </div>
       )}
 
+      {/* Step by Step Workflow Cards */}
       <div className="space-y-4">
-        {/* Step 1 */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-white text-xs font-bold">1</span>
-            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Select Migration Month</h4>
+        {/* Step 1: Select Migration Month */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+              1
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">Select Migration Month</h3>
           </div>
-          <div className="max-w-sm">
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Migration Month (YYYY-MM)</label>
-            <input
-              type="month"
-              value={migrationMonth}
-              onChange={(event) => setMigrationMonth(event.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-cyan-200/30 dark:border-cyan-700/50 bg-cyan-50/30 dark:bg-cyan-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400"
-            />
+          <div className="max-w-xs space-y-1.5 pl-8.5">
+            <label className="block text-xs font-semibold text-slate-700">
+              Migration Month (YYYY-MM)
+            </label>
+            <div className="relative">
+              <input
+                type="month"
+                value={migrationMonth}
+                onChange={(event) => setMigrationMonth(event.target.value)}
+                className="w-full text-xs font-medium text-slate-800 bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition shadow-2xs cursor-pointer"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Step 2 */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-white text-xs font-bold">2</span>
-            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Upload Excel</h4>
+        {/* Step 2: Upload Excel */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+              2
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">Upload Excel</h3>
           </div>
 
-          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-            Required Columns
-          </label>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {REQUIRED_COLUMNS.map((column) => (
-              <span
-                key={column}
-                className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 text-xs font-medium"
-              >
-                {column}
+          <div className="pl-8.5 space-y-4">
+            {/* Required Columns Specification */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-600 block">
+                Required Columns:
               </span>
-            ))}
-          </div>
+              <div className="flex flex-wrap gap-1.5">
+                {REQUIRED_COLUMNS.map((column) => (
+                  <span
+                    key={column}
+                    className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
+                  >
+                    {column}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-          {/* Download Sample Templates Card */}
-          <div className="mb-4 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30 shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-blue-600 dark:text-blue-400">table_chart</span>
-                  Download Sample Excel Templates
-                </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Download a sample template with dummy examples, or export all current active students ready to fill dues.
-                </p>
+            {/* Download Sample Excel Templates Card */}
+            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg shrink-0">
+                  <span className="material-symbols-outlined text-[20px] block">table_chart</span>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Download Sample Excel Templates</div>
+                  <div className="text-[11px] text-slate-500">
+                    Download a sample template with dummy examples, or export all current active students ready to fill dues.
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={handleDownloadSampleExcel}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
                   title="Download blank sample Excel template with realistic dummy examples"
                 >
-                  <span className="material-symbols-outlined text-[16px] text-emerald-600">download</span>
+                  <span className="material-symbols-outlined text-[15px] text-emerald-600">download</span>
                   Sample Excel (.xlsx)
                 </button>
 
@@ -735,233 +777,300 @@ function OpeningBalanceMigration() {
                   type="button"
                   onClick={handleDownloadActiveStudentsTemplate}
                   disabled={loadingStudents || students.length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#132c4e] hover:bg-[#0f1e36] text-white text-xs font-bold shadow-2xs transition disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-900 text-white hover:bg-slate-800 text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                   title="Export active students from database pre-filled with class, section, roll number and name"
                 >
-                  <span className="material-symbols-outlined text-[16px]">group</span>
+                  <span className="material-symbols-outlined text-[15px] text-indigo-300">group</span>
                   Pre-filled Students ({students.length})
                 </button>
               </div>
             </div>
-          </div>
 
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFileUpload}
-            disabled={!migrationMonth}
-            className="block w-full text-sm text-slate-700 dark:text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-cyan-500/90 file:shadow-lg file:shadow-cyan-500/20 disabled:opacity-60"
-          />
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-            {migrationMonth
-              ? 'Upload .xlsx or .xls file to continue.'
-              : 'Select migration month first to enable upload.'}
-          </p>
-          {uploadedFileName && (
-            <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">
-              File selected: <span className="font-semibold">{uploadedFileName}</span>
-            </p>
-          )}
-        </div>
-
-        {/* Step 3 */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-white text-xs font-bold">3</span>
-            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Preview and Validation</h4>
-          </div>
-
-          {loadingStudents && (
-            <div className="rounded-lg border border-cyan-200/30 dark:border-cyan-700/50 bg-cyan-50/30 dark:bg-cyan-900/10 p-3 flex items-center gap-2">
-              <span className="material-symbols-outlined animate-spin text-cyan-200">sync</span>
-              <p className="text-sm text-cyan-200">Loading student master data for validation...</p>
-            </div>
-          )}
-
-          {studentLoadError && (
-            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
-              <p className="text-sm font-semibold text-red-700 dark:text-red-300">{studentLoadError}</p>
-            </div>
-          )}
-
-          {parseError && (
-            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
-              <p className="text-sm font-semibold text-red-700 dark:text-red-300">{parseError}</p>
-            </div>
-          )}
-
-          {validationRows.length > 0 && (
-            <>
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Total Uploaded</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{validationRows.length}</p>
-                </div>
-                <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3">
-                  <p className="text-xs text-emerald-600 dark:text-emerald-300">Valid Records</p>
-                  <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">{validRows.length}</p>
-                </div>
-                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
-                  <p className="text-xs text-red-600 dark:text-red-300">Invalid Records</p>
-                  <p className="text-lg font-bold text-red-700 dark:text-red-200">{invalidRows.length}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Total Pending Due</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{formatAmount(totalPendingDue)}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Total Advance</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{formatAmount(totalAdvance)}</p>
-                </div>
-              </div>
-
-              {validRows.length > 0 && (
-                <div className="rounded-lg border border-emerald-200 dark:border-emerald-700 overflow-hidden">
-                  <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-700">
-                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Valid Records (Green)</p>
-                  </div>
-                  <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
-                    <table className="w-full text-xs sm:text-sm">
-                      <thead className="bg-emerald-100/70 dark:bg-emerald-900/30">
-                        <tr>
-                          <th className="px-3 py-2 text-left">#</th>
-                          <th className="px-3 py-2 text-left">Class</th>
-                          <th className="px-3 py-2 text-left">Section</th>
-                          <th className="px-3 py-2 text-left">Roll No</th>
-                          <th className="px-3 py-2 text-right">Current Month Total</th>
-                          <th className="px-3 py-2 text-right">Pending Due</th>
-                          <th className="px-3 py-2 text-right">Advance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {validRows.slice(0, 50).map((row) => (
-                          <tr key={`valid-${row.rowNumber}`} className="border-b border-emerald-100 dark:border-emerald-900/30">
-                            <td className="px-3 py-2">{row.rowNumber}</td>
-                            <td className="px-3 py-2">{row.class}</td>
-                            <td className="px-3 py-2">{row.section}</td>
-                            <td className="px-3 py-2">{row.rollNo}</td>
-                            <td className="px-3 py-2 text-right">{formatAmount(row.currentMonthTotal)}</td>
-                            <td className="px-3 py-2 text-right">{formatAmount(row.pendingDue)}</td>
-                            <td className="px-3 py-2 text-right">{formatAmount(row.advance)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {validRows.length > 50 && (
-                    <p className="px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
-                      Showing first 50 rows out of {validRows.length} valid records.
-                    </p>
+            {/* File Upload Dropzone */}
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className={`cursor-pointer inline-flex items-center px-4 py-2 border text-xs font-semibold rounded-lg transition-colors shadow-2xs ${
+                  migrationMonth
+                    ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                    : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                }`}>
+                  <span className="material-symbols-outlined text-[16px] mr-1.5">upload_file</span>
+                  <span>Choose file</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileUpload}
+                    disabled={!migrationMonth}
+                    className="hidden"
+                  />
+                </label>
+                <span className="text-xs text-slate-600 font-medium">
+                  {uploadedFileName ? (
+                    <span className="font-bold text-slate-900">{uploadedFileName}</span>
+                  ) : (
+                    'No file chosen'
                   )}
-                </div>
-              )}
-
-              {invalidRows.length > 0 && (
-                <div className="rounded-lg border border-red-200 dark:border-red-700 overflow-hidden">
-                  <div className="px-3 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-700">
-                    <p className="text-sm font-semibold text-red-700 dark:text-red-300">Invalid Records (Red)</p>
-                  </div>
-                  <div className="overflow-x-auto table-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgb(99, 126, 153) rgb(224, 242, 254)' }}>
-                    <table className="w-full text-xs sm:text-sm">
-                      <thead className="bg-red-100/70 dark:bg-red-900/30">
-                        <tr>
-                          <th className="px-3 py-2 text-left">#</th>
-                          <th className="px-3 py-2 text-left">Class</th>
-                          <th className="px-3 py-2 text-left">Section</th>
-                          <th className="px-3 py-2 text-left">Roll No</th>
-                          <th className="px-3 py-2 text-left">Errors</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invalidRows.map((row) => (
-                          <tr key={`invalid-${row.rowNumber}`} className="border-b border-red-100 dark:border-red-900/30">
-                            <td className="px-3 py-2">{row.rowNumber}</td>
-                            <td className="px-3 py-2">{row.class}</td>
-                            <td className="px-3 py-2">{row.section}</td>
-                            <td className="px-3 py-2">{row.rollNo}</td>
-                            <td className="px-3 py-2 text-red-700 dark:text-red-300">
-                              {row.errors.join(' ')}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {uploadedRows.length === 0 && !parseError && (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Upload file to preview valid and invalid rows.
-            </p>
-          )}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {migrationMonth
+                  ? 'Supported formats: .xlsx, .xls, .csv'
+                  : 'Select migration month first in Step 1 to enable upload.'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Step 4 */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-white text-xs font-bold">4</span>
-            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Confirm Migration</h4>
+        {/* Step 3: Preview and Validation */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                3
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Preview and Validation</h3>
+            </div>
+            <span className="text-xs font-medium text-slate-400">
+              {validationRows.length} rows detected
+            </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-            Migration is allowed only when all rows are valid and no errors remain.
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowConfirmModal(true)}
-            disabled={!canMigrate}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold hover:bg-cyan-500/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
-          >
-            {isMigrating ? (
+
+          <div className="pl-8.5 space-y-4">
+            {loadingStudents && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 flex items-center gap-2">
+                <span className="material-symbols-outlined animate-spin text-blue-600 text-[18px]">sync</span>
+                <p className="text-xs text-blue-800 font-medium">Loading student master data for validation...</p>
+              </div>
+            )}
+
+            {studentLoadError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-red-600 text-[18px]">error</span>
+                <p className="text-xs text-red-700 font-medium">{studentLoadError}</p>
+              </div>
+            )}
+
+            {parseError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-red-600 text-[18px]">error</span>
+                <p className="text-xs text-red-700 font-medium">{parseError}</p>
+              </div>
+            )}
+
+            {/* When no file is uploaded */}
+            {uploadedRows.length === 0 && !parseError && (
+              <div className="border border-dashed border-slate-300 rounded-xl p-8 bg-slate-50/50 flex flex-col items-center justify-center text-center">
+                <div className="w-10 h-10 rounded-full bg-slate-200/80 text-slate-400 flex items-center justify-center mb-2">
+                  <span className="material-symbols-outlined text-[20px]">table_chart</span>
+                </div>
+                <div className="text-xs font-semibold text-slate-700">
+                  Upload file to preview valid and invalid rows.
+                </div>
+                <p className="text-[11px] text-slate-400 max-w-sm mt-1">
+                  Data verification checks student IDs, ensures non-negative dues, and validates class/section mappings before committal.
+                </p>
+              </div>
+            )}
+
+            {/* When rows are detected */}
+            {validationRows.length > 0 && (
               <>
-                <span className="material-symbols-outlined animate-spin text-sm">sync</span>
-                Migrating...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-sm">send</span>
-                Run Migration
+                {/* 5-Metric Summary Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 shadow-2xs">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Uploaded</p>
+                    <p className="text-lg font-bold text-slate-900 mt-0.5">{validationRows.length}</p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 shadow-2xs">
+                    <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Valid Records</p>
+                    <p className="text-lg font-bold text-emerald-700 mt-0.5">{validRows.length}</p>
+                  </div>
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3 shadow-2xs">
+                    <p className="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">Invalid Records</p>
+                    <p className="text-lg font-bold text-rose-700 mt-0.5">{invalidRows.length}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 shadow-2xs">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Pending Due</p>
+                    <p className="text-lg font-bold text-slate-900 mt-0.5">{formatAmount(totalPendingDue)}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 shadow-2xs">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Advance</p>
+                    <p className="text-lg font-bold text-slate-900 mt-0.5">{formatAmount(totalAdvance)}</p>
+                  </div>
+                </div>
+
+                {/* Valid Records Table */}
+                {validRows.length > 0 && (
+                  <div className="rounded-xl border border-emerald-200 overflow-hidden shadow-2xs">
+                    <div className="px-3.5 py-2.5 bg-emerald-50 border-b border-emerald-200 flex items-center justify-between">
+                      <p className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                        Valid Records ({validRows.length})
+                      </p>
+                      {validRows.length > 50 && (
+                        <span className="text-[11px] text-emerald-700 font-medium">
+                          Showing first 50 rows
+                        </span>
+                      )}
+                    </div>
+                    <div className="overflow-x-auto max-h-72">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-emerald-100/50 text-[11px] font-bold text-emerald-900 uppercase tracking-wider sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2">#</th>
+                            <th className="px-3 py-2">Class</th>
+                            <th className="px-3 py-2">Section</th>
+                            <th className="px-3 py-2">Roll No</th>
+                            <th className="px-3 py-2 text-right">Current Month Total</th>
+                            <th className="px-3 py-2 text-right">Pending Due</th>
+                            <th className="px-3 py-2 text-right">Advance</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-emerald-50 bg-white">
+                          {validRows.slice(0, 50).map((row) => (
+                            <tr key={`valid-${row.rowNumber}`} className="hover:bg-emerald-50/40 transition-colors">
+                              <td className="px-3 py-2 font-mono text-slate-500">{row.rowNumber}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-800">{row.class}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-800">{row.section}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-800">{row.rollNo}</td>
+                              <td className="px-3 py-2 text-right text-slate-700">{formatAmount(row.currentMonthTotal)}</td>
+                              <td className="px-3 py-2 text-right font-semibold text-amber-700">{formatAmount(row.pendingDue)}</td>
+                              <td className="px-3 py-2 text-right font-semibold text-emerald-700">{formatAmount(row.advance)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Invalid Records Table */}
+                {invalidRows.length > 0 && (
+                  <div className="rounded-xl border border-rose-200 overflow-hidden shadow-2xs">
+                    <div className="px-3.5 py-2.5 bg-rose-50 border-b border-rose-200">
+                      <p className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-rose-600">error</span>
+                        Invalid Records with Validation Errors ({invalidRows.length})
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto max-h-72">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-rose-100/50 text-[11px] font-bold text-rose-900 uppercase tracking-wider sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2">#</th>
+                            <th className="px-3 py-2">Class</th>
+                            <th className="px-3 py-2">Section</th>
+                            <th className="px-3 py-2">Roll No</th>
+                            <th className="px-3 py-2">Validation Errors</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-rose-50 bg-white">
+                          {invalidRows.map((row) => (
+                            <tr key={`invalid-${row.rowNumber}`} className="hover:bg-rose-50/40 transition-colors">
+                              <td className="px-3 py-2 font-mono text-slate-500">{row.rowNumber}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-800">{row.class}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-800">{row.section}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-800">{row.rollNo}</td>
+                              <td className="px-3 py-2 text-rose-700 font-medium">
+                                <ul className="list-disc list-inside space-y-0.5">
+                                  {row.errors.map((err, i) => (
+                                    <li key={i}>{err}</li>
+                                  ))}
+                                </ul>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </>
             )}
-          </button>
+          </div>
+        </div>
+
+        {/* Step 4: Confirm Migration */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+              4
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">Confirm Migration</h3>
+          </div>
+          <div className="pl-8.5 space-y-3">
+            <p className="text-xs text-slate-500">
+              Migration is allowed only when all rows are valid and no errors remain.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowConfirmModal(true)}
+              disabled={!canMigrate}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl transition-all shadow-2xs ${
+                canMigrate
+                  ? 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer active:scale-98'
+                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+              }`}
+            >
+              {isMigrating ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[16px]">sync</span>
+                  Migrating...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[16px] text-emerald-400">bolt</span>
+                  Run Migration
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-5">
-            <h4 className="text-lg font-black text-slate-900 dark:text-white">Confirm Opening Balance Migration</h4>
-            <div className="mt-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
-              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px]">drive_folder_upload</span>
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-slate-900">Confirm Opening Balance Migration</h4>
+                <p className="text-xs text-slate-400">Month: {migrationMonth || '--'}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 space-y-1">
+              <p className="text-xs font-bold text-blue-900">
                 Please verify the data before confirming.
               </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-[11px] text-blue-700">
                 Opening balance migration for {migrationMonth || '--'} will be sent to the server for processing. Multiple uploads are allowed.
               </p>
             </div>
 
-            <label className="mt-4 flex items-start gap-2 cursor-pointer">
+            <label className="flex items-start gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200">
               <input
                 type="checkbox"
                 checked={isConfirmedByAdmin}
                 onChange={(event) => setIsConfirmedByAdmin(event.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-500 focus:ring-cyan-400"
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-300">
-                I confirm this migration is correct.
+              <span className="text-xs font-semibold text-slate-700">
+                I confirm this migration is correct and verified.
               </span>
             </label>
 
-            <div className="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => {
                   setShowConfirmModal(false)
                   setIsConfirmedByAdmin(false)
                 }}
-                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
                 disabled={isMigrating}
               >
                 Cancel
@@ -970,11 +1079,11 @@ function OpeningBalanceMigration() {
                 type="button"
                 onClick={handleConfirmMigration}
                 disabled={!isConfirmedByAdmin || isMigrating}
-                className="px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold hover:bg-cyan-500/90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 shadow-2xs transition active:scale-98 cursor-pointer"
               >
                 {isMigrating ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                    <span className="material-symbols-outlined animate-spin text-[16px]">sync</span>
                     Processing...
                   </>
                 ) : (

@@ -58,12 +58,12 @@ export const DOCUMENT_TEMPLATES = {
     },
     {
       id: 'id_card_rose_gold',
-      name: 'Rose Gold Blossom',
-      badge: 'Pink & Olive Curve',
+      name: 'Veridian Geometric Cyan',
+      badge: 'Geometric Prism & Cyan',
       layout: 'Portrait (CR-80)',
-      description: 'Elegant design featuring circular photo cutout with rose pink arc ribbon, olive crest header, and pink bookmark metadata tags.',
-      accent: '#f43f5e',
-      previewBg: 'from-[#a88a55] via-[#f43f5e] to-[#fff1f2]',
+      description: 'Modern university-style card featuring angular navy geometric header, punch slot, cyan facet ribbon, circular portrait aura, and registrar security block.',
+      accent: '#0D3B78',
+      previewBg: 'from-[#051329] via-[#0B1E3F] to-[#1E6BF3]',
     },
     {
       id: 'id_card_navy_wave',

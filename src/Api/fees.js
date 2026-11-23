@@ -38,12 +38,15 @@ const normalizeClassValue = (value) => {
     return ''
   }
 
-  const digits = text.match(/\d+/g)
-  if (digits && digits.length > 0) {
-    return String(parseInt(digits.join(''), 10))
+  const cleaned = text.replace(/^class\s*/i, '').trim()
+  const digits = cleaned.match(/^\d+$/)
+  if (digits) {
+    return String(parseInt(digits[0], 10))
   }
 
-  return text.replace(/[^a-z0-9]/g, '')
+  const compact = cleaned.replace(/[\s-]+/g, '')
+  if (compact === 'mothercare' || compact === 'nursery') return 'nursery'
+  return compact.replace(/[^a-z0-9]/g, '')
 }
 
 const extractFeeRecords = (payload) => {
@@ -177,8 +180,13 @@ export const getFeeList = async (classFilter = '', sectionFilter = '', month = '
   return withErrorHandling(() => api.get('/api/fees/list', { params }), 'Failed to fetch fee list')
 }
 
-export const recordFeePayment = async (paymentData) =>
-  withErrorHandling(() => api.post('/api/fees/pay', paymentData), 'Failed to record fee payment')
+export const recordFeePayment = async (paymentData) => {
+  const payload = {
+    ...paymentData,
+    transaction_id: paymentData.transaction_id || paymentData.reference_no || undefined,
+  }
+  return withErrorHandling(() => api.post('/api/fees/pay', payload), 'Failed to record fee payment')
+}
 
 export const getInvoiceDetails = async (billId) =>
   withErrorHandling(() => api.get(`/api/fees/invoice/${billId}`), 'Failed to fetch invoice')
@@ -200,6 +208,43 @@ export const getFeeDashboard = async () =>
 
 export const getStudentFeeDetails = async (classFilter, section, rollNumber, month) => {
   try {
+    // 1. Direct dedicated endpoint for Pay Counter
+    try {
+      const params = buildQueryParams({
+        class: classFilter,
+        section: section || undefined,
+        roll_no: rollNumber,
+        month: month || undefined,
+      })
+      const response = await api.get('/api/fees/student-fee-details', { params })
+      if (response?.data?.success || response?.data?.student) {
+        const d = response.data
+        return {
+          ...d,
+          student_name: d.student?.name || d.student?.student_name,
+          father_name: d.student?.father_name,
+          admission_no: d.student?.admission_no || d.student?.admission_number,
+          phone: d.student?.mobile || d.student?.phone,
+          class: d.student?.class || classFilter,
+          section: d.student?.section || section,
+          roll_no: d.student?.roll_no || rollNumber,
+          tuition_fee: d.tuition_fee ?? d.fee_breakdown?.tuition_fee ?? 0,
+          computer_fee: d.computer_fee ?? d.fee_breakdown?.computer_fee ?? 0,
+          exam_fee: d.exam_fee ?? d.fee_breakdown?.exam_fee ?? 0,
+          annual_fee: d.annual_fee ?? d.fee_breakdown?.annual_fee ?? 0,
+          transport_fee: d.transport_fee ?? d.fee_breakdown?.transport_fee ?? 0,
+          previous_due: d.previous_due ?? d.fee_breakdown?.previous_due ?? 0,
+          total_fee: d.total_fee ?? d.fee_breakdown?.total_fee ?? 0,
+          paid_amount: d.paid_amount ?? d.fee_breakdown?.paid_amount ?? 0,
+          concession_amount: d.concession_amount ?? d.fee_breakdown?.concession_amount ?? 0,
+          net_payable: d.net_payable ?? d.fee_breakdown?.net_payable ?? 0,
+        }
+      }
+    } catch (endpointErr) {
+      console.warn('Dedicated student fee details endpoint notice:', endpointErr?.message)
+    }
+
+    // 2. Fallback strategy via fee list
     const classVariants = buildClassVariants(classFilter)
     const searchStrategies = [
       { classFilter, section },
